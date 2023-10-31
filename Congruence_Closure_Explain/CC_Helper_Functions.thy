@@ -14,10 +14,11 @@ proof-
   have li: "li < length l" 
     using assms(2) path_nodes_lt_length_l by auto
   show ?thesis
-    using assms(1) li assms(2-) proof(induction arbitrary: p\<^sub>1 rule: rep_of_induct)
+    using assms(1) li assms(2-)
+  proof(induction arbitrary: p\<^sub>1 rule: rep_of_induct)
     case (base li)
-    then show ?case 
-      by (metis list.set_intros(1) nth_list_update_neq path_no_cycle rep_of_refl)
+    then show ?case
+      using path_no_cycle by (fastforce simp: rep_of_refl)
   next
     case (step li)
     then have path_to_parent: "path l (rep_of l (l ! li)) (butlast p\<^sub>1) (l ! li)" 
@@ -153,10 +154,10 @@ qed (auto simp add: assms)
 
 lemma rep_of_fun_upd_rep_of:
   assumes "ufa_invar l"
-    and "x < length l"
-    and "y < length l"
-    and "i < length l"
-    and "rep_of l x \<noteq> rep_of l y"
+      and "x < length l"
+      and "y < length l"
+      and "i < length l"
+      and "rep_of l x \<noteq> rep_of l y"
   shows "rep_of (l[rep_of l x := y]) x = rep_of l y"
 proof-
   have path_to_rep_x: "path l (rep_of l x) (path_to_root l x) x" 
@@ -179,8 +180,8 @@ qed
 
 lemma rep_of_fun_upd_aux2: 
   assumes "ufa_invar l" "path l a p x" 
-    "b < length l" "rep_of l a \<noteq> rep_of l b"
-  shows "rep_of (l[a := b]) x = rep_of l b"
+      and "b < length l" "rep_of l a \<noteq> rep_of l b"
+    shows "rep_of (l[a := b]) x = rep_of l b"
 proof-
   obtain pR where "path l (rep_of l b) pR b"
     using assms(1,3) path_to_root_correct by blast

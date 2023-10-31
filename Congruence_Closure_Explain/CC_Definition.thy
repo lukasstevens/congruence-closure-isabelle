@@ -53,7 +53,7 @@ record cc_state =
 
 text \<open>For updating two dimensional lists.\<close>
 abbreviation upd :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where 
-"upd xs n m e \<equiv> xs[n := (xs ! n)[m := e]]"
+  "upd xs n m e \<equiv> xs[n := (xs ! n)[m := e]]"
 
 text \<open>Finds the entry in the lookup table for the representatives of \<open>a\<^sub>1\<close> and \<open>a\<^sub>2\<close>.\<close>
 abbreviation lookup_entry ::
@@ -117,35 +117,35 @@ function (domintros) add_label ::
   by pat_completeness auto
 
 fun propagate_loop where
-  "propagate_loop rep_b (u1 # urest) cc_state =
+  "propagate_loop rep_b (u1 # urest) ccs =
     propagate_loop rep_b urest (
-      if lookup_Some (lookup cc_state) (cc_list cc_state) u1
-      then cc_state \<lparr> pending := link_to_lookup (lookup cc_state) (cc_list cc_state) u1 # pending cc_state \<rparr>
-      else cc_state \<lparr> use_list := (use_list cc_state)[rep_b := u1 # (use_list cc_state ! rep_b)]
-                    , lookup := update_lookup (lookup cc_state) (cc_list cc_state) u1
-                    \<rparr>
+      if lookup_Some (lookup ccs) (cc_list ccs) u1
+      then ccs \<lparr> pending := link_to_lookup (lookup ccs) (cc_list ccs) u1 # pending ccs \<rparr>
+      else ccs \<lparr> use_list := (use_list ccs)[rep_b := u1 # (use_list ccs ! rep_b)]
+               , lookup := update_lookup (lookup ccs) (cc_list ccs) u1
+               \<rparr>
       )"
 | "propagate_loop _ [] cc = cc"
 
 abbreviation propagate_step where 
-"propagate_step cc_state a b eq \<equiv> 
-  propagate_loop (rep_of (cc_list cc_state) b) (use_list cc_state ! rep_of (cc_list cc_state) a)
-    (cc_state 
-      \<lparr> cc_list := ufa_union (cc_list cc_state) a b 
-      , use_list := (use_list cc_state)[rep_of (cc_list cc_state) a := []] 
-      , proof_forest := add_edge (proof_forest cc_state) a b 
-      , pf_labels := add_label (pf_labels cc_state) (proof_forest cc_state) a eq 
+"propagate_step ccs a b eq \<equiv> 
+  propagate_loop (rep_of (cc_list ccs) b) (use_list ccs ! rep_of (cc_list ccs) a)
+    (ccs 
+      \<lparr> cc_list := ufa_union (cc_list ccs) a b 
+      , use_list := (use_list ccs)[rep_of (cc_list ccs) a := []] 
+      , proof_forest := add_edge (proof_forest ccs) a b 
+      , pf_labels := add_label (pf_labels ccs) (proof_forest ccs) a eq 
       \<rparr>)"
 
 function (domintros) propagate :: "cc_state \<Rightarrow> cc_state" where
-"propagate cc_state =
-  (case pending cc_state of
-    [] \<Rightarrow> cc_state
+"propagate ccs =
+  (case pending ccs of
+    [] \<Rightarrow> ccs
   | (eq # pe) \<Rightarrow> 
     let a = left eq; b = right eq in
-      (if rep_of (cc_list cc_state) a = rep_of (cc_list cc_state) b 
-        then propagate (cc_state \<lparr> pending := pe \<rparr>)
-        else propagate (propagate_step (cc_state \<lparr> pending := pe \<rparr>) a b eq))
+      (if rep_of (cc_list ccs) a = rep_of (cc_list ccs) b 
+        then propagate (ccs \<lparr> pending := pe \<rparr>)
+        else propagate (propagate_step (ccs \<lparr> pending := pe \<rparr>) a b eq))
   )"
   by pat_completeness auto
 
@@ -155,26 +155,25 @@ lemma propagate_if_pending_eq_Nil[simp]:
   using assms propagate.psimps propagate.pelims by fastforce
 
 lemma propagate_if_pending_eq_Cons_and_rep_of_eq[simp]:
-  assumes "propagate_dom cc_state"
-      and "pending cc_state = eq # pe"
-      and "rep_of (cc_list cc_state) (left eq) = rep_of (cc_list cc_state) (right eq)"
-    shows "propagate cc_state = propagate (cc_state \<lparr> pending := pe \<rparr>)"
+  assumes "propagate_dom ccs"
+      and "pending ccs = eq # pe"
+      and "rep_of (cc_list ccs) (left eq) = rep_of (cc_list ccs) (right eq)"
+    shows "propagate ccs = propagate (ccs \<lparr> pending := pe \<rparr>)"
   using assms propagate.psimps unfolding Let_def by auto
 
 lemma propagate_if_pending_eq_Cons_and_rep_of_neq[simp]:
-  assumes "propagate_dom cc_state"
-      and "pending cc_state = eq # pe"
-      and "rep_of (cc_list cc_state) (left eq) \<noteq> rep_of (cc_list cc_state) (right eq)"
-    shows "propagate cc_state
-          = propagate (propagate_step (cc_state \<lparr> pending := pe \<rparr>) (left eq) (right eq) eq)"
+  assumes "propagate_dom ccs"
+      and "pending ccs = eq # pe"
+      and "rep_of (cc_list ccs) (left eq) \<noteq> rep_of (cc_list ccs) (right eq)"
+    shows "propagate ccs
+          = propagate (propagate_step (ccs \<lparr> pending := pe \<rparr>) (left eq) (right eq) eq)"
   using assms propagate.psimps unfolding Let_def by simp
 
-term list_update
 fun merge :: "cc_state \<Rightarrow> equation \<Rightarrow> cc_state"
   where 
-  "merge cc_state (a \<approx> b) = propagate (cc_state\<lparr> pending := One (a \<approx> b) # pending cc_state
-                                               , input := insert (a \<approx> b) (input cc_state)
-                                               \<rparr>)"
+  "merge ccs (a \<approx> b) = propagate (ccs\<lparr> pending := One (a \<approx> b) # pending ccs
+                                     , input := insert (a \<approx> b) (input ccs)
+                                     \<rparr>)"
 | "merge \<lparr> cc_list = l , use_list = u, lookup = t, pending = pe
          , proof_forest = pf, pf_labels = pfl
          , input = ip
@@ -189,19 +188,22 @@ fun merge :: "cc_state \<Rightarrow> equation \<Rightarrow> cc_state"
     else
       let rep_a\<^sub>1 = rep_of l a\<^sub>1; rep_a\<^sub>2 = rep_of l a\<^sub>2 in
         \<lparr> cc_list = l
-        , use_list = u[rep_a\<^sub>1 := (F a\<^sub>1 a\<^sub>2 \<approx> a) # (u ! rep_a\<^sub>1), rep_a\<^sub>2 := (F a\<^sub>1 a\<^sub>2 \<approx> a) # (u ! rep_a\<^sub>2)]
+        , use_list = u[ rep_a\<^sub>1 := (F a\<^sub>1 a\<^sub>2 \<approx> a) # (u ! rep_a\<^sub>1)
+                      , rep_a\<^sub>2 := (F a\<^sub>1 a\<^sub>2 \<approx> a) # (u ! rep_a\<^sub>2)
+                      ]
         , lookup = update_lookup t l (F a\<^sub>1 a\<^sub>2 \<approx> a)
         , pending = pe
         , proof_forest = pf, pf_labels = pfl
         , input = insert (F a\<^sub>1 a\<^sub>2 \<approx> a) ip
-        \<rparr>)"
+        \<rparr>
+  )"
 
 text \<open>The input must be a valid index (a < nr_vars cc \<and> b < nr_vars cc)\<close>
 fun are_congruent :: "cc_state \<Rightarrow> equation \<Rightarrow> bool" where
-  "are_congruent cc_state (a \<approx> b) \<longleftrightarrow> rep_of (cc_list cc_state) a = rep_of (cc_list cc_state) b" 
-| "are_congruent cc_state (F a\<^sub>1 a\<^sub>2 \<approx> a) = 
-    (case lookup_entry (lookup cc_state) (cc_list cc_state) a\<^sub>1 a\<^sub>2 of
-      Some (F b\<^sub>1 b\<^sub>2 \<approx> b) \<Rightarrow> rep_of (cc_list cc_state) a = rep_of (cc_list cc_state) b
+  "are_congruent ccs (a \<approx> b) \<longleftrightarrow> rep_of (cc_list ccs) a = rep_of (cc_list ccs) b" 
+| "are_congruent ccs (F a\<^sub>1 a\<^sub>2 \<approx> a) = 
+    (case lookup_entry (lookup ccs) (cc_list ccs) a\<^sub>1 a\<^sub>2 of
+      Some (F b\<^sub>1 b\<^sub>2 \<approx> b) \<Rightarrow> rep_of (cc_list ccs) a = rep_of (cc_list ccs) b
     | None \<Rightarrow> False)"
 
 lemma are_congruent_simp:
