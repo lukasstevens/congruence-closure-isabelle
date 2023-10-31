@@ -9,22 +9,26 @@ subsection \<open>Abstract formalisation of congruence closure\<close>
 text \<open>S is the set of input equations.
 The Congruence Closure is the smallest relation that includes S and is closed under reflexivity,
 symmetry, transitivity, and under function application.
-Source: \<open>https://drops.dagstuhl.de/opus/volltexte/2021/14253/pdf/LIPIcs-FSCD-2021-15.pdf\<close>\<close>
+Source: \<^url>\<open>https://drops.dagstuhl.de/opus/volltexte/2021/14253/pdf/LIPIcs-FSCD-2021-15.pdf\<close>\<close>
 
 inductive_set Congruence_Closure :: "equation set \<Rightarrow> equation set" for S
   where
     base: "eqt \<in> S \<Longrightarrow> eqt \<in> Congruence_Closure S"
   | reflexive: "(a \<approx> a) \<in> Congruence_Closure S"
   | symmetric: "(a \<approx> b) \<in> Congruence_Closure S \<Longrightarrow> (b \<approx> a) \<in> Congruence_Closure S"
-  | transitive1: "(a \<approx> b) \<in> Congruence_Closure S \<Longrightarrow> (b \<approx> c) \<in> Congruence_Closure S  
-\<Longrightarrow> (a \<approx> c) \<in> Congruence_Closure S"
-  | transitive2: "(F a\<^sub>1 a\<^sub>2 \<approx> b) \<in> Congruence_Closure S \<Longrightarrow> (b \<approx> c) \<in> Congruence_Closure S  
-\<Longrightarrow> (F a\<^sub>1 a\<^sub>2 \<approx> c) \<in> Congruence_Closure S"
-  | transitive3: "(F a\<^sub>1 a\<^sub>2 \<approx> a) \<in> Congruence_Closure S
-\<Longrightarrow> (a\<^sub>1 \<approx> b\<^sub>1) \<in> Congruence_Closure S \<Longrightarrow> (a\<^sub>2 \<approx> b\<^sub>2) \<in> Congruence_Closure S
-\<Longrightarrow> (F b\<^sub>1 b\<^sub>2 \<approx> a) \<in> Congruence_Closure S"
-  | monotonic: "(F a\<^sub>1 a\<^sub>2 \<approx> a) \<in> Congruence_Closure S \<Longrightarrow> (F a\<^sub>1 a\<^sub>2 \<approx> b) \<in> Congruence_Closure S 
-\<Longrightarrow> (a \<approx> b) \<in> Congruence_Closure S"
+  | transitive1:
+    "(a \<approx> b) \<in> Congruence_Closure S \<Longrightarrow> (b \<approx> c) \<in> Congruence_Closure S  
+    \<Longrightarrow> (a \<approx> c) \<in> Congruence_Closure S"
+  | transitive2:
+    "(F a\<^sub>1 a\<^sub>2 \<approx> b) \<in> Congruence_Closure S \<Longrightarrow> (b \<approx> c) \<in> Congruence_Closure S  
+    \<Longrightarrow> (F a\<^sub>1 a\<^sub>2 \<approx> c) \<in> Congruence_Closure S"
+  | transitive3:
+    "(F a\<^sub>1 a\<^sub>2 \<approx> a) \<in> Congruence_Closure S
+    \<Longrightarrow> (a\<^sub>1 \<approx> b\<^sub>1) \<in> Congruence_Closure S \<Longrightarrow> (a\<^sub>2 \<approx> b\<^sub>2) \<in> Congruence_Closure S
+    \<Longrightarrow> (F b\<^sub>1 b\<^sub>2 \<approx> a) \<in> Congruence_Closure S"
+  | monotonic:
+    "(F a\<^sub>1 a\<^sub>2 \<approx> a) \<in> Congruence_Closure S \<Longrightarrow> (F a\<^sub>1 a\<^sub>2 \<approx> b) \<in> Congruence_Closure S 
+    \<Longrightarrow> (a \<approx> b) \<in> Congruence_Closure S"
 
 declare Congruence_Closure.intros[intro]
 
@@ -171,30 +175,26 @@ lemma valid_vars_pending_cases[consumes 1, case_names One Two]:
     "rep_of l a\<^sub>1 = rep_of l b\<^sub>1" "rep_of l a\<^sub>2 = rep_of l b\<^sub>2"
   using assms valid_vars_pending_iff by force
 
-abbreviation nr_vars :: "congruence_closure \<Rightarrow> nat"
-  where
-    "nr_vars cc \<equiv> length (cc_list cc)"
+abbreviation nr_vars :: "cc_state \<Rightarrow> nat" where
+  "nr_vars cc_state \<equiv> length (cc_list cc_state)"
 
-abbreviation cc_list_set :: "nat list \<Rightarrow> equation set"
-  where
-    "cc_list_set l \<equiv> {a \<approx> rep_of l a |a. a < length l \<and> l ! a \<noteq> a}"
+abbreviation cc_list_set :: "nat list \<Rightarrow> equation set" where
+  "cc_list_set l \<equiv> {a \<approx> rep_of l a |a. a < length l \<and> l ! a \<noteq> a}"
 
-abbreviation lookup_entries_set :: "congruence_closure \<Rightarrow> equation set"
-  where
-    "lookup_entries_set cc \<equiv> {F a' b' \<approx> rep_of (cc_list cc) c | a' b' c c\<^sub>1 c\<^sub>2 . a' < nr_vars cc 
-                      \<and> b' < nr_vars cc \<and> c < nr_vars cc \<and>
-                      cc_list cc ! a' = a' \<and> cc_list cc ! b' = b' 
-                      \<and> lookup cc ! a' ! b' = Some (F c\<^sub>1 c\<^sub>2 \<approx> c)}"
+abbreviation lookup_entries_set :: "cc_state \<Rightarrow> equation set" where
+  "lookup_entries_set cc_state \<equiv>
+    {F a' b' \<approx> rep_of (cc_list cc_state) c | a' b' c c\<^sub>1 c\<^sub>2.
+      a' < nr_vars cc_state \<and> b' < nr_vars cc_state \<and> c < nr_vars cc_state \<and>
+      cc_list cc_state ! a' = a' \<and> cc_list cc_state ! b' = b' \<and>
+      lookup cc_state ! a' ! b' = Some (F c\<^sub>1 c\<^sub>2 \<approx> c)}"
 
-definition representativeE :: "congruence_closure \<Rightarrow> equation set"
-  where
-    "representativeE cc = cc_list_set (cc_list cc) \<union> lookup_entries_set cc"
+definition representativeE :: "cc_state \<Rightarrow> equation set" where
+  "representativeE cc_state = cc_list_set (cc_list cc_state) \<union> lookup_entries_set cc_state"
 
 text \<open>Converts the list of pending equations to a set of pending equations.\<close>
-fun pending_set :: "pending_equation list \<Rightarrow> equation set"
-  where
-    "pending_set [] = {}"
-  | "pending_set (a # xs) = {left a \<approx> right a} \<union> pending_set xs"
+fun pending_set :: "pending_equation list \<Rightarrow> equation set" where
+  "pending_set [] = {}"
+| "pending_set (a # xs) = {left a \<approx> right a} \<union> pending_set xs"
 
 lemma pending_set_empty_iff_pending_empty:
   "pending_set pe = {} \<longleftrightarrow> pe = []"
@@ -229,75 +229,55 @@ text \<open>As described in the paper\<close>
 
 text \<open>For \<open>cc_list_invar\<close> we use \<open>ufa_invar\<close>\<close>
 
-definition cc_list_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "cc_list_invar cc = ufa_invar (cc_list cc)"
+definition cc_list_invar :: "cc_state \<Rightarrow> bool" where
+  "cc_list_invar cc_state = ufa_invar (cc_list cc_state)"
 
 text \<open>for each representative i, UseList (i) is a list of input equations \<open>f(b\<^sub>1, b\<^sub>2)=b\<close>
 such that i is the representative of \<open>b\<^sub>1\<close> or of \<open>b\<^sub>2\<close> (or of both).\<close>
-abbreviation use_list_valid_element
-  where
-    "use_list_valid_element u_i_j l i \<equiv> 
-    (\<exists> b\<^sub>1 b\<^sub>2 b . u_i_j = (F b\<^sub>1 b\<^sub>2 \<approx> b) \<and> 
-      ((i = rep_of l b\<^sub>1) \<or> i = rep_of l b\<^sub>2) \<and>
-      (b\<^sub>1 < length l \<and> b\<^sub>2 < length l \<and> b < length l)
-  )"
+abbreviation use_list_valid_element where
+  "use_list_valid_element u_i_j l i \<equiv> \<exists>b\<^sub>1 b\<^sub>2 b.
+    u_i_j = (F b\<^sub>1 b\<^sub>2 \<approx> b) \<and> 
+    (i = rep_of l b\<^sub>1 \<or> i = rep_of l b\<^sub>2) \<and>
+    (b\<^sub>1 < length l \<and> b\<^sub>2 < length l \<and> b < length l)"
 
-definition use_list_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "use_list_invar cc \<equiv> 
-(\<forall> i < nr_vars cc . 
-    (cc_list cc) ! i = i \<longrightarrow> (\<forall> j < length ((use_list cc) ! i) . 
-      use_list_valid_element ((use_list cc) ! i ! j) (cc_list cc) i
-  )
-)"
+definition use_list_invar :: "cc_state \<Rightarrow> bool" where
+  "use_list_invar cc_state \<equiv> \<forall>i < nr_vars cc_state.
+    cc_list cc_state ! i = i \<longrightarrow> (\<forall>j < length (use_list cc_state ! i). 
+      use_list_valid_element (use_list cc_state ! i ! j) (cc_list cc_state) i)"
 
 text \<open>for all pairs of representatives (i, j), Lookup(i, j) is some input equation
 \<open>f(a\<^sub>1, a\<^sub>2)=a\<close> such that i and j are the current respective representatives of \<open>a\<^sub>1\<close> and \<open>a\<^sub>2\<close> whenever
 such an equation exists. Otherwise, Lookup(i, j) is \<open>\<bottom>\<close>\<close>
-abbreviation lookup_invar_correctness :: "congruence_closure \<Rightarrow> bool"
-  where
-    "lookup_invar_correctness cc \<equiv> (\<forall> i < nr_vars cc . 
-  (\<forall> j < nr_vars cc .
-    (cc_list cc) ! i = i \<and> (cc_list cc) ! j = j \<longrightarrow> 
-    lookup_valid_element (lookup cc) (cc_list cc) i j 
-  )
-)"
+abbreviation lookup_invar_correctness :: "cc_state \<Rightarrow> bool" where
+  "lookup_invar_correctness cc_state \<equiv> \<forall> i < nr_vars cc_state. \<forall>j < nr_vars cc_state.
+    (cc_list cc_state) ! i = i \<and> (cc_list cc_state) ! j = j \<longrightarrow> 
+      lookup_valid_element (lookup cc_state) (cc_list cc_state) i j"
 
 text \<open>Lookup is also a square matrix.\<close>
-definition lookup_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "lookup_invar cc \<equiv> lookup_invar_correctness cc 
-                        \<and> quadratic_table (lookup cc)"
+definition lookup_invar :: "cc_state \<Rightarrow> bool" where
+  "lookup_invar cc_state \<equiv> lookup_invar_correctness cc_state \<and> quadratic_table (lookup cc_state)"
 
 text \<open>This invariant is needed for the termination proof of \<open>add_edge\<close>:\<close>
 
-definition proof_forest_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "proof_forest_invar cc \<equiv> ufa_invar (proof_forest cc)"
+definition proof_forest_invar :: "cc_state \<Rightarrow> bool" where
+  "proof_forest_invar cc_state \<equiv> ufa_invar (proof_forest cc_state)"
 
 text \<open>The equations in pending can only be of these specific forms:\<close>
 
-definition pending_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "pending_invar cc \<equiv> (\<forall> i < length (pending cc) . 
-                          valid_vars_pending ((pending cc) ! i) (cc_list cc))"
+definition pending_invar :: "cc_state \<Rightarrow> bool" where
+  "pending_invar cc_state \<equiv> \<forall>i < length (pending cc_state). 
+    valid_vars_pending (pending cc_state ! i) (cc_list cc_state)"
 
-lemma pending_invar_Cons: 
-  "pending_invar \<lparr>cc_list = l, use_list = u, lookup = t, pending = (pe # xs), proof_forest = pf, pf_labels = pfl, input = ip\<rparr> 
-\<longleftrightarrow> 
-pending_invar \<lparr>cc_list = l, use_list = u, lookup = t, pending = xs, proof_forest = pf, pf_labels = pfl, input = ip\<rparr> 
-\<and> valid_vars_pending pe l"
+lemma pending_invar_Cons:
+  assumes "pending cc_state = pe # xs"
+  shows "pending_invar cc_state \<longleftrightarrow>
+         pending_invar (cc_state\<lparr> pending := xs \<rparr>) \<and> valid_vars_pending pe (cc_list cc_state)"
   (is "?left \<longleftrightarrow> ?right")
 proof
-  show "?left \<Longrightarrow> ?right"
-    unfolding pending_invar_def congruence_closure.select_convs
-    by fastforce
-next 
-  show "?right \<Longrightarrow> ?left"
-    unfolding pending_invar_def congruence_closure.select_convs
-    by (metis in_set_conv_nth set_ConsD)
-qed
+  from assms show "?right \<Longrightarrow> ?left"
+    unfolding pending_invar_def using less_Suc_eq_0_disj
+    by (cases cc_state) force
+qed (use assms in \<open>auto simp: pending_invar_def\<close>)
 
 lemma pending_left_right_valid': 
   assumes valid: "valid_vars_pending pe l"
@@ -317,64 +297,51 @@ next
 qed
 
 lemma pending_left_right_valid: 
-  assumes "pending_invar \<lparr>cc_list = l, use_list = u, lookup = t, pending = (pe # xs), proof_forest = pf, pf_labels = pfl, input = ip\<rparr>"
-  shows "right pe < length l \<and> left pe < length l"
+  assumes "pending_invar cc_state"
+  assumes "pending cc_state = pe # pes"
+  shows "right pe < length (cc_list cc_state) \<and> left pe < length (cc_list cc_state)"
   using assms pending_left_right_valid' 
-  unfolding pending_invar_def congruence_closure.select_convs
-  by (metis in_set_conv_nth list.set_intros(1))
+  unfolding pending_invar_def by (cases cc_state) auto
 
 text \<open>The second invariant from the article, very important for the correctness proof.\<close>
 
-definition correctness_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "correctness_invar cc \<equiv> 
-Congruence_Closure (representativeE cc \<union> pending_set (pending cc)) = Congruence_Closure (input cc)"
+definition correctness_invar :: "cc_state \<Rightarrow> bool" where
+  "correctness_invar cc_state \<equiv> 
+    Congruence_Closure (representativeE cc_state \<union> pending_set (pending cc_state)) =
+    Congruence_Closure (input cc_state)"
 
 text \<open>The union find data structure and the proof forest have the same equivalence classes. \<close>
-abbreviation pf_l_same_eq_classes :: "nat list \<Rightarrow> nat list \<Rightarrow> bool"
-  where
-    "pf_l_same_eq_classes pf l \<equiv> (\<forall> i < length pf . (\<forall> j < length pf . rep_of l i = rep_of l j 
-\<longleftrightarrow> rep_of pf i = rep_of pf j))"
+definition same_eq_classes_invar :: "cc_state \<Rightarrow> bool" where
+  "same_eq_classes_invar cc_state \<equiv>
+    let l = cc_list cc_state; pf = proof_forest cc_state in
+      \<forall>i < length pf. \<forall>j < length pf.
+        rep_of l i = rep_of l j \<longleftrightarrow> rep_of pf i = rep_of pf j"
 
-definition same_eq_classes_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "same_eq_classes_invar cc \<equiv> pf_l_same_eq_classes (proof_forest cc) (cc_list cc)"
-
-lemma same_eq_classes_invar_not_divided: 
-  assumes "i < length (proof_forest cc)" "j < length (proof_forest cc)" "same_eq_classes_invar cc"
-  shows "rep_of (cc_list cc) i = rep_of (cc_list cc) j \<longleftrightarrow> rep_of (proof_forest cc) i = rep_of (proof_forest cc) j"
-  using assms unfolding same_eq_classes_invar_def by presburger
-
-lemma same_eq_classes_invar_divided: 
-  assumes "i < length pf" "j < length pf" 
-    "same_eq_classes_invar \<lparr>cc_list = l, use_list = u, lookup = t, pending = pe, proof_forest = pf, pf_labels = pfl, input = ip\<rparr>"
-  shows "rep_of l i = rep_of l j \<longleftrightarrow> rep_of pf i = rep_of pf j"
-  using assms unfolding same_eq_classes_invar_def congruence_closure.select_convs by blast
+lemma same_eq_classes_invarD: 
+  assumes "i < length (proof_forest cc_state)" "j < length (proof_forest cc_state)"
+      and "same_eq_classes_invar cc_state"
+    shows "rep_of (cc_list cc_state) i = rep_of (cc_list cc_state) j \<longleftrightarrow>
+           rep_of (proof_forest cc_state) i = rep_of (proof_forest cc_state) j"
+  using assms unfolding same_eq_classes_invar_def Let_def by blast
 
 text \<open>The lists in the data structure all have the same length.\<close>
-definition same_length_invar :: "congruence_closure \<Rightarrow> nat \<Rightarrow> bool"
-  where
-    "same_length_invar cc n \<equiv> 
-(((nr_vars cc = n \<and> length (use_list cc) = n) \<and> length (lookup cc) = n) \<and> 
-length (proof_forest cc) = n) \<and> length (pf_labels cc) = n"
+definition same_length_invar :: "cc_state \<Rightarrow> nat \<Rightarrow> bool" where
+  "same_length_invar cc_state n \<equiv> 
+    nr_vars cc_state = n \<and> length (use_list cc_state) = n \<and> length (lookup cc_state) = n \<and> 
+    length (proof_forest cc_state) = n \<and> length (pf_labels cc_state) = n"
 
 
 text \<open>The following two invariants are important for the proofs about correctness_invar:\<close>
 text \<open>All equations in the lookup table are also present in both relevant use_lists.\<close>
 
-abbreviation contains_similar_equation
-  where
-    "contains_similar_equation cc a' c\<^sub>1 c\<^sub>2 c 
-\<equiv>
-(\<exists> b\<^sub>1 b\<^sub>2 b.
-    (F b\<^sub>1 b\<^sub>2 \<approx> b) \<in> set ((use_list cc) ! a')
-      \<and> rep_of (cc_list cc) b\<^sub>1 = rep_of (cc_list cc) c\<^sub>1 
-      \<and> rep_of (cc_list cc) b\<^sub>2 = rep_of (cc_list cc) c\<^sub>2
-      \<and> (b \<approx> c) \<in> Congruence_Closure (cc_list_set (cc_list cc) \<union> pending_set (pending cc))
-  )
-"
+abbreviation contains_similar_equation where
+  "contains_similar_equation cc a' c\<^sub>1 c\<^sub>2 c \<equiv> \<exists>b\<^sub>1 b\<^sub>2 b.
+    (F b\<^sub>1 b\<^sub>2 \<approx> b) \<in> set (use_list cc ! a') \<and>
+    rep_of (cc_list cc) b\<^sub>1 = rep_of (cc_list cc) c\<^sub>1 \<and>
+    rep_of (cc_list cc) b\<^sub>2 = rep_of (cc_list cc) c\<^sub>2 \<and>
+    (b \<approx> c) \<in> Congruence_Closure (cc_list_set (cc_list cc) \<union> pending_set (pending cc))"
 
-definition lookup_invar2 :: "congruence_closure \<Rightarrow> bool"
+definition lookup_invar2 :: "cc_state \<Rightarrow> bool"
   where
     "lookup_invar2 cc  = (\<forall> a' b' c c\<^sub>1 c\<^sub>2.
 a' < nr_vars cc \<longrightarrow> b' < nr_vars cc \<longrightarrow> (cc_list cc) ! a' = a' \<longrightarrow> (cc_list cc) ! b' = b' 
@@ -386,7 +353,7 @@ a' < nr_vars cc \<longrightarrow> b' < nr_vars cc \<longrightarrow> (cc_list cc)
 )"
 
 text \<open>All equations in the use list are also in the lookup table.\<close>
-definition use_list_invar2' :: "congruence_closure \<Rightarrow> equation list \<Rightarrow> bool"
+definition use_list_invar2' :: "cc_state \<Rightarrow> equation list \<Rightarrow> bool"
   where
     "use_list_invar2' cc u_a = (\<forall> a' c\<^sub>1 c\<^sub>2 c.
 a' < nr_vars cc \<longrightarrow> (cc_list cc) ! a' = a'
@@ -404,9 +371,8 @@ a' < nr_vars cc \<longrightarrow> (cc_list cc) ! a' = a'
   )
 )"
 
-abbreviation use_list_invar2 :: "congruence_closure \<Rightarrow> bool"
-  where
-    "use_list_invar2 cc \<equiv> use_list_invar2' cc []"
+abbreviation use_list_invar2 :: "cc_state \<Rightarrow> bool" where
+  "use_list_invar2 cc \<equiv> use_list_invar2' cc []"
 
 lemma use_list_invar2_def: "use_list_invar2 cc = (\<forall> a' c\<^sub>1 c\<^sub>2 c.
 a' < nr_vars cc \<longrightarrow> (cc_list cc) ! a' = a'
@@ -437,24 +403,21 @@ abbreviation valid_labels_invar :: "pending_equation option list \<Rightarrow> n
     (pf ! n = n \<longrightarrow> pfl ! n = None)
     )"
 
-definition pf_labels_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "pf_labels_invar cc \<equiv> valid_labels_invar (pf_labels cc) (proof_forest cc) (cc_list cc)"
+definition pf_labels_invar :: "cc_state \<Rightarrow> bool" where
+  "pf_labels_invar cc \<equiv> valid_labels_invar (pf_labels cc) (proof_forest cc) (cc_list cc)"
 
-abbreviation cc_invar :: "congruence_closure \<Rightarrow> bool"
-  where
-    "cc_invar cc \<equiv> (((((((((cc_list_invar cc \<and> use_list_invar cc) \<and> lookup_invar cc) 
-        \<and> proof_forest_invar cc) \<and> correctness_invar cc) \<and> same_eq_classes_invar cc) 
-        \<and> same_length_invar cc (nr_vars cc)) \<and> pending_invar cc) \<and> lookup_invar2 cc) 
-        \<and> use_list_invar2 cc) \<and> pf_labels_invar cc"
+abbreviation cc_invar :: "cc_state \<Rightarrow> bool" where
+  "cc_invar cc \<equiv> (((((((((cc_list_invar cc \<and> use_list_invar cc) \<and> lookup_invar cc) 
+      \<and> proof_forest_invar cc) \<and> correctness_invar cc) \<and> same_eq_classes_invar cc) 
+      \<and> same_length_invar cc (nr_vars cc)) \<and> pending_invar cc) \<and> lookup_invar2 cc) 
+      \<and> use_list_invar2 cc) \<and> pf_labels_invar cc"
 
 text \<open>
 (1) Prove that it works for the \<open>"mini_step"\<close>.
 (2) Prove that the invariant is preserved by the two cases of \<open>propagate_loop\<close>.
 \<close>
 lemma propagate_step_induct[consumes 3, case_names base update_pending update_lookup]:
-  assumes 
-    "ufa_invar l" "a < length l" "b < length l"
+  assumes "ufa_invar l" "a < length l" "b < length l"
 
 "P \<lparr>cc_list = ufa_union l a b, 
     use_list = u[rep_of l a := []], 

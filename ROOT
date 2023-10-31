@@ -1,5 +1,4 @@
 session Congruence_Closure = HOL +
-  options [document = pdf, document_output = "output"]
   sessions
     "HOL-Library"
     Separation_Logic_Imperative_HOL
@@ -26,5 +25,3 @@ session Congruence_Closure = HOL +
   theories
     CC_Explain2_Correctness
     CC_Explain_Explain2_Equivalence
-  document_files
-    "root.tex"
