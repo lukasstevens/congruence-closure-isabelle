@@ -34,7 +34,7 @@ proof-
     using are_congruent_rep_of assms 
     by blast
   ultimately show thesis
-      using * assms(5) lowest_common_ancestor_correct 
+      using * assms(5) is_lca_lowest_common_ancestor 
       by presburger
 qed
 
@@ -73,7 +73,7 @@ next
   case False
   define lca where "lca = lowest_common_ancestor l a b"
   then obtain p1 p2 where "path l lca p1 a" "path l lca p2 b"
-    using lca_def lowest_common_ancestor_correct assms 
+    using lca_def is_lca_lowest_common_ancestor assms 
     using explain_list_invar_def path_nodes_lt_length_l by fastforce
   then have "path pf lca p1 a" "path pf lca p2 b" 
     using assms(2) explain_list_invar_paths by blast+
@@ -152,16 +152,16 @@ lemma lowest_common_ancestor_root:
     "rep_of l k = rep_of l i"
   shows "lowest_common_ancestor l i k = i"
 proof-
-  have "path_to_root l i = [i]" using assms 
-    using path_to_root_correct path_to_root_has_length_1 by blast
-  have "hd(path_to_root l k) = rep_of l k" 
-    using assms(1) assms(4) hd_path path_to_root_correct by blast
-  then obtain xs where "path_to_root l k = [rep_of l k] @ xs" using assms 
-    by (metis append_Cons append_Nil list.sel(1) neq_Nil_conv path_not_empty path_to_root_correct)
+  have "path_to_rep l i = [i]" using assms 
+    using path_path_to_rep path_to_rep_has_length_1 by blast
+  have "hd(path_to_rep l k) = rep_of l k" 
+    using assms(1) assms(4) hd_path path_path_to_rep by blast
+  then obtain xs where "path_to_rep l k = [rep_of l k] @ xs" using assms 
+    by (metis append_Cons append_Nil list.sel(1) neq_Nil_conv path_not_empty path_path_to_rep)
   have "rep_of l k = i" 
     by (simp add: assms(3) assms(5) rep_of_refl)
   then show ?thesis 
-    by (metis assms lowest_common_ancestor_correct path_no_root)
+    by (metis assms is_lca_lowest_common_ancestor path_no_root)
 qed
 
 lemma longest_common_prefix_delete_last:
@@ -226,22 +226,22 @@ lemma lowest_common_ancestor_parent:
   shows "lowest_common_ancestor l a b =
 lowest_common_ancestor l (l ! a) b"
 proof-
-  obtain p where "path l c p a" using lowest_common_ancestor_correct assms 
+  obtain p where "path l c p a" using is_lca_lowest_common_ancestor assms 
     by presburger
   then have "l ! a \<noteq> a"
     using assms(5) path_root by auto
-  then have "path_to_root l a = path_to_root l (l ! a) @ [a]"
-    by (metis assms(1) assms(3) path_snoc path_to_root_correct path_unique rep_of_idx ufa_invarD(2))
-  have *: "hd (path_to_root l a) = hd (path_to_root l b)" 
-    by (metis assms(1) assms(3) assms(4) assms(6) hd_path path_to_root_correct)
-  have "last (longest_common_prefix (path_to_root l a) (path_to_root l b)) \<noteq> a"
-    "longest_common_prefix (path_to_root l a) (path_to_root l b) \<noteq> []" 
+  then have "path_to_rep l a = path_to_rep l (l ! a) @ [a]"
+    by (metis assms(1) assms(3) path_snoc path_path_to_rep path_unique rep_of_idx ufa_invarD(2))
+  have *: "hd (path_to_rep l a) = hd (path_to_rep l b)" 
+    by (metis assms(1) assms(3) assms(4) assms(6) hd_path path_path_to_rep)
+  have "last (longest_common_prefix (path_to_rep l a) (path_to_rep l b)) \<noteq> a"
+    "longest_common_prefix (path_to_rep l a) (path_to_rep l b) \<noteq> []" 
     using assms apply simp
     using *
-    by (metis Nil_is_append_conv \<open>path_to_root l a = path_to_root l (l ! a) @ [a]\<close> assms(1) assms(4) list.sel(1) longest_common_prefix.simps(1) neq_Nil_conv path_not_empty path_to_root_correct)
-  then have "longest_common_prefix (path_to_root l a) (path_to_root l b)
-= longest_common_prefix (path_to_root l (l ! a)) (path_to_root l b)"
-    by (metis \<open>path_to_root l a = path_to_root l (l ! a) @ [a]\<close> longest_common_prefix_delete_last)
+    by (metis Nil_is_append_conv \<open>path_to_rep l a = path_to_rep l (l ! a) @ [a]\<close> assms(1) assms(4) list.sel(1) longest_common_prefix.simps(1) neq_Nil_conv path_not_empty path_path_to_rep)
+  then have "longest_common_prefix (path_to_rep l a) (path_to_rep l b)
+= longest_common_prefix (path_to_rep l (l ! a)) (path_to_rep l b)"
+    by (metis \<open>path_to_rep l a = path_to_rep l (l ! a) @ [a]\<close> longest_common_prefix_delete_last)
   then show ?thesis 
     by simp
 qed
@@ -330,7 +330,7 @@ proof-
   have a_b: "a < nr_vars cc" "b < nr_vars cc" using same_length_invar_def assms(1,2,3,4)
     by (metis (full_types) length_explain_list_cc_list)+
   obtain p where p: "path (proof_forest cc) c p a" 
-    using lowest_common_ancestor_correct same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
+    using is_lca_lowest_common_ancestor same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
       assms proof_forest_invar_def a_b by force
   then have "explain_along_path_dom (cc, l, a, c)"
     using explain_along_path_domain assms(1,2) by blast
@@ -355,7 +355,7 @@ proof-
   have a_b: "a < nr_vars cc" "b < nr_vars cc" using same_length_invar_def assms(1,2,3,4)
     by (metis (full_types) length_explain_list_cc_list)+
   obtain p where p: "path (proof_forest cc) c p b" 
-    using lowest_common_ancestor_correct same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
+    using is_lca_lowest_common_ancestor same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
       assms proof_forest_invar_def a_b by force
   have "explain_list_invar new_l (proof_forest cc)" 
     using explain_list_invar_explain_along_path'' a_b assms by blast
@@ -381,7 +381,7 @@ proof-
     using assms unfolding same_length_invar_def apply argo
     using assms unfolding same_length_invar_def by argo
   then obtain p1 p2 where "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using lowest_common_ancestor_correct assms by presburger
+    using is_lca_lowest_common_ancestor assms by presburger
   then have *: "\<forall> (k, j) \<in> set pending1 . k < nr_vars cc \<and> j < nr_vars cc"
     using assms explain_along_path_pending_in_bounds by (metis snd_conv)
   have "explain_list_invar new_l (proof_forest cc)" using explain_list_invar_explain_along_path' assms 
@@ -451,7 +451,7 @@ lemma rep_of_next_recursive_step_explain_along_path:
   shows "rep_of (l[rep_of l a := proof_forest cc ! rep_of l a]) (proof_forest cc ! rep_of l a) =
     rep_of (l[rep_of l a := proof_forest cc ! rep_of l a]) a"
   using assms 
-  by (smt (verit) explain_list_invar_def list_update_id path_to_root_correct proof_forest_invar_def rep_of_a_and_parent_rep_neq rep_of_bound rep_of_fun_upd' rep_of_fun_upd_aux2 rep_of_idem ufa_invarD(2))
+  by (smt (verit) explain_list_invar_def list_update_id path_path_to_rep proof_forest_invar_def rep_of_a_and_parent_rep_neq rep_of_bound rep_of_fun_upd' rep_of_fun_upd_aux2 rep_of_idem ufa_invarD(2))
 
 lemma pf_labels_Two_valid:
   assumes "cc_invar cc"
@@ -581,7 +581,7 @@ proof-
         by (metis (no_types, lifting) False explain_list_invar_def path_nodes_lt_length_l)
       then obtain p3' p4' where path_to_lca: "path (proof_forest cc) c p3' a"
         "path (proof_forest cc) c p4' x"
-        using "1.prems" lowest_common_ancestor_correct explain_list_invar_def 
+        using "1.prems" is_lca_lowest_common_ancestor explain_list_invar_def 
         using proof_forest_invar_def by blast
       have not_none: "(pf_labels cc) ! rep_of l a \<noteq> None" using pf_labels_explain_along_path_case_2 
         using "1.prems" False explain_list_invar_def path_nodes_lt_length_l by auto
@@ -675,7 +675,7 @@ lemma explain_along_path_induct2[consumes 4, case_names base One Two]:
       P cc l a c ({(F x\<^sub>1 x\<^sub>2 \<approx> x'), (F y\<^sub>1 y\<^sub>2 \<approx> y)} \<union> output) new_l ([(x\<^sub>1, y\<^sub>1), (x\<^sub>2, y\<^sub>2)] @ pend))"
 shows "P cc l a c output new_l pend"
 proof-
-  obtain p where p: "path (proof_forest cc) c p a" using assms(1-6) length_explain_list_cc_list lowest_common_ancestor_correct 
+  obtain p where p: "path (proof_forest cc) c p a" using assms(1-6) length_explain_list_cc_list is_lca_lowest_common_ancestor 
     unfolding proof_forest_invar_def same_length_invar_def
     by (metis explain_list_invar_def)
   show ?thesis 
@@ -811,7 +811,7 @@ proof-
       have 3: "add_label2 pfl pf e lbl e' = add_label (pfl[e := Some lbl]) (pf[e := e']) (pf ! e) (the (pfl ! e))"
         by (simp add: "1.prems"(1) "1.prems"(2) "1.prems"(3) "1.prems"(4) False \<open>add_label (pfl[e := Some lbl]) (pf[e := e']) (pf ! e) (the (pfl ! e)) = add_label2 (pfl[e := Some lbl]) (pf[e := e']) (pf ! e) (the (pfl ! e)) e\<close> add_label2.psimps add_label2_domain)
       obtain pER where "path pf (rep_of pf e) pER e" 
-        using "1.prems" path_to_root_correct by metis
+        using "1.prems" path_path_to_rep by metis
       then have pER:  "path pf (rep_of pf e) (butlast pER) (pf ! e)" 
         by (metis "1.prems"(1) False path_butlast path_nodes_lt_length_l rep_of_min)
       have e_e': "e < length pf" "e' < length pf" using "1.prems"
@@ -833,7 +833,7 @@ lemma add_label_case_2_rep_of_neq:
   shows "rep_of (pf[e := e']) e \<noteq> rep_of (pf[e := e']) (pf ! e)"
 proof-
   obtain pER where "path pf (rep_of pf e) pER e" 
-    using assms path_to_root_correct by metis
+    using assms path_path_to_rep by metis
   with assms have pER:  "path pf (rep_of pf e) (butlast pER) (pf ! e)" 
     by (metis path_butlast rep_of_min)
   have e_e': "e < length pf" "e' < length pf" using assms

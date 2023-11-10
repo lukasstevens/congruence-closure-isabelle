@@ -5,83 +5,74 @@ begin
 
 subsection \<open>Proofs about the domain of the helper functions\<close>
 
-text \<open>The domain of \<open>path_to_root\<close> is the same as the domain of \<open>rep_of\<close>.\<close>
+text \<open>The domain of \<open>path_to_rep\<close> is the same as the domain of \<open>rep_of\<close>.\<close>
 
-lemma path_to_root_rel: "rep_of_rel x y \<longleftrightarrow> path_to_root_rel x y" 
+lemma path_to_rep_rel: "rep_of_rel x y \<longleftrightarrow> path_to_rep_rel x y" 
 proof
-  show "rep_of_rel x y \<Longrightarrow> path_to_root_rel x y"
-    by (induction x y rule: rep_of_rel.induct) (auto simp add: path_to_root_rel.intros)
+  show "rep_of_rel x y \<Longrightarrow> path_to_rep_rel x y"
+    by (induction x y rule: rep_of_rel.induct) (auto simp add: path_to_rep_rel.intros)
 next
-  show "path_to_root_rel x y \<Longrightarrow> rep_of_rel x y"
-    by (induction x y rule: path_to_root_rel.induct) (auto simp add: rep_of_rel.intros)
+  show "path_to_rep_rel x y \<Longrightarrow> rep_of_rel x y"
+    by (induction x y rule: path_to_rep_rel.induct) (auto simp add: rep_of_rel.intros)
 qed
 
-lemma path_to_root_domain: "rep_of_dom (l, i) \<longleftrightarrow> path_to_root_dom (l, i)" 
-  using path_to_root_rel by presburger
+lemma path_to_rep_domain: "rep_of_dom (l, i) \<longleftrightarrow> path_to_rep_dom (l, i)" 
+  using path_to_rep_rel by presburger
 
-subsection \<open>Correctness proof for \<open>path_to_root\<close>.\<close>
+subsection \<open>Correctness proof for \<open>path_to_rep\<close>.\<close>
 
-theorem path_to_root_correct:
+theorem path_path_to_rep:
   assumes "ufa_invar l"
     and "x < length l"
-  shows "path l (rep_of l x) (path_to_root l x) x"
-  using assms proof(induction l x rule: rep_of_induct)
+  shows "path l (rep_of l x) (path_to_rep l x) x"
+  using assms
+proof(induction l x rule: rep_of_induct)
   case (base i)
-  with path_to_root.psimps have "path_to_root l i = [i]" 
-    using base.hyps path_to_root_domain ufa_invarD(1) by auto
+  with path_to_rep.psimps have "path_to_rep l i = []" 
+    using base.hyps path_to_rep_domain ufa_invarD(1) by auto
   then show ?case 
-    using base path_to_root.psimps base single rep_of_refl by auto
+    using base path_to_rep.psimps base single rep_of_refl by auto
 next
   case (step i)
-  then have "path l (rep_of l (l ! i)) (path_to_root l (l ! i)) (l ! i)" 
+  then have p1: "path l (rep_of l (l ! i)) (path_to_rep l (l ! i)) (l ! i)" 
     using ufa_invar_def by blast
-  moreover have "path l (l ! i) [l ! i, i] i" 
-    using step calculation path.step path_nodes_lt_length_l single by auto
-  ultimately show ?case 
-    using step path_to_root.psimps path_concat1 rep_of_idx path_to_root_domain ufa_invarD(1) by fastforce
-qed
-
-lemma path_to_root_length: "ufa_invar l \<Longrightarrow> x < length l \<Longrightarrow> length (path_to_root l x) > 0"
-proof-
-  assume "ufa_invar l" "x < length l"
-  have "path_to_root_dom(l, x)" 
-    using \<open>ufa_invar l\<close> \<open>x < length l\<close> path_to_root_domain ufa_invarD(1) by auto
-  then show ?thesis
-    apply(induction rule: path_to_root.pinduct)
-    by (simp add: path_to_root.psimps)
+  with step have p2: "path l (l ! i) [l ! i] i" 
+    using path.intros by (simp add: ufa_invarD(2))
+  from path_appendI[OF p1 p2] step show ?case
+    using path_to_rep.psimps[where ?l=l and ?x=i] \<open>l ! i \<noteq> i\<close>
+    using path_to_rep_domain ufa_invarD(1)
+    by (simp add: rep_of_idx)
 qed
 
 subsection \<open>Correctness of \<open>lowest_common_ancestor\<close>.\<close>
 
-abbreviation "common_ancestor l x y ca \<equiv>
-(\<exists> p . path l ca p x) \<and>
-(\<exists> p . path l ca p y)"
+definition "common_ancestor l x y ca \<equiv> (\<exists>p. path l ca p x) \<and> (\<exists>p. path l ca p y)"
 
-abbreviation "is_lca l x y ca \<equiv>
-(common_ancestor l x y ca \<and> 
-(\<forall>r ca2 p3 p4. (path l r p3 ca \<and> path l r p4 ca2 \<and> common_ancestor l x y ca2 
-\<longrightarrow> length p3 \<ge> length p4)))"
+definition "is_lca l x y ca \<equiv>
+  common_ancestor l x y ca \<and> 
+  (\<forall>r ca2 p1 p2. common_ancestor l x y ca2 \<and> path l r p1 ca \<and> path l r p2 ca2
+    \<longrightarrow> length p1 \<ge> length p2)"
 
-theorem lowest_common_ancestor_correct:    
+theorem is_lca_lowest_common_ancestor:    
   assumes "ufa_invar l"
     and "x < length l"
     and "y < length l"
     and "rep_of l x = rep_of l y"
   shows "is_lca l x y (lowest_common_ancestor l x y)"
 proof-
-  have path_root_x: "path l (rep_of l x) (path_to_root l x) x"
-    using assms path_to_root_correct by metis
-  have path_root_y: "path l (rep_of l y) (path_to_root l y) y"
-    using assms path_to_root_correct by metis
+  have path_to_rep_x: "path l (rep_of l x) (path_to_rep l x) x"
+    using assms path_path_to_rep by metis
+  have path_to_rep_y: "path l (rep_of l y) (path_to_rep l y) y"
+    using assms path_path_to_rep by metis
   let ?lca = "lowest_common_ancestor l x y"
-  let ?lcp = "longest_common_prefix (path_to_root l x) (path_to_root l y)"
+  let ?lcp = "longest_common_prefix (path_to_rep l x) (path_to_rep l y)"
   from path_root_x path_root_y path_hd have lcp_not_empty: "?lcp \<noteq> []" 
     by (metis assms(4) list.distinct(1) list.sel(1) list_encode.cases longest_common_prefix.simps(1) path_not_empty)
-  obtain p1 where p1_def: "path_to_root l x = ?lcp @ p1"
+  obtain p1 where p1_def: "path_to_rep l x = ?lcp @ p1"
     using longest_common_prefix_prefix1 prefixE by blast
   from path_divide1 have path_lca_x: "path l ?lca (?lca # p1) x"
     using lcp_not_empty lowest_common_ancestor.simps p1_def path_root_x by presburger
-  obtain p2 where p2_def: "(path_to_root l y) = ?lcp @ p2"
+  obtain p2 where p2_def: "(path_to_rep l y) = ?lcp @ p2"
     using longest_common_prefix_prefix2 prefixE by blast
   from path_divide1 have path_lca_y: "path l ?lca (?lca # p2) y"
     using p2_def lcp_not_empty lowest_common_ancestor.simps path_root_y by presburger
@@ -96,29 +87,29 @@ proof-
     then obtain pCaY pCaX where pCaY: "path l ca pCaY y" and pCaX: "path l ca pCaX x"
       by blast
     then obtain pRootR where pRootR: "path l (rep_of l x) pRootR r" 
-      by (metis assm assms(1) path_nodes_lt_length_l path_rep_eq path_to_root_correct)
+      by (metis assm assms(1) path_nodes_lt_length_l path_rep_eq path_path_to_rep)
     have path_root_ca: "path l (rep_of l x) (pRootR @ tl p4) ca" 
       using assm pRootR path_concat1 by auto
     then have "path l (rep_of l x) (pRootR @ tl p4 @ tl pCaX) x" 
       using pCaX path_concat1 by fastforce 
-    then have *: "path_to_root l x = pRootR @ tl p4 @ tl pCaX" 
+    then have *: "path_to_rep l x = pRootR @ tl p4 @ tl pCaX" 
       using assms(1) path_root_x path_unique by auto
     have "path l (rep_of l x) (pRootR @ tl p4 @ tl pCaY) y" 
       using pCaY path_concat1 path_root_ca by fastforce
-    then have "path_to_root l y = pRootR @ tl p4 @ tl pCaY" 
+    then have "path_to_rep l y = pRootR @ tl p4 @ tl pCaY" 
       using assms(1,4) path_root_y path_unique by simp
-    then have prefix1: "prefix (pRootR @ tl p4) (path_to_root l x)" 
-      and prefix2: "prefix (pRootR @ tl p4) (path_to_root l y)"
+    then have prefix1: "prefix (pRootR @ tl p4) (path_to_rep l x)" 
+      and prefix2: "prefix (pRootR @ tl p4) (path_to_rep l y)"
       using * by fastforce+
     have path_root_lca: "path l (rep_of l x) (pRootR @ tl p3) ?lca" 
       using assm pRootR path_concat1 by blast
     then have "path l (rep_of l x) (pRootR @ tl p3 @ p1) x" 
       using path_concat1 path_lca_x by fastforce
-    then have *: "path_to_root l x = pRootR @ tl p3 @ p1" 
+    then have *: "path_to_rep l x = pRootR @ tl p3 @ p1" 
       using assms(1) path_root_x path_unique by auto
     have "path l (rep_of l x) (pRootR @ tl p3 @ p2) y" 
       using path_concat1 path_lca_y path_root_lca by fastforce
-    then have "path_to_root l y = pRootR @ tl p3 @ p2" 
+    then have "path_to_rep l y = pRootR @ tl p3 @ p2" 
       using assms(1) assms(4) path_root_y path_unique by auto
     have "\<not> prefix ?lcp (pRootR @ tl p4)" 
       by (metis "*" Orderings.order_eq_iff prefix1 prefix2 append.assoc append_eq_append_conv assm assms(1) length longest_common_prefix_max_prefix p1_def path_last path_root_ca path_root_lca path_unique prefix_order.dual_order.antisym)
@@ -718,57 +709,57 @@ next
   qed
 qed
 
-lemma path_to_root_ufa_union1:
+lemma path_to_rep_ufa_union1:
   assumes "ufa_invar l" and  "x < length l"
     and "rep_of l x \<noteq> rep_of l x2"
     and "x2 < length l" and "y2 < length l"
-  shows "path_to_root (ufa_union l x2 y2) x = path_to_root l x"
+  shows "path_to_rep (ufa_union l x2 y2) x = path_to_rep l x"
   using assms proof(induction rule: rep_of_induct)
   case (base i)
   then show ?case 
-    by (metis length_list_update path_no_cycle path_to_root_correct rep_of_refl ufa_union_aux ufa_union_invar)
+    by (metis length_list_update path_no_cycle path_path_to_rep rep_of_refl ufa_union_aux ufa_union_invar)
 next
   case (step i)
   then have "rep_of l (l ! i) \<noteq> rep_of l x2" 
     using rep_of_idx by presburger
-  with step have *: "path_to_root (ufa_union l x2 y2) (l ! i) = path_to_root l (l ! i)" by auto
-  have "path_to_root_dom (l, i)" 
-    using path_to_root_domain step.hyps(1) step.hyps(2) ufa_invarD(1) by auto
+  with step have *: "path_to_rep (ufa_union l x2 y2) (l ! i) = path_to_rep l (l ! i)" by auto
+  have "path_to_rep_dom (l, i)" 
+    using path_to_rep_domain step.hyps(1) step.hyps(2) ufa_invarD(1) by auto
   with step * show ?case 
-    by (metis length_list_update nth_list_update_neq path_to_root.psimps path_to_root_domain rep_of_idem ufa_invarD(1) ufa_union_invar)
+    by (metis length_list_update nth_list_update_neq path_to_rep.psimps path_to_rep_domain rep_of_idem ufa_invarD(1) ufa_union_invar)
 qed
 
-lemma path_to_root_ufa_union2:
+lemma path_to_rep_ufa_union2:
   assumes "ufa_invar l" and  "x < length l"
     and "rep_of l x = rep_of l x2"
     and "x2 < length l" and "y2 < length l"
     and "rep_of l x2 \<noteq> rep_of l y2"
-  shows "path_to_root (ufa_union l x2 y2) x = [rep_of l y2] @ path_to_root l x"
+  shows "path_to_rep (ufa_union l x2 y2) x = [rep_of l y2] @ path_to_rep l x"
   using assms proof(induction rule: rep_of_induct)
   case (base i)
-  then have base_path:"path_to_root l i = [i]"
-    by (metis path_no_cycle path_to_root_correct rep_of_refl)
+  then have base_path:"path_to_rep l i = [i]"
+    by (metis path_no_cycle path_path_to_rep rep_of_refl)
   from base have union: "ufa_union l x2 y2 ! i = rep_of l y2"
     by (simp add: rep_of_refl)
-  with base have "path_to_root (ufa_union l x2 y2) i = path_to_root (ufa_union l x2 y2) ((ufa_union l x2 y2)!i)@[i]"
-    by (metis length_list_update path_snoc path_to_root_correct path_unique rep_of_bound rep_of_idx rep_of_refl ufa_union_invar)
+  with base have "path_to_rep (ufa_union l x2 y2) i = path_to_rep (ufa_union l x2 y2) ((ufa_union l x2 y2)!i)@[i]"
+    by (metis length_list_update path_snoc path_path_to_rep path_unique rep_of_bound rep_of_idx rep_of_refl ufa_union_invar)
   with base base_path union show ?case 
-    by (metis append_same_eq length_list_update path_no_cycle path_to_root_correct rep_of_idx rep_of_less_length_l ufa_union_aux ufa_union_invar)   
+    by (metis append_same_eq length_list_update path_no_cycle path_path_to_rep rep_of_idx rep_of_less_length_l ufa_union_aux ufa_union_invar)   
 next
   case (step i)
   let ?new_l = "ufa_union l x2 y2"
-  let ?path_root_i = "path_to_root ?new_l i"
-  let ?path_root_l_i = "path_to_root ?new_l (?new_l ! i)"
+  let ?path_root_i = "path_to_rep ?new_l i"
+  let ?path_root_l_i = "path_to_rep ?new_l (?new_l ! i)"
   from step have *: "rep_of l (l ! i) = rep_of l x2" 
     by (metis rep_of_step)
   have 1: "path ?new_l (rep_of ?new_l i) ?path_root_i i"
-    by (simp add: path_to_root_correct step ufa_union_invar)
+    by (simp add: path_path_to_rep step ufa_union_invar)
   from step have 2: "path ?new_l (rep_of ?new_l i) (?path_root_l_i @ [i]) i"
-    by (metis "1" path_nodes_lt_length_l path_snoc path_to_root_correct rep_of_idx ufa_invarD(2) ufa_union_invar ufa_union_root)
+    by (metis "1" path_nodes_lt_length_l path_snoc path_path_to_rep rep_of_idx ufa_invarD(2) ufa_union_invar ufa_union_root)
   from 1 2 path_unique step have "?path_root_i = ?path_root_l_i @ [i]" 
     using ufa_union_invar by blast
   with step show ?case 
-    by (metis Cons_eq_appendI * empty_append_eq_id nth_list_update_neq path_snoc path_to_root_correct path_unique rep_of_min ufa_invarD(2))
+    by (metis Cons_eq_appendI * empty_append_eq_id nth_list_update_neq path_snoc path_path_to_rep path_unique rep_of_min ufa_invarD(2))
 qed
 
 lemma lowest_common_ancestor_ufa_union_invar:
@@ -785,28 +776,28 @@ proof(cases "rep_of l x2 = rep_of l x")
       by (metis assms(1,5) list_update_id rep_of_root)
   next
     case False
-    then have "path_to_root (ufa_union l x2 y2) y = [rep_of l y2] @ path_to_root l y"
-      using assms path_to_root_ufa_union2 True by auto
-    moreover have "path_to_root (ufa_union l x2 y2) x = [rep_of l y2] @ path_to_root l x"
-      using assms path_to_root_ufa_union2 True False by auto 
+    then have "path_to_rep (ufa_union l x2 y2) y = [rep_of l y2] @ path_to_rep l y"
+      using assms path_to_rep_ufa_union2 True by auto
+    moreover have "path_to_rep (ufa_union l x2 y2) x = [rep_of l y2] @ path_to_rep l x"
+      using assms path_to_rep_ufa_union2 True False by auto 
     ultimately 
-    have *: "longest_common_prefix (path_to_root (ufa_union l x2 y2) x) (path_to_root (ufa_union l x2 y2) y)
-            = [rep_of l y2] @ longest_common_prefix (path_to_root l x) (path_to_root l y)"
+    have *: "longest_common_prefix (path_to_rep (ufa_union l x2 y2) x) (path_to_rep (ufa_union l x2 y2) y)
+            = [rep_of l y2] @ longest_common_prefix (path_to_rep l x) (path_to_rep l y)"
       by simp
-    from path_to_root_correct have hd_x: "hd (path_to_root l x) = rep_of l x" 
+    from path_path_to_rep have hd_x: "hd (path_to_rep l x) = rep_of l x" 
       using assms(1) assms(3) path_hd by blast
-    moreover from path_to_root_correct have hd_y: "hd (path_to_root l y) = rep_of l x" 
+    moreover from path_path_to_rep have hd_y: "hd (path_to_rep l y) = rep_of l x" 
       using assms(1) assms(4) path_not_empty by (metis assms(2) path_hd)
     ultimately 
-    have "hd (longest_common_prefix (path_to_root l x) (path_to_root l y)) = rep_of l x" 
+    have "hd (longest_common_prefix (path_to_rep l x) (path_to_rep l y)) = rep_of l x" 
       by (metis list.collapse list.distinct(1) longest_common_prefix.simps)
-    with assms path_to_root_correct hd_x hd_y * show ?thesis 
+    with assms path_path_to_rep hd_x hd_y * show ?thesis 
       by (metis last_appendR list.sel(1) longest_common_prefix.simps(1) lowest_common_ancestor.simps neq_Nil_conv path_not_empty)
   qed
 next
   case False
   then show ?thesis 
-    using assms path_to_root_ufa_union1 by auto
+    using assms path_to_rep_ufa_union1 by auto
 qed
 
 lemma lowest_common_ancestor_ufe_union_invar:
@@ -1131,7 +1122,7 @@ lemma find_newest_x_neq_None_or_find_newest_y_neq_None:
 proof(rule ccontr)
   from ufe_valid_invar_imp_ufa_invar have "ufa_invar l" 
     by (metis assms(2) ufe_data_structure.select_convs(1))
-  with lowest_common_ancestor_correct assms ufe_valid_invar_imp_ufa_invar obtain pLcaX pLcaY 
+  with is_lca_lowest_common_ancestor assms ufe_valid_invar_imp_ufa_invar obtain pLcaX pLcaY 
     where pLcaX: "path l (lowest_common_ancestor l x y) pLcaX x" and pLcaY:"path l (lowest_common_ancestor l x y) pLcaY y"
     by presburger
   then have dom_y: "find_newest_on_path_dom(l, a, y, (lowest_common_ancestor l x y))"

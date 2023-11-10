@@ -159,7 +159,7 @@ proof-
     by fastforce
   with assms explain_case_x_x_neq_lca have *: "x \<noteq> lca"
     by blast
-  from assms lowest_common_ancestor_correct obtain pX where "path l lca pX x" 
+  from assms is_lca_lowest_common_ancestor obtain pX where "path l lca pX x" 
     using invar by presburger
   with * find_newest_on_path_Some assms
   obtain k_x where k_x: "newest_index_x = Some k_x \<and> k_x < length u" 
@@ -188,7 +188,7 @@ proof-
     by fastforce
   with assms explain_case_y_y_neq_lca have *: "y \<noteq> lca"
     using assms find_newest_on_path.domintros invar by blast
-  from assms lowest_common_ancestor_correct obtain pY where "path l lca pY y" 
+  from assms is_lca_lowest_common_ancestor obtain pY where "path l lca pY y" 
     using invar by presburger
   with * find_newest_on_path_Some assms
   obtain k_y where k_y: "newest_index_y = Some k_y \<and> k_y < length u" 
@@ -212,7 +212,7 @@ lemma explain_case_x_newest_index_index2:
 proof-
   from assms(1) have invar: "ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  from invar assms lowest_common_ancestor_correct 
+  from invar assms is_lca_lowest_common_ancestor 
   obtain p where "path l lca p x" 
     by presburger
   with assms find_newest_on_path_correct have **: "newest_index_x = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
@@ -265,7 +265,7 @@ lemma explain_case_y_newest_index_index2:
 proof-
   from assms(1) have invar: "ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  from invar assms lowest_common_ancestor_correct 
+  from invar assms is_lca_lowest_common_ancestor 
   obtain p where "path l lca p y" 
     by presburger
   with assms find_newest_on_path_correct have **: "newest_index_y = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
@@ -542,10 +542,10 @@ lemma paths_lca_disjoint:
   shows "pX ! i1 \<noteq> pY ! i2"
 proof
   let ?lca = "lowest_common_ancestor l x y"
-  let ?prefixX = "path_to_root l ?lca @ tl (take i1 pX @ [pX ! i1])"
-  let ?prefixY = "path_to_root l ?lca @ tl (take i2 pY @ [pY ! i2])"
-  let ?pathX = "path_to_root l ?lca @ tl pX"
-  let ?pathY = "path_to_root l ?lca @ tl pY"
+  let ?prefixX = "path_to_rep l ?lca @ tl (take i1 pX @ [pX ! i1])"
+  let ?prefixY = "path_to_rep l ?lca @ tl (take i2 pY @ [pY ! i2])"
+  let ?pathX = "path_to_rep l ?lca @ tl pX"
+  let ?pathY = "path_to_rep l ?lca @ tl pY"
   assume assm: "pX ! i1 = pY ! i2"
   have "pX = take i1 pX @ drop i1 pX" by simp
   with path_divide2 assms have 
@@ -558,14 +558,14 @@ proof
     by (metis append_take_drop_id drop_eq_Nil2 hd_drop_conv_nth le_antisym less_imp_le_nat nat_neq_iff)+
   with p1 path_unique have pY_pX_eq: "take i2 pY @ [pY ! i2] = take i1 pX @ [pX ! i1]" 
     by (metis assm assms(1))
-  have path_rep_lca: "path l (rep_of l x) (path_to_root l ?lca) ?lca"
-    by (metis assms(1) assms(2) path_nodes_lt_length_l path_rep_eq path_to_root_correct)
+  have path_rep_lca: "path l (rep_of l x) (path_to_rep l ?lca) ?lca"
+    by (metis assms(1) assms(2) path_nodes_lt_length_l path_rep_eq path_path_to_rep)
   then have "path l (rep_of l x) ?pathX x"
     and "path l (rep_of l x) ?pathY y"
     using assms path_concat1 by auto
-  then have paths_to_root: "path_to_root l x = ?pathX" 
-    "path_to_root l y = ?pathY"
-    using assms path_to_root_correct path_unique path_rep_eq
+  then have paths_to_root: "path_to_rep l x = ?pathX" 
+    "path_to_rep l y = ?pathY"
+    using assms path_path_to_rep path_unique path_rep_eq
     by (metis path_nodes_lt_length_l)+
   have "?pathX = ?prefixX @ tl(drop i1 pX)" 
     and "?pathY = ?prefixY @ tl(drop i2 pY)" using assms
@@ -581,7 +581,7 @@ proof
   with path_rep_lca path_divide1 
   have "path l (rep_of l x) (longest_common_prefix ?pathX ?pathY) (last (longest_common_prefix ?pathX ?pathY))"
     by (smt (verit, ccfv_SIG) append_is_Nil_conv assms(2) longest_common_prefix_prefix1 paths_iff prefix_def)
-  with path_rep_lca have "longest_common_prefix ?pathX ?pathY = path_to_root l ?lca"
+  with path_rep_lca have "longest_common_prefix ?pathX ?pathY = path_to_rep l ?lca"
     by (metis paths_to_root assms(1) lowest_common_ancestor.simps path_unique)
   then show "False" 
     using prefix2 assms(4,6) path_concat1 by force
@@ -599,11 +599,11 @@ lemma explain_index_neq:
 proof-
   from assms have invar:"ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  with assms lowest_common_ancestor_correct 
+  with assms is_lca_lowest_common_ancestor 
   obtain pX where p1: "path l lca pX x" by presburger
   then have dom: "find_newest_on_path_dom (l, a, x, lca)" 
     by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-  from assms lowest_common_ancestor_correct \<open>ufa_invar l\<close>
+  from assms is_lca_lowest_common_ancestor \<open>ufa_invar l\<close>
   obtain pY where p2: "path l lca pY y" by presburger
   then have "find_newest_on_path_dom (l, a, y, lca)"
     by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
@@ -706,7 +706,7 @@ proof-
       note defs = defs1 defs2
       with assms defs lowest_common_ancestor_ufe_union_invar have "lca = lca'" 
         by (metis True ufe_data_structure.select_convs(1) ufe_union_length_uf_list)
-      from defs lowest_common_ancestor_correct obtain px' py' where "path l1 lca' px' x" "path l1 lca' py' y" 
+      from defs is_lca_lowest_common_ancestor obtain px' py' where "path l1 lca' px' x" "path l1 lca' py' y" 
         using invar1 length_eq True assms(5) assms(6) by presburger
       with defs assms False find_newest_on_path_ufe_union_invar have "newest_index_x' = newest_index_x" 
         and  "newest_index_y' = newest_index_y" 
@@ -764,21 +764,21 @@ proof-
         by (metis length_eq ufe_data_structure.select_convs(1))
       with p_rep_x have p_rep_x': "path l (rep_of l x) (rep_of l y#p_rep_x) x" 
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close> \<open>rep_of l1 y = rep_of l1 y2\<close> assms(6) invar1 length_eq path.step path_nodes_lt_length_l rep_of_bound ufa_union_aux union(1) x)
-      with path_to_root_correct path_unique have path_to_root_x: "path_to_root l x = rep_of l y#p_rep_x" 
+      with path_path_to_rep path_unique have path_to_rep_x: "path_to_rep l x = rep_of l y#p_rep_x" 
         using assms(5) invar by blast
       obtain p_rep_y where p_rep_y': "path l1 (rep_of l1 y) (rep_of l1 y#p_rep_y) y" 
         using assms(6) invar1 length_eq path_to_rep_of by (metis path.simps)
       then have p_rep_y: "path l (rep_of l y) (rep_of l y#p_rep_y) y" 
         using assms(5) invar1 length_eq path_to_rep_of 
-        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 y2\<close> invar path_nodes_lt_length_l path_to_root_correct path_to_root_ufa_union1 path_unique ufa_union_aux union(1) x)
-      with path_to_root_correct path_unique have path_to_root_y: "path_to_root l y = rep_of l y#p_rep_y" 
+        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 y2\<close> invar path_nodes_lt_length_l path_path_to_rep path_to_rep_ufa_union1 path_unique ufa_union_aux union(1) x)
+      with path_path_to_rep path_unique have path_to_rep_y: "path_to_rep l y = rep_of l y#p_rep_y" 
         using assms(6) invar by blast
-      have "longest_common_prefix (path_to_root l x) (path_to_root l y) = [rep_of l y]"
+      have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = [rep_of l y]"
       proof(rule ccontr, cases "length p_rep_y > 0 \<and> length p_rep_x > 0")
         case True
-        assume "longest_common_prefix (path_to_root l x) (path_to_root l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
         with True have "hd p_rep_y = hd p_rep_x" 
-          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_root_x path_to_root_y)
+          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_rep_x path_to_rep_y)
         have "hd p_rep_x = rep_of l1 x2" 
           using p_rep_x path_hd x by auto
         then have "path l1 (rep_of l1 x2) p_rep_y y" 
@@ -788,9 +788,9 @@ proof-
         then show "False" using False x by linarith
       next
         case False
-        assume "longest_common_prefix (path_to_root l x) (path_to_root l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
         then show "False" 
-          using False \<open>path l (rep_of l1 x) p_rep_x x\<close> path_to_root_x path_to_root_y by force
+          using False \<open>path l (rep_of l1 x) p_rep_x x\<close> path_to_rep_x path_to_rep_y by force
       qed
       with assms have lca: "lca = rep_of l x" by simp
       from length_u_max have "i < length (p_rep_x) \<Longrightarrow> a1 ! (p_rep_x ! i) < Some (length u1)" for i 
@@ -857,21 +857,21 @@ proof-
         by (metis length_eq ufe_data_structure.select_convs(1))
       with p_rep_x have p_rep_x': "path l (rep_of l y) (rep_of l y#p_rep_x) y" 
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close> \<open>l ! rep_of l1 y2 = rep_of l1 y2\<close> \<open>rep_of l x2 = l ! rep_of l1 y2\<close> \<open>rep_of l1 x2 < length l1\<close> \<open>rep_of l1 y = rep_of l1 x2\<close> assms(6) assms(7) assms(8) invar invar1 length_eq path.step rep_of_ufa_union_invar ufa_invarD(2) union(1) y)
-      with path_to_root_correct path_unique have path_to_root_x: "path_to_root l y = rep_of l y#p_rep_x" 
+      with path_path_to_rep path_unique have path_to_rep_x: "path_to_rep l y = rep_of l y#p_rep_x" 
         using assms(6) invar by blast
       obtain p_rep_y where p_rep_y': "path l1 (rep_of l1 x) (rep_of l1 x#p_rep_y) x" 
         using assms(5) invar1 length_eq path_to_rep_of by (metis path.simps)
       then have p_rep_y: "path l (rep_of l x) (rep_of l y#p_rep_y) x" 
         using assms(5,6) invar1 length_eq path_to_rep_of 
-        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 x2\<close> invar path_to_root_correct path_to_root_ufa_union1 path_unique ufa_union_aux union(1) y)
-      with path_to_root_correct path_unique have path_to_root_y: "path_to_root l x = rep_of l y#p_rep_y" 
+        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 x2\<close> invar path_path_to_rep path_to_rep_ufa_union1 path_unique ufa_union_aux union(1) y)
+      with path_path_to_rep path_unique have path_to_rep_y: "path_to_rep l x = rep_of l y#p_rep_y" 
         using assms(5) invar by blast
-      have "longest_common_prefix (path_to_root l x) (path_to_root l y) = [rep_of l y]"
+      have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = [rep_of l y]"
       proof(rule ccontr, cases "length p_rep_y > 0 \<and> length p_rep_x > 0")
         case True
-        assume "longest_common_prefix (path_to_root l x) (path_to_root l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
         with True have "hd p_rep_y = hd p_rep_x" 
-          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_root_x path_to_root_y)
+          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_rep_x path_to_rep_y)
         have "hd p_rep_x = rep_of l1 y2" 
           using p_rep_x path_hd y 
           by (metis True \<open>hd p_rep_y = hd p_rep_x\<close> \<open>l1 ! rep_of l1 y = rep_of l1 y\<close> length_greater_0_conv list_tail_coinc p_rep_y' path.cases)
@@ -882,9 +882,9 @@ proof-
         then show "False" using False y by presburger
       next
         case False
-        assume "longest_common_prefix (path_to_root l x) (path_to_root l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
         then show "False" 
-          by (metis False \<open>path l (rep_of l1 y) p_rep_x y\<close> length_greater_0_conv longest_common_prefix.simps(1) longest_common_prefix.simps(2) path_not_empty path_to_root_x path_to_root_y)
+          by (metis False \<open>path l (rep_of l1 y) p_rep_x y\<close> length_greater_0_conv longest_common_prefix.simps(1) longest_common_prefix.simps(2) path_not_empty path_to_rep_x path_to_rep_y)
       qed
       with assms have lca: "lca = rep_of l x" by simp
       from length_u_max have "i < length (p_rep_x) \<Longrightarrow> a1 ! (p_rep_x ! i) < Some (length u1)" for i 
@@ -978,7 +978,7 @@ lemma explain_symmetric_domain:
       by (auto simp add: case_x defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_x defs)+
-    from lowest_common_ancestor_correct case_x "1.prems" invar 
+    from is_lca_lowest_common_ancestor case_x "1.prems" invar 
     obtain p where  p: "path l lca p x" 
       by (metis ufe_data_structure.select_convs(1))
     obtain k_x where k_x: "newest_index_x = Some k_x \<and> k_x < length u" "ax < length l" "bx < length l"
@@ -1001,7 +1001,7 @@ lemma explain_symmetric_domain:
       by (auto simp add: case_y defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_y defs)+
-    from lowest_common_ancestor_correct case_y "1.prems" invar 
+    from is_lca_lowest_common_ancestor case_y "1.prems" invar 
     obtain p where  p:"path l lca p y" 
       by (metis ufe_data_structure.select_convs(1))
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
@@ -1081,7 +1081,7 @@ theorem explain_symmetric:
       by (auto simp add: case_y defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_y defs)+
-    from lowest_common_ancestor_correct case_y "1.prems" invar
+    from is_lca_lowest_common_ancestor case_y "1.prems" invar
     obtain p where p: "path l lca p y" 
       by (metis ufe_data_structure.select_convs(1))
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
@@ -1240,7 +1240,7 @@ lemma explain_domain_ufe_union_invar:
       from case_x "1.prems" ufe_union 
       have lca_eq: "lca = lca'" 
         by (metis \<open>l2 = ufa_union l x2 y2\<close> \<open>ufa_invar l\<close> defs1(1) lowest_common_ancestor_ufa_union_invar ufe_data_structure.select_convs(1))
-      with "1.prems" case_x lowest_common_ancestor_correct obtain plx where plx: "path l lca plx x" 
+      with "1.prems" case_x is_lca_lowest_common_ancestor obtain plx where plx: "path l lca plx x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       with find_newest_on_path_ufe_union_invar 
       have nix_eq: "newest_index_x' = newest_index_x" 
@@ -1262,7 +1262,7 @@ lemma explain_domain_ufe_union_invar:
         "explain_dom (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, x, ax')"
         "explain_dom (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, bx', y)"
         by auto
-      from "1.prems" lca_eq case_x lowest_common_ancestor_correct 
+      from "1.prems" lca_eq case_x is_lca_lowest_common_ancestor 
       obtain ply where ply: "path l lca ply y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       with "1.prems" defs case_x find_newest_on_path_ufe_union_invar 
@@ -1465,12 +1465,12 @@ proof-
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      from lowest_common_ancestor_correct 1 False obtain pLcaX where 
+      from is_lca_lowest_common_ancestor 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
         by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-      from lowest_common_ancestor_correct 1 False obtain pLcaY where 
+      from is_lca_lowest_common_ancestor 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"
@@ -1579,13 +1579,13 @@ proof-
         by (metis ufe_data_structure.select_convs(1) union)
       from 1 have invar: "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      with lowest_common_ancestor_correct case_x
+      with is_lca_lowest_common_ancestor case_x
       obtain px where px: "path l lca px x" 
         by (metis ufe_data_structure.ext_inject)
       with find_newest_on_path_ufe_union_invar case_x defs lca
       have newest_index_x: "newest_index_x = newest_index_x'"
         by (metis path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3) union)
-      from invar lowest_common_ancestor_correct case_x 1
+      from invar is_lca_lowest_common_ancestor case_x 1
       obtain py where py: "path l lca py y" 
         by (metis ufe_data_structure.ext_inject)
       with find_newest_on_path_ufe_union_invar case_x defs lca
@@ -1784,12 +1784,12 @@ proof-
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      from lowest_common_ancestor_correct 1 False obtain pLcaX where 
+      from is_lca_lowest_common_ancestor 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
         by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-      from lowest_common_ancestor_correct 1 False obtain pLcaY where 
+      from is_lca_lowest_common_ancestor 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"

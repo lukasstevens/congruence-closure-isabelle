@@ -2,7 +2,7 @@ theory CC_Helper_Functions
   imports CC_Definition
 begin
 
-subsection \<open>Lemmas about the behaviour of \<open>rep_of\<close> and \<open>path_to_root\<close> after a function update\<close>
+subsection \<open>Lemmas about the behaviour of \<open>rep_of\<close> and \<open>path_to_rep\<close> after a function update\<close>
 
 text \<open>In order to show that the termination invariant holds after adding an edge or a label to the proof forest,
 we need to show a few invariants after function update\<close>
@@ -27,16 +27,16 @@ proof-
       by (metis in_set_butlastD step.IH step.prems(2))
     from step have "li \<noteq> i" 
       by (metis path_to_parent in_set_conv_decomp path_snoc path_unique rep_of_step ufa_invarD(2))
-    with step(1,2) path_to_root_correct have "path l (rep_of l li) (path_to_root l li) li" 
+    with step(1,2) path_path_to_rep have "path l (rep_of l li) (path_to_rep l li) li" 
       by simp
-    then have "path (l[i := y]) (rep_of l li) (path_to_root l li) li" 
+    then have "path (l[i := y]) (rep_of l li) (path_to_rep l li) li" 
       using path_fun_upd path_unique step by (metis in_set_tlD)
-    with step have "path (l[i := y]) (rep_of l li) (butlast (path_to_root l li)) (l ! li)" 
+    with step have "path (l[i := y]) (rep_of l li) (butlast (path_to_rep l li)) (l ! li)" 
       by (metis \<open>li \<noteq> i\<close> nth_list_update_neq path_butlast rep_of_root)
     have "l[i := y] ! (rep_of l li) = (rep_of l li)" 
       by (metis list.set_intros(1) nth_list_update_neq path.simps rep_of_root step.hyps(1) step.hyps(2) step.prems(1) step.prems(2))
     with path_root_rep_of_dom have "rep_of_dom (l[i := y],l ! li)" 
-      using \<open>path (l[i := y]) (rep_of l li) (butlast (path_to_root l li)) (l ! li)\<close> by blast
+      using \<open>path (l[i := y]) (rep_of l li) (butlast (path_to_rep l li)) (l ! li)\<close> by blast
     then have "rep_of_dom (l[i := y], li)" 
       by (metis \<open>li \<noteq> i\<close> nth_list_update_neq rep_of.domintros)
     then have "rep_of l li = rep_of l (l ! li)" "rep_of (l[i := y]) li = rep_of (l[i := y]) (l ! li)" 
@@ -51,10 +51,10 @@ lemma rep_of_fun_upd':
   assumes "ufa_invar l" "rep_of l li \<noteq> rep_of l i" "li < length l"
   shows "rep_of l li = rep_of (l[i := y]) li"
 proof-
-  from path_to_root_correct assms 
-  have "path l (rep_of l li) (path_to_root l li) li" 
-    "i \<notin> set (path_to_root l li)" apply simp 
-    by (metis assms in_set_conv_nth nodes_path_rep_of(2) path_to_root_correct)
+  from path_path_to_rep assms 
+  have "path l (rep_of l li) (path_to_rep l li) li" 
+    "i \<notin> set (path_to_rep l li)" apply simp 
+    by (metis assms in_set_conv_nth nodes_path_rep_of(2) path_path_to_rep)
   with rep_of_fun_upd assms(1) show ?thesis 
     by blast
 qed
@@ -64,7 +64,7 @@ lemma rep_of_fun_upd_aux1:
   shows "rep_of (l[a := b]) x = rep_of l x"
 proof-
   obtain pR where pR: "path l (rep_of l x) pR x"
-    using assms(1) assms(2) path_nodes_lt_length_l path_to_root_correct by blast
+    using assms(1) assms(2) path_nodes_lt_length_l path_path_to_rep by blast
   then have "path l (rep_of l x) (pR @ tl p) a"
     using assms(2) paths_iff by blast 
   then have "a \<notin> set pR" 
@@ -84,27 +84,27 @@ proof(standard, standard, standard)
     using assms(2) path_nodes_lt_length_l by auto
   with assms ia_valid show "l[i := y] ! ia < length (l[i := y])"
     by (metis length_list_update nth_list_update' ufa_invarD(2))
-  have path_root: "path l (rep_of l ia) (path_to_root l ia) ia" 
-    using ia_valid assms(1) path_to_root_correct by auto
+  have path_root: "path l (rep_of l ia) (path_to_rep l ia) ia" 
+    using ia_valid assms(1) path_path_to_rep by auto
   show "rep_of_dom (l[i := y], ia)"
-  proof(cases "i \<in> set (path_to_root l ia)")
+  proof(cases "i \<in> set (path_to_rep l ia)")
     case False
       \<comment> \<open>The path to the root of \<open>ia\<close> still exists after the function update.\<close>
-    with path_fun_upd path_root have "path (l[i := y]) (rep_of l ia) (path_to_root l ia) ia" 
+    with path_fun_upd path_root have "path (l[i := y]) (rep_of l ia) (path_to_rep l ia) ia" 
       by (metis in_set_tlD)
-    with path_root have "path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_root l ia) ia" 
+    with path_root have "path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_rep l ia) ia" 
       using False assms(1) rep_of_fun_upd by auto
     from rep_of_root have "(l[i := y]) ! (rep_of (l[i := y]) ia) = (rep_of (l[i := y]) ia)" 
-      by (metis False \<open>path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_root l ia) ia\<close> assms(1) ia_valid length_list_update list.inject list.set_intros(1) local.path_root nth_list_update_neq path.simps)
+      by (metis False \<open>path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_rep l ia) ia\<close> assms(1) ia_valid length_list_update list.inject list.set_intros(1) local.path_root nth_list_update_neq path.simps)
     with path_root_rep_of_dom show ?thesis 
-      using \<open>path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_root l ia) ia\<close> by blast
+      using \<open>path (l[i := y]) (rep_of (l[i := y]) ia) (path_to_rep l ia) ia\<close> by blast
   next
     case True
       \<comment> \<open>After the function update, there is a path from \<open>ia\<close> to \<open>i\<close>, and an edge from \<open>i\<close> to \<open>y\<close>.
            The assumption that there is a path from \<open>y\<close> to \<open>rep_of y\<close> is important in order to avoid
            cycles in the tree structure. Those three paths can be merged together,
            and then the lemma \<open>path_root_rep_of_dom\<close> applies.\<close>
-    then obtain root_i i_ia where root_i: "path_to_root l ia = root_i @ [i] @ i_ia" 
+    then obtain root_i i_ia where root_i: "path_to_rep l ia = root_i @ [i] @ i_ia" 
       by (metis Cons_eq_append_conv append_Nil in_set_conv_decomp_first)
     with path_root path_divide2 have paths: "path l i (i # i_ia) ia" "path l (rep_of l ia) (root_i @ [i]) i" 
        apply (metis Cons_eq_appendI append_self_conv2 list.distinct(1) list.sel(1))
@@ -146,9 +146,9 @@ lemma ufa_invar_fun_upd':
   assumes "ufa_invar l" "y < length l" "rep_of l i \<noteq> rep_of l y"
   shows "ufa_invar (l[i := y])"
 proof(rule ufa_invar_fun_upd)
-  show "path l (rep_of l y) (path_to_root l y) y" 
-    by (simp add: assms(1) assms(2) path_to_root_correct)
-  with assms show "i \<notin> set (path_to_root l y)"
+  show "path l (rep_of l y) (path_to_rep l y) y" 
+    by (simp add: assms(1) assms(2) path_path_to_rep)
+  with assms show "i \<notin> set (path_to_rep l y)"
     by (metis in_set_conv_nth path_rep_of_neq_not_in_path)
 qed (auto simp add: assms)
 
@@ -160,19 +160,19 @@ lemma rep_of_fun_upd_rep_of:
       and "rep_of l x \<noteq> rep_of l y"
   shows "rep_of (l[rep_of l x := y]) x = rep_of l y"
 proof-
-  have path_to_rep_x: "path l (rep_of l x) (path_to_root l x) x" 
-    by (simp add: assms(1) assms(2) path_to_root_correct)
-  with path_fun_upd have path1: "path (l[rep_of l x := y]) (rep_of l x) (path_to_root l x) x"
+  have path_to_rep_x: "path l (rep_of l x) (path_to_rep l x) x" 
+    by (simp add: assms(1) assms(2) path_path_to_rep)
+  with path_fun_upd have path1: "path (l[rep_of l x := y]) (rep_of l x) (path_to_rep l x) x"
     by (metis assms(1) list.sel(3) path.simps path_remove_left)
   from assms have path2: "path (l[rep_of l x := y]) y [y, rep_of l x] (rep_of l x)"
     by (metis path_to_rep_x length_list_update nth_list_update_eq path.step path_rep_eq rep_of_less_length_l single)
-  have path_to_rep_y: "path l (rep_of l y) (path_to_root l y) y" 
-    by (simp add: assms(1) assms(3) path_to_root_correct)
+  have path_to_rep_y: "path l (rep_of l y) (path_to_rep l y) y" 
+    by (simp add: assms(1) assms(3) path_path_to_rep)
   have "rep_of l (rep_of l x) = rep_of l x" 
     using assms(1) path_rep_eq path_to_rep_x by blast
-  with assms have "rep_of l x \<notin> set (path_to_root l y)" 
+  with assms have "rep_of l x \<notin> set (path_to_rep l y)" 
     by (metis path_to_rep_y in_set_conv_nth path_rep_of_neq_not_in_path)
-  then have path3: "path (l[rep_of l x := y]) (rep_of l y) (path_to_root l y) y" 
+  then have path3: "path (l[rep_of l x := y]) (rep_of l y) (path_to_rep l y) y" 
     by (metis in_set_tlD path_fun_upd path_to_rep_y)
   from path1 path2 path3 assms path_rep_eq show ?thesis 
     by (metis \<open>rep_of l (rep_of l x) = rep_of l x\<close> rep_of_fun_upd' ufa_invar_fun_upd')
@@ -184,7 +184,7 @@ lemma rep_of_fun_upd_aux2:
     shows "rep_of (l[a := b]) x = rep_of l b"
 proof-
   obtain pR where "path l (rep_of l b) pR b"
-    using assms(1,3) path_to_root_correct by blast
+    using assms(1,3) path_path_to_rep by blast
   then have pR: "path (l[a := b]) (rep_of l b) pR b"
     by (metis (no_types, lifting) assms(1,4) in_set_conv_nth length_list_update list.sel(3) nodes_path_rep_of(2) path.simps path_fun_upd)
   have "a \<notin> set (tl p)" 
@@ -200,55 +200,55 @@ proof-
 qed
 
 
-lemma path_to_root_fun_upd: 
+lemma path_to_rep_fun_upd: 
   assumes "ufa_invar l" "path l (rep_of l li) p\<^sub>1 li" "i \<notin> set p\<^sub>1" "li < length l"
     and invar: "ufa_invar (l[i := y'])"
-  shows "path_to_root (l[i := y']) li = path_to_root l li"
+  shows "path_to_rep (l[i := y']) li = path_to_rep l li"
 proof-
-  have "path l (rep_of l li) (path_to_root l li) li" 
-    using assms(1) assms(2) path_nodes_lt_length_l path_to_root_correct by auto
-  with assms have p1: "path (l[i := y']) (rep_of (l[i := y']) li) (path_to_root l li) li"
+  have "path l (rep_of l li) (path_to_rep l li) li" 
+    using assms(1) assms(2) path_nodes_lt_length_l path_path_to_rep by auto
+  with assms have p1: "path (l[i := y']) (rep_of (l[i := y']) li) (path_to_rep l li) li"
     by (metis path_fun_upd path_unique rep_of_fun_upd in_set_tlD)
-  have "path (l[i := y']) (rep_of (l[i := y']) li) (path_to_root (l[i := y']) li) li" 
-    by (simp add: invar assms(4) path_to_root_correct)
+  have "path (l[i := y']) (rep_of (l[i := y']) li) (path_to_rep (l[i := y']) li) li" 
+    by (simp add: invar assms(4) path_path_to_rep)
   with p1 path_unique show ?thesis 
     using invar by blast
 qed
 
-lemma path_to_root_fun_upd': 
+lemma path_to_rep_fun_upd': 
   assumes "ufa_invar l" "rep_of l li \<noteq> rep_of l i" "li < length l"
     and "ufa_invar (l[i := y'])"
-  shows "path_to_root (l[i := y']) li = path_to_root l li"
-proof(rule path_to_root_fun_upd)
-  show "path l (rep_of l li) (path_to_root l li) li"
-    by (simp add: assms(1) assms(3) path_to_root_correct)
-  with assms show "i \<notin> set (path_to_root l li)"
+  shows "path_to_rep (l[i := y']) li = path_to_rep l li"
+proof(rule path_to_rep_fun_upd)
+  show "path l (rep_of l li) (path_to_rep l li) li"
+    by (simp add: assms(1) assms(3) path_path_to_rep)
+  with assms show "i \<notin> set (path_to_rep l li)"
     by (metis in_set_conv_nth nodes_path_rep_of(2))
 qed(simp_all add: assms)
 
-lemma path_to_root_fun_upd_root: 
+lemma path_to_rep_fun_upd_root: 
   assumes "ufa_invar l" "li < length l"
     "rep_of l li \<noteq> rep_of l y'" "y' < length l"
-  shows "path_to_root (l[(rep_of l li) := y']) li = path_to_root l y' @ path_to_root l li"
+  shows "path_to_rep (l[(rep_of l li) := y']) li = path_to_rep l y' @ path_to_rep l li"
 proof-
-  have p1: "path l (rep_of l li) (path_to_root l li) li"
-    "path l (rep_of l y') (path_to_root l y') y'" 
-    using assms path_nodes_lt_length_l path_to_root_correct 
+  have p1: "path l (rep_of l li) (path_to_rep l li) li"
+    "path l (rep_of l y') (path_to_rep l y') y'" 
+    using assms path_nodes_lt_length_l path_path_to_rep 
     by auto
-  with assms have p2: "path (l[(rep_of l li) := y']) (rep_of l y') (path_to_root l y') y'"
-    "path (l[(rep_of l li) := y']) (rep_of l li) (path_to_root l li) li"
-     apply (metis length_list_update path_to_root_correct path_to_root_fun_upd' rep_of_fun_upd' rep_of_idem ufa_invar_fun_upd')
+  with assms have p2: "path (l[(rep_of l li) := y']) (rep_of l y') (path_to_rep l y') y'"
+    "path (l[(rep_of l li) := y']) (rep_of l li) (path_to_rep l li) li"
+     apply (metis length_list_update path_path_to_rep path_to_rep_fun_upd' rep_of_fun_upd' rep_of_idem ufa_invar_fun_upd')
     using assms p1 path_fun_upd path_contains_no_root rep_of_root by blast
   from assms p1 have "path (l[(rep_of l li) := y']) y' [y', rep_of l li] (rep_of l li)" 
     by (metis length_list_update nth_list_update_eq path.step path_rep_eq rep_of_less_length_l single)
   with p2 p1 assms have 
-    "path (l[(rep_of l li) := y']) (rep_of l y') ((path_to_root l y') @ [rep_of l li]) (rep_of l li)"
+    "path (l[(rep_of l li) := y']) (rep_of l y') ((path_to_rep l y') @ [rep_of l li]) (rep_of l li)"
     by (metis nth_list_update_eq path_nodes_lt_length_l path_rep_eq path_snoc)
   with p2 have 
-    "path (l[(rep_of l li) := y']) (rep_of l y') (path_to_root l y' @ path_to_root l li) li"
+    "path (l[(rep_of l li) := y']) (rep_of l y') (path_to_rep l y' @ path_to_rep l li) li"
     using path_concat2 by fastforce
   with p1 path_unique assms show ?thesis
-    by (metis path_nodes_lt_length_l path_rep_eq path_to_root_correct rep_of_fun_upd_rep_of ufa_invar_fun_upd')
+    by (metis path_nodes_lt_length_l path_rep_eq path_path_to_rep rep_of_fun_upd_rep_of ufa_invar_fun_upd')
 qed
 
 text \<open>If the representative changes after a list update, then it must be equal to 
@@ -291,10 +291,10 @@ lemma add_edge_domain:
   assumes "ufa_invar l" "y < length l" "y' < length l" "rep_of l y \<noteq> rep_of l y'"
   shows "add_edge_dom (l, y, y')"
 proof-
-  have path: "path l (rep_of l y) (path_to_root l y) y"
-    by (simp add: assms(1) assms(2) path_to_root_correct)
+  have path: "path l (rep_of l y) (path_to_rep l y) y"
+    by (simp add: assms(1) assms(2) path_path_to_rep)
   show ?thesis
-    using path assms proof(induction "length (path_to_root l y)" arbitrary: l y' y)
+    using path assms proof(induction "length (path_to_rep l y)" arbitrary: l y' y)
     case 0
     with path_not_empty show ?case by auto
   next
@@ -302,7 +302,7 @@ proof-
     then show ?case 
     proof(cases a)
       case 0
-      then have "path_to_root l y = [y]" 
+      then have "path_to_rep l y = [y]" 
         using IH path_unique_if_length_eq single by fastforce
       with IH have "l ! y = y" 
         by (metis path_length_1 rep_of_root)
@@ -310,42 +310,42 @@ proof-
         using add_edge.domintros by blast
     next
       case (Suc n)
-      then have "length (path_to_root l y) > 1" 
+      then have "length (path_to_rep l y) > 1" 
         using IH.hyps(2) by linarith
       then have path_root_divided: 
-        "path_to_root l y = rep_of l y # (tl (butlast (path_to_root l y))) @ [y]" 
+        "path_to_rep l y = rep_of l y # (tl (butlast (path_to_rep l y))) @ [y]" 
         using IH.prems(1) path_hd_and_last by blast
       with IH have "l ! y \<noteq> y" 
         by (metis append_is_Nil_conv list_tail_coinc not_Cons_self2 path_no_cycle path_root)
 
       with IH have path_to_parent: 
-        "path l (rep_of l y) (rep_of l y # (tl (butlast (path_to_root l y)))) (l ! y)"
+        "path l (rep_of l y) (rep_of l y # (tl (butlast (path_to_rep l y)))) (l ! y)"
         by (metis butlast_eq_cons_conv path_butlast path_root_divided rep_of_min)
-      have y_notin_path: "y \<notin> set (rep_of l y # (tl(butlast(path_to_root l y))))" 
+      have y_notin_path: "y \<notin> set (rep_of l y # (tl(butlast(path_to_rep l y))))" 
         by (metis IH.prems(1) IH.prems(2) butlast_eq_cons_conv path_remove_right path_root_divided)
       then have path_to_parent_update: 
-        "path (l[y := y']) (rep_of l y) (rep_of l y # (tl (butlast (path_to_root l y)))) (l ! y)"
+        "path (l[y := y']) (rep_of l y) (rep_of l y # (tl (butlast (path_to_rep l y)))) (l ! y)"
         by (simp add: path_to_parent path_fun_upd)
       have rep_of_update: "rep_of l y = rep_of (l[y := y']) (l ! y)" 
         by (metis IH.prems(2) IH.prems(3) path_to_parent y_notin_path rep_of_fun_upd rep_of_step)
 
-      have path_y': "path l (rep_of l y') (path_to_root l y') y'" 
-        by (simp add: IH.prems(2) IH.prems(4) path_to_root_correct)
-      have "y \<notin> set (path_to_root l y')" 
+      have path_y': "path l (rep_of l y') (path_to_rep l y') y'" 
+        by (simp add: IH.prems(2) IH.prems(4) path_path_to_rep)
+      have "y \<notin> set (path_to_rep l y')" 
         by (metis IH.prems(2) IH.prems(5) path_y' in_set_conv_nth nodes_path_rep_of(2))
       with ufa_invar_fun_upd have "ufa_invar (l[y := y'])" 
         using IH.prems(2) IH.prems(4) path_y' by blast
       then have path_to_parent2: 
-        "path (l[y := y']) (rep_of (l[y := y']) (l ! y)) (path_to_root (l[y := y']) (l ! y)) (l ! y)" 
-        using path_to_parent_update path_nodes_lt_length_l path_to_root_correct by blast
+        "path (l[y := y']) (rep_of (l[y := y']) (l ! y)) (path_to_rep (l[y := y']) (l ! y)) (l ! y)" 
+        using path_to_parent_update path_nodes_lt_length_l path_path_to_rep by blast
       then have "l ! y < length (l[y := y'])" 
         using path_nodes_lt_length_l by blast
 
-      have "a = length (path_to_root (l[y := y']) (l ! y)) "
+      have "a = length (path_to_rep (l[y := y']) (l ! y)) "
         by (metis IH.hyps(2) path_to_parent2 path_to_parent_update rep_of_update \<open>ufa_invar (l[y := y'])\<close> length_Cons length_append_singleton old.nat.inject path_root_divided path_unique)
 
       with IH(1) have "add_edge_dom (l[y := y'], l ! y, y)"
-        by (metis IH.prems(2) IH.prems(3) IH.prems(5) \<open>l ! y < length (l[y := y'])\<close> path_to_parent2 path_y' rep_of_update \<open>ufa_invar (l[y := y'])\<close> \<open>y \<notin> set (path_to_root l y')\<close> length_list_update nth_list_update_eq rep_of_fun_upd rep_of_idx)
+        by (metis IH.prems(2) IH.prems(3) IH.prems(5) \<open>l ! y < length (l[y := y'])\<close> path_to_parent2 path_y' rep_of_update \<open>ufa_invar (l[y := y'])\<close> \<open>y \<notin> set (path_to_rep l y')\<close> length_list_update nth_list_update_eq rep_of_fun_upd rep_of_idx)
       then show ?thesis 
         using add_edge.domintros by blast
     qed
@@ -365,9 +365,9 @@ proof-
     case (1 pf e e')
  \<comment> \<open>The function update of \<open>add_edge\<close> does not form a cycle, therefore we can use
      the lemma \<open>ufa_invar_fun_upd\<close>.\<close>
-    from 1 have path_root: "path pf (rep_of pf e') (path_to_root pf e') e'" 
-      by (simp add: path_to_root_correct)
-    with path_rep_of_neq_disjoint 1 have e_notin_path_root: "e \<notin> set (path_to_root pf e')" 
+    from 1 have path_root: "path pf (rep_of pf e') (path_to_rep pf e') e'" 
+      by (simp add: path_path_to_rep)
+    with path_rep_of_neq_disjoint 1 have e_notin_path_root: "e \<notin> set (path_to_rep pf e')" 
       by (metis in_set_conv_nth nodes_path_rep_of(2))
     with ufa_invar_fun_upd have ufa_invar_upd: "ufa_invar (pf[e := e'])" 
       using 1 path_root by blast
@@ -384,13 +384,13 @@ proof-
         by (metis "1.prems"(3) lengths(1) nth_list_update_eq rep_of_idx ufa_invar_upd)
       also have "... = rep_of pf e'" 
         using "1.prems"(1) e_notin_path_root path_root rep_of_fun_upd by auto
-      from "1.prems" have path_e_root: "path pf (rep_of pf e) (path_to_root pf e) e" 
-        by (simp add: path_to_root_correct)
-      with "1.prems" have path_pf_e: "path pf (rep_of pf e) (butlast (path_to_root pf e)) (pf ! e)" 
+      from "1.prems" have path_e_root: "path pf (rep_of pf e) (path_to_rep pf e) e" 
+        by (simp add: path_path_to_rep)
+      with "1.prems" have path_pf_e: "path pf (rep_of pf e) (butlast (path_to_rep pf e)) (pf ! e)" 
         by (metis False path_butlast rep_of_root)
-      then have "last (path_to_root pf e) = e" 
+      then have "last (path_to_rep pf e) = e" 
         using path_e_root path_last by auto
-      with path_remove_right have "e \<notin> set (butlast (path_to_root pf e))" 
+      with path_remove_right have "e \<notin> set (butlast (path_to_rep pf e))" 
         using "1.prems"(1) path_e_root by auto
       with rep_of_fun_upd 1 have "rep_of (pf[e := e']) (pf ! e) = rep_of pf e" 
         by (metis path_pf_e rep_of_step)
@@ -442,20 +442,20 @@ proof-
         using path_fun_upd path_remove_right rep_of_fun_upd in_set_tlD by metis
       have "rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)" 
         using "1.prems" path_to_parent path_remove_right rep_of_fun_upd by auto
-      from invar path_to_root_correct 
-      have "path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_root (pf[e := e']) e) e" 
+      from invar path_path_to_rep 
+      have "path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_rep (pf[e := e']) e) e" 
         using "1.prems" path_nodes_lt_length_l by auto
-      then have "path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_root (pf[e := e']) e)) e'" 
+      then have "path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_rep (pf[e := e']) e)) e'" 
         using "1.prems" path_nodes_lt_length_l 
         by (metis invar nth_list_update_eq path_butlast rep_of_idx rep_of_root)
-      then have "e \<notin> set (butlast (path_to_root (pf[e := e']) e))" 
-        using \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_root (pf[e := e']) e) e\<close> invar path_remove_right by presburger
+      then have "e \<notin> set (butlast (path_to_rep (pf[e := e']) e))" 
+        using \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_rep (pf[e := e']) e) e\<close> invar path_remove_right by presburger
       have "rep_of (pf[e := e']) e' = rep_of pf e'" 
-        by (metis \<open>e \<notin> set (butlast (path_to_root (pf[e := e']) e))\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_root (pf[e := e']) e)) e'\<close> invar list_update_id list_update_overwrite rep_of_fun_upd)
+        by (metis \<open>e \<notin> set (butlast (path_to_rep (pf[e := e']) e))\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_rep (pf[e := e']) e)) e'\<close> invar list_update_id list_update_overwrite rep_of_fun_upd)
       have "rep_of (pf[e := e']) (pf ! e) \<noteq> rep_of (pf[e := e']) e" 
         by (metis "1.prems"(1) "1.prems"(2) "1.prems"(5) \<open>rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)\<close> \<open>rep_of (pf[e := e']) e' = rep_of pf e'\<close> invar length_list_update nth_list_update_eq path_nodes_lt_length_l rep_of_idx)
       with 1 invar have "pf[e := e'] ! i = add_edge (pf[e := e']) (pf ! e) e ! i" 
-        by (metis \<open>path (pf[e := e']) (rep_of (pf[e := e']) (pf ! e)) (butlast p\<^sub>1) (pf ! e)\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_root (pf[e := e']) e) e\<close> in_set_butlastD path_nodes_lt_length_l)
+        by (metis \<open>path (pf[e := e']) (rep_of (pf[e := e']) (pf ! e)) (butlast p\<^sub>1) (pf ! e)\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_rep (pf[e := e']) e) e\<close> in_set_butlastD path_nodes_lt_length_l)
       then show ?thesis 
         using \<open>i \<noteq> e\<close> add_edge by force
     qed
@@ -483,15 +483,15 @@ proof-
       case False
       have invar: "ufa_invar (pf[e := e'])" 
         using "1.prems" ufa_invar_fun_upd' by auto
-      have "path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)" 
-        by (simp add: "1.prems"(1) "1.prems"(2) \<open>ufa_invar (pf[e := e'])\<close> path_to_root_correct ufa_invarD(2)) 
-      with 1(3,4) invar path_remove_child[of "pf" "rep_of (pf[e := e']) (pf ! e)" "path_to_root (pf[e := e']) (pf ! e)" e]
-      have "e \<notin> set (path_to_root pf (pf ! e))" 
+      have "path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)" 
+        by (simp add: "1.prems"(1) "1.prems"(2) \<open>ufa_invar (pf[e := e'])\<close> path_path_to_rep ufa_invarD(2)) 
+      with 1(3,4) invar path_remove_child[of "pf" "rep_of (pf[e := e']) (pf ! e)" "path_to_rep (pf[e := e']) (pf ! e)" e]
+      have "e \<notin> set (path_to_rep pf (pf ! e))" 
         using False path_remove_child by blast
-      have "path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)" 
-        by (metis in_set_tlD \<open>e \<notin> set (path_to_root pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)\<close> path_fun_upd)
+      have "path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)" 
+        by (metis in_set_tlD \<open>e \<notin> set (path_to_rep pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)\<close> path_fun_upd)
       with "1.prems" add_edge_list_unchanged[of "pf[e := e']" "pf ! e" _ e e] have "add_edge (pf[e := e']) (pf ! e) e ! e = (pf[e := e']) ! e"
-        by (metis \<open>e \<notin> set (path_to_root pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)\<close> invar length_list_update list_update_overwrite nth_list_update_eq rep_of_fun_upd rep_of_idx ufa_compress_aux(2))
+        by (metis \<open>e \<notin> set (path_to_rep pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)\<close> invar length_list_update list_update_overwrite nth_list_update_eq rep_of_fun_upd rep_of_idx ufa_compress_aux(2))
       with 1 show ?thesis 
         by (metis add_edge.psimps nth_list_update_eq)
     qed
@@ -502,7 +502,7 @@ text \<open>\<open>add_edge\<close> reverses all the edges for e to its root, an
 lemma add_edge_correctness: 
   assumes "ufa_invar pf" "e < length pf" "e' < length pf"
     "rep_of pf e \<noteq> rep_of pf e'"
-  shows "path (add_edge pf e e') e' ([e'] @ rev (path_to_root pf e)) (rep_of pf e)"
+  shows "path (add_edge pf e e') e' ([e'] @ rev (path_to_rep pf e)) (rep_of pf e)"
 proof-
   from assms have dom: "add_edge_dom (pf, e, e')" 
     by (simp add: add_edge_domain)
@@ -518,52 +518,52 @@ proof-
         by (simp add: "1.hyps" add_edge.psimps)
       have "rep_of pf e = e" 
         by (simp add: True rep_of_refl)
-      with True 1 have "path_to_root pf e = [e]" 
-        by (metis \<open>rep_of pf e = e\<close> path_to_root_correct path_unique single)
-      then have "rev (path_to_root pf e) = [e]" by simp
-      then have "path (add_edge pf e e') (rep_of pf e) (rev (path_to_root pf e)) e"
+      with True 1 have "path_to_rep pf e = [e]" 
+        by (metis \<open>rep_of pf e = e\<close> path_path_to_rep path_unique single)
+      then have "rev (path_to_rep pf e) = [e]" by simp
+      then have "path (add_edge pf e e') (rep_of pf e) (rev (path_to_rep pf e)) e"
         by (simp add: "1.prems"(2) \<open>rep_of pf e = e\<close> add_edge single)
       then have "path (add_edge pf e e') e' [e', e] e" 
         using add_edge invar 1
-        by (metis \<open>rep_of pf e = e\<close> \<open>rev (path_to_root pf e) = [e]\<close> nth_list_update_eq path.step path_nodes_lt_length_l ufa_invarD(2))
+        by (metis \<open>rep_of pf e = e\<close> \<open>rev (path_to_rep pf e) = [e]\<close> nth_list_update_eq path.step path_nodes_lt_length_l ufa_invarD(2))
       then show ?thesis 
-        by (simp add: \<open>rep_of pf e = e\<close> \<open>rev (path_to_root pf e) = [e]\<close>)
+        by (simp add: \<open>rep_of pf e = e\<close> \<open>rev (path_to_rep pf e) = [e]\<close>)
     next
       case False
       then have add_edge: "add_edge pf e e' = add_edge (pf[e := e']) (pf ! e) e" 
         by (simp add: "1.hyps" add_edge.psimps)
       from 1 have reps: "rep_of (pf[e := e']) e = rep_of (pf[e := e']) e'" 
         by (metis length_list_update nth_list_update_eq rep_of_idx ufa_invar_fun_upd')
-      have path_e': "path pf (rep_of pf e') (path_to_root pf e') e'" "e \<notin> set (path_to_root pf e')" 
-         apply (simp add: "1.prems" path_to_root_correct)
-        by (metis "1.prems"(1,3,4) in_set_conv_nth path_rep_of_neq_not_in_path path_to_root_correct)
-      have path_pf_e: "path pf (rep_of pf (pf ! e)) (butlast (path_to_root pf e)) (pf ! e)" 
-        "e \<notin> set (butlast (path_to_root pf e))" 
-         apply (metis "1.prems"(1,2) False path_butlast path_to_root_correct rep_of_min rep_of_step)
-        by (metis "1.prems"(1,2) path_remove_right path_to_root_correct)
+      have path_e': "path pf (rep_of pf e') (path_to_rep pf e') e'" "e \<notin> set (path_to_rep pf e')" 
+         apply (simp add: "1.prems" path_path_to_rep)
+        by (metis "1.prems"(1,3,4) in_set_conv_nth path_rep_of_neq_not_in_path path_path_to_rep)
+      have path_pf_e: "path pf (rep_of pf (pf ! e)) (butlast (path_to_rep pf e)) (pf ! e)" 
+        "e \<notin> set (butlast (path_to_rep pf e))" 
+         apply (metis "1.prems"(1,2) False path_butlast path_path_to_rep rep_of_min rep_of_step)
+        by (metis "1.prems"(1,2) path_remove_right path_path_to_rep)
       with rep_of_fun_upd path_e' 1 have reps2: "rep_of (pf[e := e']) e' = rep_of pf e'" 
         "rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)" 
         by auto
       then have "rep_of (pf[e := e']) (pf ! e) \<noteq> rep_of (pf[e := e']) e" 
         by (simp add: 1 reps rep_of_idx)
       with 1 have path_add_edge: "path (add_edge (pf[e := e']) (pf ! e) e) e 
-      ([e] @ rev (path_to_root (pf[e := e']) (pf ! e))) (rep_of (pf[e := e']) (pf ! e))" 
+      ([e] @ rev (path_to_rep (pf[e := e']) (pf ! e))) (rep_of (pf[e := e']) (pf ! e))" 
         by (metis length_list_update ufa_invarD(2) ufa_invar_fun_upd')
-      have "path pf (rep_of pf e) (path_to_root pf e) e" 
-        by (simp add: "1.prems" path_to_root_correct)
-      then have last_path_to_root: "last (path_to_root pf e) = e" 
+      have "path pf (rep_of pf e) (path_to_rep pf e) e" 
+        by (simp add: "1.prems" path_path_to_rep)
+      then have last_path_to_rep: "last (path_to_rep pf e) = e" 
         using path_last by auto
       have add_edge_e: "(add_edge pf e e') ! e = e'" 
         by (simp add: "1.prems" nth_add_edge_e_eq_e')
-      from "1.prems" have *: "path_to_root pf (pf ! e) @ [e] = path_to_root pf e" 
-        by (metis False append_butlast_last_id butlast.simps(1) last_path path_pf_e(1) path_to_root_correct path_unique ufa_invarD(2))
-      with path_pf_e "1.prems"(1) path_to_root_fun_upd have path_root_parent: 
-        "path_to_root (pf[e := e']) (pf ! e) = path_to_root pf (pf ! e)" 
+      from "1.prems" have *: "path_to_rep pf (pf ! e) @ [e] = path_to_rep pf e" 
+        by (metis False append_butlast_last_id butlast.simps(1) last_path path_pf_e(1) path_path_to_rep path_unique ufa_invarD(2))
+      with path_pf_e "1.prems"(1) path_to_rep_fun_upd have path_root_parent: 
+        "path_to_rep (pf[e := e']) (pf ! e) = path_to_rep pf (pf ! e)" 
         by (metis path_e' path_nodes_lt_length_l ufa_invar_fun_upd)
-      with * have **: "tl (rev (path_to_root pf e)) = rev (path_to_root (pf[e := e']) (pf ! e))" 
+      with * have **: "tl (rev (path_to_rep pf e)) = rev (path_to_rep (pf[e := e']) (pf ! e))" 
         by (metis butlast_snoc rev_butlast_is_tl_rev)
-      have "hd (rev (path_to_root pf e)) = e" 
-        by (simp add: last_path_to_root hd_rev)
+      have "hd (rev (path_to_rep pf e)) = e" 
+        by (simp add: last_path_to_rep hd_rev)
       with "1.prems" path_add_edge add_edge  ** show ?thesis 
         by (metis "*" Cons_eq_appendI add_edge_e empty_append_eq_id invar path.step path_nodes_lt_length_l path_root_parent rep_of_idx reps2(2) rev_append rev_singleton_conv ufa_invarD(2))
     qed
@@ -613,7 +613,7 @@ proof-
         by (simp add: "1.prems" ufa_invar_fun_upd')
       from rep_of_fun_upd "1.prems" have rep_of_parent: 
         "rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)" 
-        by (metis False path_remove_child path_to_root_correct ufa_invarD(2))
+        by (metis False path_remove_child path_path_to_rep ufa_invarD(2))
       with "1.prems" have rep_of_parent': "rep_of (pf[e := e']) (pf ! e) \<noteq> rep_of (pf[e := e']) e" 
         by (metis invar length_list_update nth_list_update_eq rep_of_fun_upd' rep_of_idx)
           \<comment>\<open>The induction hypothesis tells us that the claim holds for the parent of e\<close>

@@ -2895,7 +2895,7 @@ proof-
 add_label (pfl[e := Some eq]) pf (pf ! e) (the (pfl ! e))"
         using "1.prems" add_label.psimps add_edge.psimps by presburger
       obtain pER where "path pf (rep_of pf e) pER e" 
-        using "1.prems" path_to_root_correct by metis
+        using "1.prems" path_path_to_rep by metis
       then have pER:  "path pf (rep_of pf e) (butlast pER) (pf ! e)" 
         by (metis "1.prems"(4) False path_butlast path_nodes_lt_length_l rep_of_min)
       have e_e': "e < length pf" "e' < length pf" using "1.prems"

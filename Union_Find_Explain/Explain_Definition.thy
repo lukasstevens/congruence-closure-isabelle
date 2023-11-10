@@ -27,39 +27,48 @@ record ufe_data_structure =
   au :: "nat option list"
 
 text \<open>For the initialisation of the union find algorithm.\<close>
-abbreviation "initial_ufe n \<equiv> \<lparr>uf_list = [0..<n], unions = [], au = replicate n None\<rparr>"
+abbreviation "initial_ufe n \<equiv> \<lparr> uf_list = [0..<n], unions = [], au = replicate n None \<rparr>"
 
 paragraph \<open>Union\<close>
 text \<open>Extension of the union operations to the \<open>ufe_data_structure\<close>.\<close>
-fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufe_data_structure"
-  where
-    "ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = (
-if (rep_of l x \<noteq> rep_of l y) then
-    \<lparr>uf_list = ufa_union l x y, 
-     unions = u @ [(x,y)],
-     au = a[rep_of l x := Some (length u)]\<rparr>
-else \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
+fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufe_data_structure" where
+  "ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y =
+    (if rep_of l x \<noteq> rep_of l y then
+      \<lparr> uf_list = ufa_union l x y
+      , unions = u @ [(x,y)]
+      , au = a[rep_of l x := Some (length u)]
+      \<rparr>
+    else \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
 
 text \<open>Helper lemmata for \<open>ufe_union\<close>.\<close>
-lemma ufe_union1[simp]: "rep_of l x = rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
+lemma ufe_union1[simp]:
+  "rep_of l x = rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
   by simp
-lemma ufe_union1_ufe[simp]: "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> ufe_union ufe x y = ufe"
+lemma ufe_union1_ufe[simp]:
+  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> ufe_union ufe x y = ufe"
   by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_uf_list[simp]: "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = uf_list ufe"
+lemma ufe_union1_uf_list[simp]:
+  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = uf_list ufe"
   by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_unions[simp]: "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe"
+lemma ufe_union1_unions[simp]:
+  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe"
   by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_au[simp]: "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = au ufe"
+lemma ufe_union1_au[simp]:
+  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = au ufe"
   by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union2[simp]: "rep_of l x \<noteq> rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = ufa_union l x y,
+lemma ufe_union2[simp]:
+  "rep_of l x \<noteq> rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = ufa_union l x y,
      unions = u @ [(x,y)],
      au =  a[rep_of l x := Some (length u)]\<rparr>"
   by simp
-lemma ufe_union2_uf_list[simp]: "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
+lemma ufe_union2_uf_list[simp]:
+  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
   using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1))
-lemma ufe_union2_unions[simp]: "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe @ [(x,y)]"
+lemma ufe_union2_unions[simp]:
+  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe @ [(x,y)]"
   using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1,2))
-lemma ufe_union2_au[simp]: "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = (au ufe)[rep_of (uf_list ufe) x := Some (length (unions ufe))]"
+lemma ufe_union2_au[simp]:
+  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = (au ufe)[rep_of (uf_list ufe) x := Some (length (unions ufe))]"
   using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1,2,3))
 
 lemma P_ufe_unionE[consumes 1, case_names rep_neq]:
@@ -72,67 +81,64 @@ lemma P_ufe_unionE[consumes 1, case_names rep_neq]:
   using assms by auto
 
 text \<open>For the application of a list of unions.\<close>
-fun apply_unions :: "(nat * nat) list \<Rightarrow> ufe_data_structure \<Rightarrow> ufe_data_structure"
-  where
-    "apply_unions [] p = p" |
-    "apply_unions ((x, y) # u) p = apply_unions u (ufe_union p x y)"
+fun apply_unions :: "(nat * nat) list \<Rightarrow> ufe_data_structure \<Rightarrow> ufe_data_structure" where
+  "apply_unions [] p = p"
+| "apply_unions ((x, y) # u) p = apply_unions u (ufe_union p x y)"
 
-lemma apply_unions_cons: "apply_unions u1 a = b \<Longrightarrow> apply_unions u2 b = c \<Longrightarrow> apply_unions (u1 @ u2) a = c"
-  by(induction u1 a rule: apply_unions.induct, simp_all)
+lemma apply_unions_cons:
+  "apply_unions u1 a = b \<Longrightarrow> apply_unions u2 b = c \<Longrightarrow> apply_unions (u1 @ u2) a = c"
+  by (induction u1 a rule: apply_unions.induct) simp_all
 
 paragraph \<open>Explain\<close>
 
 text \<open>Finds the path from x to \<open>rep_of\<close> x.\<close>
-function path_to_root :: "nat list \<Rightarrow> nat \<Rightarrow> nat list"
-  where 
-    "path_to_root l x = (if l ! x = x then [x] else path_to_root l (l ! x) @ [x])"
+function path_to_rep :: "nat list \<Rightarrow> nat \<Rightarrow> nat list" where 
+  "path_to_rep l x = (if l ! x = x then [] else path_to_rep l (l ! x) @ [l ! x])"
   by pat_completeness auto
 
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
-fun lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" 
-  where
-    "lowest_common_ancestor l x y = 
-last (longest_common_prefix (path_to_root l x) (path_to_root l y))"
+fun lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
+  "lowest_common_ancestor l x y = 
+    last (longest_common_prefix (path_to_rep l x) (path_to_rep l y))"
 
 lemma lowest_common_ancestor_symmetric:
   "lowest_common_ancestor l x y = lowest_common_ancestor l y x"
 proof-
-  have "longest_common_prefix (path_to_root l x) (path_to_root l y) =
-longest_common_prefix (path_to_root l y) (path_to_root l x)"
+  have
+    "longest_common_prefix (path_to_rep l x) (path_to_rep l y) =
+    longest_common_prefix (path_to_rep l y) (path_to_rep l x)"
     by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1 longest_common_prefix_prefix2 prefix_order.dual_order.eq_iff)
   then show ?thesis by auto
 qed
 
 text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
-function (domintros) find_newest_on_path  :: "nat list \<Rightarrow> nat option list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option"
-  where
-    "find_newest_on_path l a x y = 
-  (if x = y then None
-    else max (a ! x) (find_newest_on_path l a (l ! x) y))"
+function (domintros) find_newest_on_path ::
+  "nat list \<Rightarrow> nat option list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option" where
+  "find_newest_on_path l a x y = 
+    (if x = y then None else max (a ! x) (find_newest_on_path l a (l ! x) y))"
   by pat_completeness auto
 
 text \<open>Explain operation, as described in the paper.\<close>
-function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set"
-  where
-    "explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = 
-      (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
+function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where
+  "explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = 
+    (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
+    else 
+      let
+        lca = lowest_common_ancestor l x y;
+        newest_index_x = find_newest_on_path l a x lca;
+        newest_index_y = find_newest_on_path l a y lca
+      in
+      if newest_index_x \<ge> newest_index_y then
+        let (ax, bx) = u ! the (newest_index_x) in
+          {(ax, bx)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x ax 
+            \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> bx y
       else 
-          (let lca = lowest_common_ancestor l x y;
-           newest_index_x = find_newest_on_path l a x lca;
-           newest_index_y = find_newest_on_path l a y lca
-        in
-        (if newest_index_x \<ge> newest_index_y then
-            let (ax, bx) = u ! the (newest_index_x) in
-              {(ax, bx)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x ax 
-                \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> bx y
-        else 
-            let (ay, by) = u ! the (newest_index_y) in
-              {(ay, by)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x by 
-                \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> ay y)
-)
-)"
+        let (ay, by) = u ! the (newest_index_y) in
+          {(ay, by)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x by 
+            \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> ay y
+  )"
   by pat_completeness auto
 
 text \<open>The \<open>explain.cases\<close> theorem is not very useful, we define a better one.
@@ -249,8 +255,9 @@ lemma rep_of_idx2:
   "rep_of_dom (l, i) \<Longrightarrow> rep_of l (l ! i) = rep_of l i"
   by (simp add: rep_of.psimps)
 
-lemma ufe_union_uf_list: "ufa_invar (uf_list ufe) \<Longrightarrow> x < length (uf_list ufe) 
-\<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
+lemma ufe_union_uf_list:
+  "ufa_invar (uf_list ufe) \<Longrightarrow> x < length (uf_list ufe) 
+  \<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
 proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
   case True
   assume invar: "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
@@ -262,7 +269,9 @@ proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
     by (simp add: True)
 next
   case False
-  then show ?thesis using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1))
+  then show ?thesis
+    using ufe_data_structure.cases ufe_union2
+    by (metis ufe_data_structure.select_convs(1))
 qed
 
 lemma ufa_union_root: 

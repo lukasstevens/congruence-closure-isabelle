@@ -715,31 +715,31 @@ proof-
   then show ?thesis
   proof(cases "rep_of l x = rep_of l a")
     case True
-    then have *: "path_to_root (l[a := b]) x = path_to_root l b @ path_to_root l x"
-      "path_to_root (l[a := b]) y = path_to_root l b @ path_to_root l y"
-      using a_root assms path_to_root_fun_upd_root 
+    then have *: "path_to_rep (l[a := b]) x = path_to_rep l b @ path_to_rep l x"
+      "path_to_rep (l[a := b]) y = path_to_rep l b @ path_to_rep l y"
+      using a_root assms path_to_rep_fun_upd_root 
       by metis+
-    then have *: "longest_common_prefix (path_to_root (l[a := b]) x) (path_to_root (l[a := b]) y)
-= path_to_root l b @
-longest_common_prefix (path_to_root l x) (path_to_root l y)" unfolding * 
+    then have *: "longest_common_prefix (path_to_rep (l[a := b]) x) (path_to_rep (l[a := b]) y)
+= path_to_rep l b @
+longest_common_prefix (path_to_rep l x) (path_to_rep l y)" unfolding * 
       by (simp add: longest_common_prefix_concat)
-    have "hd (path_to_root l x) = rep_of l x" "hd (path_to_root l y) = rep_of l y"
-      using assms path_hd path_to_root_correct by blast+
-    with assms have "(path_to_root l x) = [rep_of l x]@tl(path_to_root l x)"
-      "(path_to_root l y) = [rep_of l y]@tl(path_to_root l y)"
-      by (metis Cons_eq_appendI  empty_append_eq_id len_greater_imp_nonempty list.collapse path_to_root_length)+
-    then have "longest_common_prefix (path_to_root l x) (path_to_root l y) = 
-[rep_of l x] @ longest_common_prefix (tl(path_to_root l x)) (tl(path_to_root l y)) "
+    have "hd (path_to_rep l x) = rep_of l x" "hd (path_to_rep l y) = rep_of l y"
+      using assms path_hd path_path_to_rep by blast+
+    with assms have "(path_to_rep l x) = [rep_of l x]@tl(path_to_rep l x)"
+      "(path_to_rep l y) = [rep_of l y]@tl(path_to_rep l y)"
+      by (metis Cons_eq_appendI  empty_append_eq_id len_greater_imp_nonempty list.collapse path_to_rep_length)+
+    then have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = 
+[rep_of l x] @ longest_common_prefix (tl(path_to_rep l x)) (tl(path_to_rep l y)) "
       using longest_common_prefix_concat by (metis assms(6))
-    then have "longest_common_prefix (path_to_root l x) (path_to_root l y) \<noteq> []"
+    then have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> []"
       by simp
     then show ?thesis 
       using * by fastforce
   next
     case False
-    then have "path_to_root (l[a := b]) x = path_to_root l x"
-      "path_to_root (l[a := b]) y = path_to_root l y" 
-      by (auto simp add: assms path_to_root_fun_upd' ufa_invar_fun_upd')
+    then have "path_to_rep (l[a := b]) x = path_to_rep l x"
+      "path_to_rep (l[a := b]) y = path_to_rep l y" 
+      by (auto simp add: assms path_to_rep_fun_upd' ufa_invar_fun_upd')
     then show ?thesis 
       by fastforce
   qed

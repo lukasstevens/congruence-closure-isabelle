@@ -413,17 +413,17 @@ proof-
         using path_fun_upd path_remove_right rep_of_fun_upd in_set_tlD by metis
       have "rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)" 
         using "1.prems" path_to_parent path_remove_right rep_of_fun_upd by auto
-      from invar path_to_root_correct 
-      have "path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_root (pf[e := e']) e) e" 
+      from invar path_path_to_rep 
+      have "path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_rep (pf[e := e']) e) e" 
         using "1.prems" path_nodes_lt_length_l 
         by (metis length_list_update)
-      then have "path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_root (pf[e := e']) e)) e'" 
+      then have "path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_rep (pf[e := e']) e)) e'" 
         using "1.prems" path_nodes_lt_length_l 
         by (metis invar nth_list_update_eq path_butlast rep_of_idx rep_of_root)
-      then have "e \<notin> set (butlast (path_to_root (pf[e := e']) e))" 
-        using \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_root (pf[e := e']) e) e\<close> invar path_remove_right by presburger
+      then have "e \<notin> set (butlast (path_to_rep (pf[e := e']) e))" 
+        using \<open>path (pf[e := e']) (rep_of (pf[e := e']) e) (path_to_rep (pf[e := e']) e) e\<close> invar path_remove_right by presburger
       have "rep_of (pf[e := e']) e' = rep_of pf e'" 
-        by (metis \<open>e \<notin> set (butlast (path_to_root (pf[e := e']) e))\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_root (pf[e := e']) e)) e'\<close> invar list_update_id list_update_overwrite rep_of_fun_upd)
+        by (metis \<open>e \<notin> set (butlast (path_to_rep (pf[e := e']) e))\<close> \<open>path (pf[e := e']) (rep_of (pf[e := e']) e') (butlast (path_to_rep (pf[e := e']) e)) e'\<close> invar list_update_id list_update_overwrite rep_of_fun_upd)
       have "rep_of (pf[e := e']) (pf ! e) \<noteq> rep_of (pf[e := e']) e" 
         by (metis "1.prems"(1) "1.prems"(2) "1.prems"(5) \<open>rep_of (pf[e := e']) (pf ! e) = rep_of pf (pf ! e)\<close> \<open>rep_of (pf[e := e']) e' = rep_of pf e'\<close> invar length_list_update nth_list_update_eq path_nodes_lt_length_l rep_of_idx)
       with 1 invar have "ti[e := k] ! i = add_timestamp (pf[e := e']) (ti[e := k]) (pf ! e) e (ti ! e) ! i" 
@@ -453,29 +453,29 @@ proof-
       case False
       have invar: "ufa_invar (pf[e := e'])" 
         using "1.prems" ufa_invar_fun_upd' by auto
-      have "path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)" 
-        by (simp add: "1.prems"(1) "1.prems"(2) \<open>ufa_invar (pf[e := e'])\<close> path_to_root_correct ufa_invarD(2)) 
-      with 1(3,4) invar path_remove_child[of "pf" "rep_of (pf[e := e']) (pf ! e)" "path_to_root (pf[e := e']) (pf ! e)" e]
-      have "e \<notin> set (path_to_root pf (pf ! e))" 
+      have "path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)" 
+        by (simp add: "1.prems"(1) "1.prems"(2) \<open>ufa_invar (pf[e := e'])\<close> path_path_to_rep ufa_invarD(2)) 
+      with 1(3,4) invar path_remove_child[of "pf" "rep_of (pf[e := e']) (pf ! e)" "path_to_rep (pf[e := e']) (pf ! e)" e]
+      have "e \<notin> set (path_to_rep pf (pf ! e))" 
         using False path_remove_child by blast
-      have "path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)" 
-        by (metis in_set_tlD \<open>e \<notin> set (path_to_root pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)\<close> path_fun_upd)
+      have "path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)" 
+        by (metis in_set_tlD \<open>e \<notin> set (path_to_rep pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)\<close> path_fun_upd)
       with "1.prems" add_edge_list_unchanged[of "pf[e := e']" "pf ! e" _ e e] 
       have *: "add_timestamp (pf[e := e']) (ti[e := k]) (pf ! e) e (ti ! e) ! e = k" using add_timestamp_list_unchanged 
-        by (metis False \<open>e \<notin> set (path_to_root pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)\<close> add_label_case_2_rep_of_neq invar length_list_update nth_list_update_eq rep_of_fun_upd)
+        by (metis False \<open>e \<notin> set (path_to_rep pf (pf ! e))\<close> \<open>path pf (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)\<close> add_label_case_2_rep_of_neq invar length_list_update nth_list_update_eq rep_of_fun_upd)
       with 1 have "add_timestamp (pf[e := e']) (ti[e := k]) (pf ! e) e (ti ! e) ! (pf ! e) = ti ! e"
-        by (metis False \<open>path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_root pf (pf ! e)) (pf ! e)\<close> add_label_case_2_rep_of_neq invar length_list_update path_nodes_lt_length_l)
+        by (metis False \<open>path (pf[e := e']) (rep_of pf (pf ! e)) (path_to_rep pf (pf ! e)) (pf ! e)\<close> add_label_case_2_rep_of_neq invar length_list_update path_nodes_lt_length_l)
       with 1 show ?thesis 
         using "*" False add_timestamp.psimps by presburger
     qed
   qed
 qed
 
-lemma add_timestamp_path_to_root_a: 
+lemma add_timestamp_path_to_rep_a: 
   assumes "ufa_invar pf" "a < length pf" "b < length pf" "rep_of pf a \<noteq> rep_of pf b"
     "length ti = length pf"
-  shows "map ((!) ti) (tl (path_to_root pf a)) 
-= map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_root pf a))"
+  shows "map ((!) ti) (tl (path_to_rep pf a)) 
+= map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_rep pf a))"
 proof-
   from add_timestamp_domain assms have "add_timestamp_dom (pf, ti, a, b, k)" 
     by blast
@@ -484,8 +484,8 @@ proof-
     case (1 pf ti a b k)
     then show ?case proof(cases "pf ! a = a")
       case True
-      then have "path_to_root pf a = [a]" 
-        using "1.prems"(1,2) path_to_root_correct path_to_root_has_length_1 by blast
+      then have "path_to_rep pf a = [a]" 
+        using "1.prems"(1,2) path_path_to_rep path_to_rep_has_length_1 by blast
       then show ?thesis 
         by simp
     next
@@ -500,23 +500,23 @@ proof-
           apply (simp add: "1.prems"(2))
          apply (metis "1.prems"(1) "1.prems"(2) "1.prems"(3) "1.prems"(4) False add_label_case_2_rep_of_neq)
         by (simp add: "1.prems"(5))
-      then have IH: "map ((!) (ti[a := k])) (tl (path_to_root (pf[a := b]) (pf ! a))) =
-    map ((!) (add_timestamp (pf[a := b]) (ti[a := k]) (pf ! a) a (ti ! a))) (butlast (path_to_root (pf[a := b]) (pf ! a)))"
+      then have IH: "map ((!) (ti[a := k])) (tl (path_to_rep (pf[a := b]) (pf ! a))) =
+    map ((!) (add_timestamp (pf[a := b]) (ti[a := k]) (pf ! a) a (ti ! a))) (butlast (path_to_rep (pf[a := b]) (pf ! a)))"
         using False 1 by blast
-      have "path_to_root pf (pf ! a) = butlast (path_to_root pf a)" using assms False
-        by (metis "1.prems"(1,2)  \<open>pf ! a < length (pf[a := b])\<close> length_list_update path_butlast path_to_root_correct path_unique rep_of_idx rep_of_min)
-      then have 2: "path_to_root (pf[a := b]) (pf ! a) = butlast (path_to_root pf a)" using assms False
-        using path_to_root_fun_upd' 
-        by (metis "1.prems"(1,2) \<open>pf ! a < length (pf[a := b])\<close> \<open>ufa_invar (pf[a := b])\<close> length_list_update path_remove_child path_to_root_correct path_to_root_fun_upd)
-      have 3: "path_to_root pf a = butlast (path_to_root pf a) @ [a]" 
-        by (metis "1.prems"(1,2) append_butlast_last_id path_last path_not_empty path_to_root_correct)
-      have "map ((!) ti) (tl (path_to_root pf a)) = 
-map ((!) ti) (tl (butlast (path_to_root pf a))) @ [ti ! a]" 
-        by (metis "1.prems"(1) "3" \<open>path_to_root pf (pf ! a) = butlast (path_to_root pf a)\<close> \<open>pf ! a < length (pf[a := b])\<close> gr0I len_greater_imp_nonempty length_list_update list.simps(8) list.simps(9) map_append path_to_root_length tl_append2)
-      have 3: "butlast (path_to_root pf a) = butlast (butlast (path_to_root pf a)) @ [pf ! a]" 
-        by (metis "1.prems"(1) \<open>path_to_root pf (pf ! a) = butlast (path_to_root pf a)\<close> \<open>pf ! a < length (pf[a := b])\<close> append_butlast_last_id len_greater_imp_nonempty length_list_update path_last path_to_root_correct path_to_root_length)
-      then have "map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_root pf a))
-= map ((!) (add_timestamp pf ti a b k)) (butlast (butlast (path_to_root pf a))) @ [add_timestamp pf ti a b k ! (pf ! a)]"
+      have "path_to_rep pf (pf ! a) = butlast (path_to_rep pf a)" using assms False
+        by (metis "1.prems"(1,2)  \<open>pf ! a < length (pf[a := b])\<close> length_list_update path_butlast path_path_to_rep path_unique rep_of_idx rep_of_min)
+      then have 2: "path_to_rep (pf[a := b]) (pf ! a) = butlast (path_to_rep pf a)" using assms False
+        using path_to_rep_fun_upd' 
+        by (metis "1.prems"(1,2) \<open>pf ! a < length (pf[a := b])\<close> \<open>ufa_invar (pf[a := b])\<close> length_list_update path_remove_child path_path_to_rep path_to_rep_fun_upd)
+      have 3: "path_to_rep pf a = butlast (path_to_rep pf a) @ [a]" 
+        by (metis "1.prems"(1,2) append_butlast_last_id path_last path_not_empty path_path_to_rep)
+      have "map ((!) ti) (tl (path_to_rep pf a)) = 
+map ((!) ti) (tl (butlast (path_to_rep pf a))) @ [ti ! a]" 
+        by (metis "1.prems"(1) "3" \<open>path_to_rep pf (pf ! a) = butlast (path_to_rep pf a)\<close> \<open>pf ! a < length (pf[a := b])\<close> gr0I len_greater_imp_nonempty length_list_update list.simps(8) list.simps(9) map_append path_to_rep_length tl_append2)
+      have 3: "butlast (path_to_rep pf a) = butlast (butlast (path_to_rep pf a)) @ [pf ! a]" 
+        by (metis "1.prems"(1) \<open>path_to_rep pf (pf ! a) = butlast (path_to_rep pf a)\<close> \<open>pf ! a < length (pf[a := b])\<close> append_butlast_last_id len_greater_imp_nonempty length_list_update path_last path_path_to_rep path_to_rep_length)
+      then have "map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_rep pf a))
+= map ((!) (add_timestamp pf ti a b k)) (butlast (butlast (path_to_rep pf a))) @ [add_timestamp pf ti a b k ! (pf ! a)]"
         by (metis list.simps(8) map_append map_consI(1))
       have "add_timestamp pf ti a b k = add_timestamp (pf[a := b]) (ti[a := k]) (pf ! a) a (ti ! a)" 
         using add_timestamp.psimps 1(1) False by auto
@@ -524,20 +524,20 @@ map ((!) ti) (tl (butlast (path_to_root pf a))) @ [ti ! a]"
         using nth_add_timestamp_e_eq_e' prems by blast
       ultimately have "add_timestamp pf ti a b k ! (pf ! a) = ti ! a" 
         by auto
-      have "a \<notin> set (tl (path_to_root (pf[a := b]) (pf ! a)))" 
-        by (metis "1.prems"(1) "2" False \<open>path_to_root pf (pf ! a) = butlast (path_to_root pf a)\<close> in_set_tlD length_list_update path_remove_child path_to_root_correct prems(2) prems(3))
-      then have "map ((!) (ti[a := k])) (tl (path_to_root (pf[a := b]) (pf ! a)))
-= map ((!) ti) (tl (path_to_root (pf[a := b]) (pf ! a)))" 
+      have "a \<notin> set (tl (path_to_rep (pf[a := b]) (pf ! a)))" 
+        by (metis "1.prems"(1) "2" False \<open>path_to_rep pf (pf ! a) = butlast (path_to_rep pf a)\<close> in_set_tlD length_list_update path_remove_child path_path_to_rep prems(2) prems(3))
+      then have "map ((!) (ti[a := k])) (tl (path_to_rep (pf[a := b]) (pf ! a)))
+= map ((!) ti) (tl (path_to_rep (pf[a := b]) (pf ! a)))" 
         by (metis (mono_tags, lifting) map_eq_conv nth_list_update_neq)
       then show ?thesis using IH 2 
-        by (metis "1.hyps" False \<open>add_timestamp pf ti a b k ! (pf ! a) = ti ! a\<close> \<open>map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_root pf a)) = map ((!) (add_timestamp pf ti a b k)) (butlast (butlast (path_to_root pf a))) @ [add_timestamp pf ti a b k ! (pf ! a)]\<close> \<open>map ((!) ti) (tl (path_to_root pf a)) = map ((!) ti) (tl (butlast (path_to_root pf a))) @ [ti ! a]\<close> add_timestamp.psimps)
+        by (metis "1.hyps" False \<open>add_timestamp pf ti a b k ! (pf ! a) = ti ! a\<close> \<open>map ((!) (add_timestamp pf ti a b k)) (butlast (path_to_rep pf a)) = map ((!) (add_timestamp pf ti a b k)) (butlast (butlast (path_to_rep pf a))) @ [add_timestamp pf ti a b k ! (pf ! a)]\<close> \<open>map ((!) ti) (tl (path_to_rep pf a)) = map ((!) ti) (tl (butlast (path_to_rep pf a))) @ [ti ! a]\<close> add_timestamp.psimps)
     qed
   qed
 qed
 
 lemma add_edge_path:
   assumes "path pf c p1 x"
-    "c \<notin> set (path_to_root pf a)"
+    "c \<notin> set (path_to_rep pf a)"
     "ufa_invar pf"
     "a < length pf" "b < length pf"
     "rep_of pf a \<noteq> rep_of pf b"
@@ -548,22 +548,22 @@ lemma add_edge_path:
     by (simp add: add_edge_preserves_length' path.single)
 next
   case (step r l u p v)
-  have "u \<notin> set (path_to_root l a)" 
+  have "u \<notin> set (path_to_rep l a)" 
   proof
-    assume "u \<in> set (path_to_root l a)"
-    then obtain i where i: "path_to_root l a ! i = u" "i < length (path_to_root l a)"
+    assume "u \<in> set (path_to_rep l a)"
+    then obtain i where i: "path_to_rep l a ! i = u" "i < length (path_to_rep l a)"
       by (meson in_set_conv_nth)
-    have p_root: "path l (rep_of l a) (path_to_root l a) a" 
-      by (simp add: path_to_root_correct step.prems(2) step.prems(3))
-    then have *: "path_to_root l a ! 0 = rep_of l a" "l ! rep_of l a = rep_of l a"
+    have p_root: "path l (rep_of l a) (path_to_rep l a) a" 
+      by (simp add: path_path_to_rep step.prems(2) step.prems(3))
+    then have *: "path_to_rep l a ! 0 = rep_of l a" "l ! rep_of l a = rep_of l a"
        apply (metis nth_Cons_0 path.cases)
       using rep_of_min step.prems(2) step.prems(3) by blast
-    then have "length (path_to_root l a) > 0" "i \<noteq> 0"
-       apply (meson path_to_root_length step.prems(2) step.prems(3))
+    then have "length (path_to_rep l a) > 0" "i \<noteq> 0"
+       apply (meson path_to_rep_length step.prems(2) step.prems(3))
       using step(3) i * by metis
-    then have "i - 1 < length (path_to_root l a) - 1" using i 
+    then have "i - 1 < length (path_to_rep l a) - 1" using i 
       by auto
-    have "path_to_root l a ! (i - 1)  = r" using step path_previous_node[OF p_root] i  
+    have "path_to_rep l a ! (i - 1)  = r" using step path_previous_node[OF p_root] i  
       by (metis \<open>i \<noteq> 0\<close> not_gr_zero p_root path_parent)
     then show False 
       using i(2) less_imp_diff_less nth_mem step.prems(1) by blast
@@ -571,14 +571,14 @@ next
   then have "path (add_edge l a b) u p v"
     using step by blast
   moreover have "add_edge l a b ! u = r" 
-    by (metis \<open>u \<notin> set (path_to_root l a)\<close> add_edge_list_unchanged path_to_root_correct step.hyps(2) step.prems(2) step.prems(3) step.prems(4) step.prems(5))
+    by (metis \<open>u \<notin> set (path_to_rep l a)\<close> add_edge_list_unchanged path_path_to_rep step.hyps(2) step.prems(2) step.prems(3) step.prems(4) step.prems(5))
   ultimately show ?case 
     using step path.step add_edge_preserves_length' by auto
 qed
 
 lemma add_edge_path_to_c:
   assumes "path pf c p1 x"
-    "c \<notin> set (path_to_root pf a)"
+    "c \<notin> set (path_to_rep pf a)"
     "ufa_invar pf"
     "a < length pf" "b < length pf"
     "rep_of pf a \<noteq> rep_of pf b"
@@ -638,13 +638,13 @@ lemma lowest_common_ancestor_if_last_equal_element:
     "hd p2 \<noteq> hd p3"
   shows "lowest_common_ancestor l x y = c"
 proof-
-  have "path_to_root l x = p1 @ [c] @ p2" "path_to_root l y = p1 @ [c] @ p3"
-    using assms path_to_root_correct path_unique by blast+
-  then have prefix: "prefix (p1 @ [c]) (path_to_root l x)"
-    "prefix (p1 @ [c]) (path_to_root l y)" by auto
-  then have "longest_common_prefix (path_to_root l x) (path_to_root l y) = p1 @ [c]"
+  have "path_to_rep l x = p1 @ [c] @ p2" "path_to_rep l y = p1 @ [c] @ p3"
+    using assms path_path_to_rep path_unique by blast+
+  then have prefix: "prefix (p1 @ [c]) (path_to_rep l x)"
+    "prefix (p1 @ [c]) (path_to_rep l y)" by auto
+  then have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = p1 @ [c]"
     using longest_common_prefix_empty longest_common_prefix_concat assms 
-    by (metis (no_types, lifting) \<open>path_to_root l x = p1 @ [c] @ p2\<close> \<open>path_to_root l y = p1 @ [c] @ p3\<close> append.right_neutral)
+    by (metis (no_types, lifting) \<open>path_to_rep l x = p1 @ [c] @ p2\<close> \<open>path_to_rep l y = p1 @ [c] @ p3\<close> append.right_neutral)
   then show ?thesis 
     by simp
 qed
@@ -659,22 +659,22 @@ lemma lowest_common_ancestor_then_last_equal_element:
   shows "hd p2 \<noteq> hd p3"
 proof
   assume hd_eq: "hd p2 = hd p3"
-  have p: "path_to_root l x = p1 @ [c] @ p2" "path_to_root l y = p1 @ [c] @ p3"
-    using assms path_to_root_correct path_unique by blast+
-  then have prefix: "prefix (p1 @ [c] @ [hd p2]) (path_to_root l x)"
-    "prefix (p1 @ [c] @ [hd p2]) (path_to_root l y)" using hd_eq assms 
+  have p: "path_to_rep l x = p1 @ [c] @ p2" "path_to_rep l y = p1 @ [c] @ p3"
+    using assms path_path_to_rep path_unique by blast+
+  then have prefix: "prefix (p1 @ [c] @ [hd p2]) (path_to_rep l x)"
+    "prefix (p1 @ [c] @ [hd p2]) (path_to_rep l y)" using hd_eq assms 
     by (metis append_one_prefix empty_append_eq_id hd_conv_nth hd_in_set length_pos_if_in_set list.size(3) prefixI same_prefix_prefix)+
-  then have "prefix (p1 @ [c] @ [hd p2]) (longest_common_prefix (path_to_root l x) (path_to_root l y))"
+  then have "prefix (p1 @ [c] @ [hd p2]) (longest_common_prefix (path_to_rep l x) (path_to_rep l y))"
     using longest_common_prefix_max_prefix by blast
   then obtain p4 where 
-    "longest_common_prefix (path_to_root l x) (path_to_root l y) = p1 @ [c] @ [hd p2] @ p4" 
+    "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = p1 @ [c] @ [hd p2] @ p4" 
     by (metis Cons_eq_appendI append_assoc empty_append_eq_id prefixE)
   have "last ([hd p2] @ p4) = c" using assms 
-    by (simp add: \<open>longest_common_prefix (path_to_root l x) (path_to_root l y) = p1 @ [c] @ [hd p2] @ p4\<close>)
+    by (simp add: \<open>longest_common_prefix (path_to_rep l x) (path_to_rep l y) = p1 @ [c] @ [hd p2] @ p4\<close>)
   then obtain p5 where 
-    "longest_common_prefix (path_to_root l x) (path_to_root l y) = p1 @ [c] @ p5 @ [c]"
-    by (simp add: \<open>longest_common_prefix (path_to_root l x) (path_to_root l y) = p1 @ [c] @ [hd p2] @ p4\<close> snoc_eq_iff_butlast')
-  then obtain p6 where "path_to_root l x = p1 @ [c] @ p5 @ [c] @ p6" 
+    "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = p1 @ [c] @ p5 @ [c]"
+    by (simp add: \<open>longest_common_prefix (path_to_rep l x) (path_to_rep l y) = p1 @ [c] @ [hd p2] @ p4\<close> snoc_eq_iff_butlast')
+  then obtain p6 where "path_to_rep l x = p1 @ [c] @ p5 @ [c] @ p6" 
     by (metis append_assoc longest_common_prefix_prefix1 prefixE)
   then have "path l c ([c] @ p5 @ [c]) c" 
     by (smt (verit) append_assoc append_is_Nil_conv assms(6) hd_append2 list.sel(1) p(1) path_divide2 prefix_code(2) same_prefix_nil)
@@ -684,27 +684,27 @@ qed
 
 lemma add_edge_lowest_common_ancestor:
   assumes "ufa_invar l" "a < length l" "b < length l" "rep_of l a \<noteq> rep_of l b"
-    "lowest_common_ancestor l x y \<notin> set (path_to_root l a)" 
+    "lowest_common_ancestor l x y \<notin> set (path_to_rep l a)" 
     "rep_of l x = rep_of l y" "x < length l" "y < length l"
   shows "lowest_common_ancestor l x y = lowest_common_ancestor (add_edge l a b) x y"
 proof-
   obtain p1 p2 where paths: "path l (lowest_common_ancestor l x y) p1 x"
     "path l (lowest_common_ancestor l x y) p2 y" using assms
-    by (meson lowest_common_ancestor_correct)
+    by (meson is_lca_lowest_common_ancestor)
   then have paths': "path (add_edge l a b) (lowest_common_ancestor l x y) p1 x"
     "path (add_edge l a b) (lowest_common_ancestor l x y) p2 y" using assms add_edge_path by auto
-  then obtain p3 p4 where paths2: "path_to_root (add_edge l a b) x = p3 @ p1" 
-    "path_to_root (add_edge l a b) y = p4 @ p2" using paths 
-    by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_to_root_correct path_unique)
-  then obtain p5 p6 where paths3: "path_to_root l x = p5 @ p1" 
-    "path_to_root l y = p6 @ p2" using paths 
-    by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_to_root_correct path_unique)
+  then obtain p3 p4 where paths2: "path_to_rep (add_edge l a b) x = p3 @ p1" 
+    "path_to_rep (add_edge l a b) y = p4 @ p2" using paths 
+    by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_path_to_rep path_unique)
+  then obtain p5 p6 where paths3: "path_to_rep l x = p5 @ p1" 
+    "path_to_rep l y = p6 @ p2" using paths 
+    by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_path_to_rep path_unique)
   have hd: "hd p1 = lowest_common_ancestor l x y" "hd p2 = lowest_common_ancestor l x y"
     using paths by (metis hd_path)+
   then have "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y])  (lowest_common_ancestor l x y)"
     "path (add_edge l a b) (rep_of (add_edge l a b) y) (p4 @ [lowest_common_ancestor l x y])  (lowest_common_ancestor l x y)"
     using paths2 paths'
-    by (metis add_edge_ufa_invar_invar assms(1-4) list.discI path.cases path_divide2 path_nodes_lt_length_l path_to_root_correct)+
+    by (metis add_edge_ufa_invar_invar assms(1-4) list.discI path.cases path_divide2 path_nodes_lt_length_l path_path_to_rep)+
   then have eq: "p3 = p4" using assms
     by (metis add_edge_ufa_invar_invar append_same_eq path_unique rep_of_add_edge_invar)
   have invar: "ufa_invar (add_edge l a b)" "length (add_edge l a b) = length l" 
@@ -712,20 +712,20 @@ proof-
       apply (simp add: add_edge_ufa_invar_invar assms(1-4))
      apply (simp add: add_edge_preserves_length' assms(1-4))
     using rep_of_add_edge_aux assms by presburger
-  have ptr_add_edge: "path_to_root (add_edge l a b) x = (p3 @ [lowest_common_ancestor l x y] @ tl p1)"
-    "path_to_root (add_edge l a b) y = (p4 @ [lowest_common_ancestor l x y] @ tl p2)"
+  have ptr_add_edge: "path_to_rep (add_edge l a b) x = (p3 @ [lowest_common_ancestor l x y] @ tl p1)"
+    "path_to_rep (add_edge l a b) y = (p4 @ [lowest_common_ancestor l x y] @ tl p2)"
      apply (metis Cons_eq_appendI empty_append_eq_id hd(1) list.collapse path_not_empty paths(1) paths2(1))
     by (metis append_Cons append_Nil hd(2) list.exhaust_sel path_not_empty paths'(2) paths2(2))
   then have path_add_edge: 
     "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y] @ tl p1) x"
     "path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [lowest_common_ancestor l x y] @ tl p2) y"
-    using paths2 path_to_root_correct[OF invar(1)] hd assms(1,7,8) invar eq by metis+
+    using paths2 path_path_to_rep[OF invar(1)] hd assms(1,7,8) invar eq by metis+
   have *: "path l (rep_of l x) (p5 @ [lowest_common_ancestor l x y] @ tl p1) x"
     "path l (rep_of l y) (p6 @ [lowest_common_ancestor l x y] @ tl p2) y"
-     apply (metis Cons_eq_appendI append_Nil assms(1) assms(7) hd(1) hd_Cons_tl path_not_empty path_to_root_correct paths(1) paths3(1))
-    by (metis \<open>path_to_root (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> assms(1) assms(8) path_to_root_correct paths2(2) paths3(2) same_append_eq)
+     apply (metis Cons_eq_appendI append_Nil assms(1) assms(7) hd(1) hd_Cons_tl path_not_empty path_path_to_rep paths(1) paths3(1))
+    by (metis \<open>path_to_rep (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> assms(1) assms(8) path_path_to_rep paths2(2) paths3(2) same_append_eq)
   then have **: "p5 = p6" 
-    by (smt (verit) \<open>path_to_root (add_edge l a b) x = p3 @ [lowest_common_ancestor l x y] @ tl p1\<close> \<open>path_to_root (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> append_same_eq assms(1) assms(6) hd(1) hd(2) not_Cons_self2 path_divide2 path_unique paths2(1) paths2(2) same_append_eq self_append_conv tl_Nil)  
+    by (smt (verit) \<open>path_to_rep (add_edge l a b) x = p3 @ [lowest_common_ancestor l x y] @ tl p1\<close> \<open>path_to_rep (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> append_same_eq assms(1) assms(6) hd(1) hd(2) not_Cons_self2 path_divide2 path_unique paths2(1) paths2(2) same_append_eq self_append_conv tl_Nil)  
   then show ?thesis 
   proof(cases "tl p1 = [] \<or> tl p2 = []")
     case False
@@ -735,10 +735,10 @@ proof-
       by (metis \<open>path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y] @ tl p1) x\<close> \<open>path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [lowest_common_ancestor l x y] @ tl p2) y\<close> invar(1) invar(2) invar(3))
   next
     case True
-    have "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_root (add_edge l a b) x)"
-      "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_root (add_edge l a b) y)" 
+    have "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_rep (add_edge l a b) x)"
+      "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_rep (add_edge l a b) y)" 
       by (auto simp add: eq ptr_add_edge)
-    have "longest_common_prefix (path_to_root (add_edge l a b) x) (path_to_root (add_edge l a b) y)
+    have "longest_common_prefix (path_to_rep (add_edge l a b) x) (path_to_rep (add_edge l a b) y)
 = p3 @ [lowest_common_ancestor l x y]"
       using longest_common_prefix_empty2 ptr_add_edge longest_common_prefix_concat 
       by (metis (no_types, opaque_lifting) True append.right_neutral eq)
@@ -749,7 +749,7 @@ qed
 
 lemma add_edge_elements_on_path:
   assumes "c = lowest_common_ancestor pf x y"
-    "c \<notin> set (path_to_root pf a)"
+    "c \<notin> set (path_to_rep pf a)"
     "ufa_invar pf"
     "x < length pf" "y < length pf"
     "rep_of pf x = rep_of pf y"
@@ -758,7 +758,7 @@ lemma add_edge_elements_on_path:
   shows "elements_on_path pf x y = elements_on_path (add_edge pf a b) x y" 
 proof-
   obtain p1 p2 where paths: "path pf c p1 x" "path pf c p2 y" 
-    using assms lowest_common_ancestor_correct by presburger
+    using assms is_lca_lowest_common_ancestor by presburger
   have "c = lowest_common_ancestor (add_edge pf a b) x y" using add_edge_lowest_common_ancestor 
     using assms by blast
   then have "elements_on_path (add_edge pf a b) x y = path_to_c (add_edge pf a b) x c @ path_to_c (add_edge pf a b) y c" 
@@ -781,10 +781,10 @@ lemma lowest_common_ancestor_notin_elements_on_path:
   shows "a \<noteq> c" 
 proof- 
   obtain p1 p2 where "path pf c p1 x" "path pf c p2 y"
-    using lowest_common_ancestor_correct assms by blast
+    using is_lca_lowest_common_ancestor assms by blast
   then have p: "path pf c (c # path_to_c pf x c) x" 
     "path pf c (c # path_to_c pf y c) y" 
-    using lowest_common_ancestor_correct path_to_c_correct 
+    using is_lca_lowest_common_ancestor path_to_c_correct 
     by (metis assms(1) list.collapse path_hd path_not_empty)+
   then have "a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)"
     using assms elements_on_path.simps unfolding Let_def by auto
@@ -803,10 +803,10 @@ proof-
   then have "a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)"
     using assms elements_on_path.simps unfolding Let_def by auto
   obtain p1 p2 where "path pf c p1 x" "path pf c p2 y"
-    using lowest_common_ancestor_correct assms c_def by blast
+    using is_lca_lowest_common_ancestor assms c_def by blast
   then have p: "path pf c (c # path_to_c pf x c) x" 
     "path pf c (c # path_to_c pf y c) y" 
-    using lowest_common_ancestor_correct path_to_c_correct c_def
+    using is_lca_lowest_common_ancestor path_to_c_correct c_def
     by (metis assms(1) list.collapse path_hd path_not_empty)+
   then show ?thesis 
     by (metis \<open>a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)\<close> in_set_conv_nth length_pos_if_in_set less_numeral_extra(3) list.size(3) list_tail_coinc nodes_path_lt_length_l path.cases)
@@ -880,13 +880,13 @@ pending_invar_def same_length_invar_def time_invar_def cc_list_invar_def
   define c\<^sub>1 where "c\<^sub>1 = lowest_common_ancestor pf a\<^sub>1 b\<^sub>1"
   define c\<^sub>2 where "c\<^sub>2 = lowest_common_ancestor pf a\<^sub>2 b\<^sub>2"
   show "add_timestamp pf ti a b k ! x < add_timestamp pf ti a b k ! ka"
-  proof(cases "c\<^sub>1 \<in> set (path_to_root pf a)")
+  proof(cases "c\<^sub>1 \<in> set (path_to_rep pf a)")
     case True
     then show ?thesis sorry
   next
     case False
     then show ?thesis 
-    proof(cases "c\<^sub>2 \<in> set (path_to_root pf a)")
+    proof(cases "c\<^sub>2 \<in> set (path_to_rep pf a)")
       case True
       then show ?thesis sorry
     next
@@ -1052,10 +1052,10 @@ lemma lowest_common_ancestor_a_a:
   assumes "ufa_invar pf" "a < length pf"
   shows "lowest_common_ancestor pf a a = a"
 proof-
-  from path_to_root_domain have "path_to_root_dom (pf, a)" 
+  from path_to_rep_domain have "path_to_rep_dom (pf, a)" 
     using assms(1) assms(2) ufa_invarD(1) by auto
-  then obtain p where "path_to_root pf a = p @ [a]" 
-    using path_to_root.psimps by fastforce
+  then obtain p where "path_to_rep pf a = p @ [a]" 
+    using path_to_rep.psimps by fastforce
   then show ?thesis 
     by (simp add: longest_common_prefix_concat)
 qed
@@ -1069,10 +1069,10 @@ proof
   assume elements_empty: "elements_on_path pf a b = []"
   define c where "c = lowest_common_ancestor pf a b"
   then have "c < length pf" 
-    by (metis assms lowest_common_ancestor_correct path_nodes_lt_length_l)
+    by (metis assms is_lca_lowest_common_ancestor path_nodes_lt_length_l)
   from c_def have "path_to_c pf a c = []" "path_to_c pf b c = []"
     using elements_on_path.simps elements_empty unfolding Let_def by auto
-  from lowest_common_ancestor_correct assms c_def 
+  from is_lca_lowest_common_ancestor assms c_def 
   obtain p1 p2 where "path pf c p1 a" "path pf c p2 b"
     by blast
   then show "a = b" using path_to_c_empty 
@@ -1082,7 +1082,7 @@ next
   define c where "c = lowest_common_ancestor pf a b"
   then have "c = a"
     using lowest_common_ancestor_a_a a_b assms(1,3) by auto
-  from lowest_common_ancestor_correct assms c_def 
+  from is_lca_lowest_common_ancestor assms c_def 
   obtain p1 p2 where p: "path pf c p1 a" "path pf c p2 b"
     by blast
   then have "c < length pf" 
@@ -1575,7 +1575,7 @@ lemma cc_explain_aux2_domain:
           same_eq_classes_invar_def
         by auto
       then obtain p1 p2 where paths: "path (proof_forest cc_t) c p1 a" "path (proof_forest cc_t) c p2 b"
-        using lowest_common_ancestor_correct less(2) unfolding congruence_closure.truncate_def proof_forest_invar_def 
+        using is_lca_lowest_common_ancestor less(2) unfolding congruence_closure.truncate_def proof_forest_invar_def 
           c_def * by force
       obtain output1 pending1 output2 pending2 where defs: 
         "(output1, pending1) = explain_along_path2 (congruence_closure.truncate cc_t) a c"

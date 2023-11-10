@@ -200,12 +200,12 @@ lemma explain_list_invar_imp_valid_rep:
     "path pf c p a"
     "rep_of l a \<noteq> rep_of l c"
   shows "pf ! rep_of l a \<noteq> rep_of l a \<and> 
-        (path pf c ((take (length p - length (path_to_root l a) + 1) p)) (rep_of l a))"
+        (path pf c ((take (length p - length (path_to_rep l a) + 1) p)) (rep_of l a))"
 proof-
-  define pRA where "pRA = path_to_root l a" 
+  define pRA where "pRA = path_to_rep l a" 
   then have pRA: "path l (rep_of l a) pRA a" 
     using assms unfolding explain_list_invar_def
-    by (metis path_nodes_lt_length_l path_to_root_correct)
+    by (metis path_nodes_lt_length_l path_path_to_rep)
   then have pf_pRA: "path pf (rep_of l a) pRA a" 
     using assms(1) explain_list_invar_paths by blast
   then show ?thesis
@@ -276,7 +276,7 @@ lemma rep_of_a_and_parent_rep_neq:
 proof
   assume "rep_of l a = rep_of l (pf ! rep_of l a)"
   then obtain pt where"path l (rep_of l a) pt (pf ! rep_of l a)"
-    by (metis assms explain_list_invar_def path_nodes_lt_length_l path_to_root_correct ufa_invarD(2))
+    by (metis assms explain_list_invar_def path_nodes_lt_length_l path_path_to_rep ufa_invarD(2))
   then have p1: "path pf (rep_of l a) pt (pf ! rep_of l a)" 
     using assms explain_list_invar_paths by blast
   have p2: "path pf (pf ! rep_of l a) [(pf ! rep_of l a),(rep_of l a)] (rep_of l a)" 
@@ -446,7 +446,7 @@ theorem explain_along_path_domain:
       let ?union = "(l[rep_of l a := (pf ! rep_of l a)])"
       have invar: "ufa_invar pf"
         using "less.prems" unfolding proof_forest_invar_def cc congruence_closure.select_convs by blast
-      define pRAC where "pRAC = take (length p - length (path_to_root l a) + 1) p"
+      define pRAC where "pRAC = take (length p - length (path_to_rep l a) + 1) p"
       then have pRAC: "pf ! rep_of l a \<noteq> rep_of l a \<and> path pf c pRAC (rep_of l a)"
         using "less.prems" False explain_list_invar_imp_valid_rep invar unfolding cc congruence_closure.select_convs
         by blast
@@ -899,7 +899,7 @@ If not then then we can use induction hypothesis 2.\<close>
       then have invar: "ufa_invar pf" 
         using "less.prems" cc unfolding proof_forest_invar_def by simp
       then obtain p1 p2 where p: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b" 
-        using lowest_common_ancestor_correct invar valid defs
+        using is_lca_lowest_common_ancestor invar valid defs
         by (metis \<open>rep_of pf a = rep_of pf b\<close> cc congruence_closure.select_convs(5))
       have dom1: "explain_along_path_dom (cc, l, a, c)" 
         using "Cons.prems" explain_along_path_domain p by blast
@@ -1566,7 +1566,7 @@ lemma cc_explain_aux_valid:
       using "2.prems" cc unfolding proof_forest_invar_def by simp
     define c where "c = lowest_common_ancestor (proof_forest cc) a b"
     then obtain p1 p2 where p: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b" 
-      using lowest_common_ancestor_correct invar valid
+      using is_lca_lowest_common_ancestor invar valid
       by (metis \<open>rep_of pf a = rep_of pf b\<close> cc congruence_closure.select_convs(5))
     obtain output1 new_l pending1 where 
       rec1: "explain_along_path cc l a c = (output1, new_l, pending1)"

@@ -4,7 +4,7 @@ begin
 
 text \<open>In order to execute the functions, they need to terminate.\<close>
 
-termination path_to_root sorry
+termination path_to_rep sorry
 termination rep_of sorry
 termination find_newest_on_path sorry
 termination explain sorry
@@ -29,7 +29,7 @@ value l
 
 text \<open>Example 4\<close>
 
-abbreviation "ex4 \<equiv> path_to_root l 3"
+abbreviation "ex4 \<equiv> path_to_rep l 3"
 value ex4
 
 text \<open>Example 5\<close>
