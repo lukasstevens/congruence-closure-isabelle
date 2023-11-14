@@ -1,0 +1,3 @@
+[submodule "tree-theory"]
+	path = Tree_Theory
+	url = git@github.com:lukasstevens/tree-theory
