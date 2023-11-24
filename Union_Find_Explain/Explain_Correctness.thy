@@ -542,10 +542,10 @@ lemma paths_lca_disjoint:
   shows "pX ! i1 \<noteq> pY ! i2"
 proof
   let ?lca = "lowest_common_ancestor l x y"
-  let ?prefixX = "path_to_rep l ?lca @ tl (take i1 pX @ [pX ! i1])"
-  let ?prefixY = "path_to_rep l ?lca @ tl (take i2 pY @ [pY ! i2])"
-  let ?pathX = "path_to_rep l ?lca @ tl pX"
-  let ?pathY = "path_to_rep l ?lca @ tl pY"
+  let ?prefixX = "path_from_rep l ?lca @ tl (take i1 pX @ [pX ! i1])"
+  let ?prefixY = "path_from_rep l ?lca @ tl (take i2 pY @ [pY ! i2])"
+  let ?pathX = "path_from_rep l ?lca @ tl pX"
+  let ?pathY = "path_from_rep l ?lca @ tl pY"
   assume assm: "pX ! i1 = pY ! i2"
   have "pX = take i1 pX @ drop i1 pX" by simp
   with path_divide2 assms have 
@@ -558,14 +558,14 @@ proof
     by (metis append_take_drop_id drop_eq_Nil2 hd_drop_conv_nth le_antisym less_imp_le_nat nat_neq_iff)+
   with p1 path_unique have pY_pX_eq: "take i2 pY @ [pY ! i2] = take i1 pX @ [pX ! i1]" 
     by (metis assm assms(1))
-  have path_rep_lca: "path l (rep_of l x) (path_to_rep l ?lca) ?lca"
-    by (metis assms(1) assms(2) path_nodes_lt_length_l path_rep_eq path_path_to_rep)
+  have path_rep_lca: "path l (rep_of l x) (path_from_rep l ?lca) ?lca"
+    by (metis assms(1) assms(2) path_nodes_lt_length_l path_rep_eq path_path_from_rep)
   then have "path l (rep_of l x) ?pathX x"
     and "path l (rep_of l x) ?pathY y"
     using assms path_concat1 by auto
-  then have paths_to_root: "path_to_rep l x = ?pathX" 
-    "path_to_rep l y = ?pathY"
-    using assms path_path_to_rep path_unique path_rep_eq
+  then have paths_to_root: "path_from_rep l x = ?pathX" 
+    "path_from_rep l y = ?pathY"
+    using assms path_path_from_rep path_unique path_rep_eq
     by (metis path_nodes_lt_length_l)+
   have "?pathX = ?prefixX @ tl(drop i1 pX)" 
     and "?pathY = ?prefixY @ tl(drop i2 pY)" using assms
@@ -581,7 +581,7 @@ proof
   with path_rep_lca path_divide1 
   have "path l (rep_of l x) (longest_common_prefix ?pathX ?pathY) (last (longest_common_prefix ?pathX ?pathY))"
     by (smt (verit, ccfv_SIG) append_is_Nil_conv assms(2) longest_common_prefix_prefix1 paths_iff prefix_def)
-  with path_rep_lca have "longest_common_prefix ?pathX ?pathY = path_to_rep l ?lca"
+  with path_rep_lca have "longest_common_prefix ?pathX ?pathY = path_from_rep l ?lca"
     by (metis paths_to_root assms(1) lowest_common_ancestor.simps path_unique)
   then show "False" 
     using prefix2 assms(4,6) path_concat1 by force
@@ -759,26 +759,26 @@ proof-
       from assms have "path l (rep_of l y) [rep_of l y, rep_of l1 x] (rep_of l1 x)"
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close> \<open>rep_of l1 y = rep_of l1 y2\<close> \<open>rep_of l1 y2 = rep_of l y2\<close> invar1 length_eq path.step rep_of_less_length_l rep_of_ufa_union_invar single union(1) x)
       obtain p_rep_x where p_rep_x: "path l1 (rep_of l1 x) p_rep_x x" 
-        using assms(5) invar1 length_eq path_to_rep_of by auto
+        using assms(5) invar1 length_eq path_from_rep_of by auto
       with path_ufe_union_invar assms have  "path l (rep_of l1 x) p_rep_x x" 
         by (metis length_eq ufe_data_structure.select_convs(1))
       with p_rep_x have p_rep_x': "path l (rep_of l x) (rep_of l y#p_rep_x) x" 
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close> \<open>rep_of l1 y = rep_of l1 y2\<close> assms(6) invar1 length_eq path.step path_nodes_lt_length_l rep_of_bound ufa_union_aux union(1) x)
-      with path_path_to_rep path_unique have path_to_rep_x: "path_to_rep l x = rep_of l y#p_rep_x" 
+      with path_path_from_rep path_unique have path_from_rep_x: "path_from_rep l x = rep_of l y#p_rep_x" 
         using assms(5) invar by blast
       obtain p_rep_y where p_rep_y': "path l1 (rep_of l1 y) (rep_of l1 y#p_rep_y) y" 
-        using assms(6) invar1 length_eq path_to_rep_of by (metis path.simps)
+        using assms(6) invar1 length_eq path_from_rep_of by (metis path.simps)
       then have p_rep_y: "path l (rep_of l y) (rep_of l y#p_rep_y) y" 
-        using assms(5) invar1 length_eq path_to_rep_of 
-        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 y2\<close> invar path_nodes_lt_length_l path_path_to_rep path_to_rep_ufa_union1 path_unique ufa_union_aux union(1) x)
-      with path_path_to_rep path_unique have path_to_rep_y: "path_to_rep l y = rep_of l y#p_rep_y" 
+        using assms(5) invar1 length_eq path_from_rep_of 
+        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 y2\<close> invar path_nodes_lt_length_l path_path_from_rep path_from_rep_ufa_union1 path_unique ufa_union_aux union(1) x)
+      with path_path_from_rep path_unique have path_from_rep_y: "path_from_rep l y = rep_of l y#p_rep_y" 
         using assms(6) invar by blast
-      have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = [rep_of l y]"
+      have "longest_common_prefix (path_from_rep l x) (path_from_rep l y) = [rep_of l y]"
       proof(rule ccontr, cases "length p_rep_y > 0 \<and> length p_rep_x > 0")
         case True
-        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_from_rep l x) (path_from_rep l y) \<noteq> [rep_of l y]"
         with True have "hd p_rep_y = hd p_rep_x" 
-          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_rep_x path_to_rep_y)
+          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_from_rep_x path_from_rep_y)
         have "hd p_rep_x = rep_of l1 x2" 
           using p_rep_x path_hd x by auto
         then have "path l1 (rep_of l1 x2) p_rep_y y" 
@@ -788,9 +788,9 @@ proof-
         then show "False" using False x by linarith
       next
         case False
-        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_from_rep l x) (path_from_rep l y) \<noteq> [rep_of l y]"
         then show "False" 
-          using False \<open>path l (rep_of l1 x) p_rep_x x\<close> path_to_rep_x path_to_rep_y by force
+          using False \<open>path l (rep_of l1 x) p_rep_x x\<close> path_from_rep_x path_from_rep_y by force
       qed
       with assms have lca: "lca = rep_of l x" by simp
       from length_u_max have "i < length (p_rep_x) \<Longrightarrow> a1 ! (p_rep_x ! i) < Some (length u1)" for i 
@@ -852,26 +852,26 @@ proof-
       with assms have "path l (rep_of l y) [rep_of l y, rep_of l1 y] (rep_of l1 y)"
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close>  \<open>rep_of l1 y2 = rep_of l y2\<close> invar1 length_eq path.step rep_of_less_length_l rep_of_ufa_union_invar single union(1) y)
       obtain p_rep_x where p_rep_x: "path l1 (rep_of l1 y) p_rep_x y" 
-        using assms(6) invar1 length_eq path_to_rep_of by auto
+        using assms(6) invar1 length_eq path_from_rep_of by auto
       with path_ufe_union_invar assms have  "path l (rep_of l1 y) p_rep_x y" 
         by (metis length_eq ufe_data_structure.select_convs(1))
       with p_rep_x have p_rep_x': "path l (rep_of l y) (rep_of l y#p_rep_x) y" 
         by (metis False \<open>l ! rep_of l1 x2 = rep_of l1 y2\<close> \<open>l ! rep_of l1 y2 = rep_of l1 y2\<close> \<open>rep_of l x2 = l ! rep_of l1 y2\<close> \<open>rep_of l1 x2 < length l1\<close> \<open>rep_of l1 y = rep_of l1 x2\<close> assms(6) assms(7) assms(8) invar invar1 length_eq path.step rep_of_ufa_union_invar ufa_invarD(2) union(1) y)
-      with path_path_to_rep path_unique have path_to_rep_x: "path_to_rep l y = rep_of l y#p_rep_x" 
+      with path_path_from_rep path_unique have path_from_rep_x: "path_from_rep l y = rep_of l y#p_rep_x" 
         using assms(6) invar by blast
       obtain p_rep_y where p_rep_y': "path l1 (rep_of l1 x) (rep_of l1 x#p_rep_y) x" 
-        using assms(5) invar1 length_eq path_to_rep_of by (metis path.simps)
+        using assms(5) invar1 length_eq path_from_rep_of by (metis path.simps)
       then have p_rep_y: "path l (rep_of l x) (rep_of l y#p_rep_y) x" 
-        using assms(5,6) invar1 length_eq path_to_rep_of 
-        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 x2\<close> invar path_path_to_rep path_to_rep_ufa_union1 path_unique ufa_union_aux union(1) y)
-      with path_path_to_rep path_unique have path_to_rep_y: "path_to_rep l x = rep_of l y#p_rep_y" 
+        using assms(5,6) invar1 length_eq path_from_rep_of 
+        by (metis (no_types, lifting) False \<open>rep_of l1 y = rep_of l1 x2\<close> invar path_path_from_rep path_from_rep_ufa_union1 path_unique ufa_union_aux union(1) y)
+      with path_path_from_rep path_unique have path_from_rep_y: "path_from_rep l x = rep_of l y#p_rep_y" 
         using assms(5) invar by blast
-      have "longest_common_prefix (path_to_rep l x) (path_to_rep l y) = [rep_of l y]"
+      have "longest_common_prefix (path_from_rep l x) (path_from_rep l y) = [rep_of l y]"
       proof(rule ccontr, cases "length p_rep_y > 0 \<and> length p_rep_x > 0")
         case True
-        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_from_rep l x) (path_from_rep l y) \<noteq> [rep_of l y]"
         with True have "hd p_rep_y = hd p_rep_x" 
-          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_to_rep_x path_to_rep_y)
+          by (metis list.sel(1) longest_common_prefix.elims longest_common_prefix.simps(1) path_from_rep_x path_from_rep_y)
         have "hd p_rep_x = rep_of l1 y2" 
           using p_rep_x path_hd y 
           by (metis True \<open>hd p_rep_y = hd p_rep_x\<close> \<open>l1 ! rep_of l1 y = rep_of l1 y\<close> length_greater_0_conv list_tail_coinc p_rep_y' path.cases)
@@ -882,9 +882,9 @@ proof-
         then show "False" using False y by presburger
       next
         case False
-        assume "longest_common_prefix (path_to_rep l x) (path_to_rep l y) \<noteq> [rep_of l y]"
+        assume "longest_common_prefix (path_from_rep l x) (path_from_rep l y) \<noteq> [rep_of l y]"
         then show "False" 
-          by (metis False \<open>path l (rep_of l1 y) p_rep_x y\<close> length_greater_0_conv longest_common_prefix.simps(1) longest_common_prefix.simps(2) path_not_empty path_to_rep_x path_to_rep_y)
+          by (metis False \<open>path l (rep_of l1 y) p_rep_x y\<close> length_greater_0_conv longest_common_prefix.simps(1) longest_common_prefix.simps(2) path_not_empty path_from_rep_x path_from_rep_y)
       qed
       with assms have lca: "lca = rep_of l x" by simp
       from length_u_max have "i < length (p_rep_x) \<Longrightarrow> a1 ! (p_rep_x ! i) < Some (length u1)" for i 

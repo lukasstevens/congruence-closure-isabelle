@@ -2,6 +2,7 @@ session Congruence_Closure = HOL +
   sessions
     "HOL-Library"
     Separation_Logic_Imperative_HOL
+    Tree_Theory
   directories
     Union_Find_Explain
     Congruence_Closure_Explain

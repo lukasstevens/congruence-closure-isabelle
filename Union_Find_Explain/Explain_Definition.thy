@@ -4,7 +4,44 @@ theory Explain_Definition
     "Separation_Logic_Imperative_HOL.Union_Find" 
     "HOL-Library.Sublist"
     "HOL-Library.Option_ord"
+    "UFA_Tree"
 begin
+
+locale union_find =
+  fixes init :: 'c
+    and rep_of :: "'c \<Rightarrow> 'a \<Rightarrow> 'a"
+    and union :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'c"
+    and invar :: "'c \<Rightarrow> bool"
+    and \<alpha> :: "'c \<Rightarrow> 'a rel"
+  assumes invar_init: "invar init"
+      and \<alpha>_init: "\<alpha> init \<subseteq> Id" 
+      and \<alpha>_rep_of:
+        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
+        \<Longrightarrow> rep_of l x = rep_of l y \<longleftrightarrow> (x, y) \<in> \<alpha> l"
+      and invar_union:
+        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
+        \<Longrightarrow> invar (union l x y)"
+      and \<alpha>_union:
+        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
+        \<Longrightarrow> \<alpha> (union l x y) = per_union (\<alpha> l) x y"
+
+lemma union_find_ufa:
+  "union_find [0..<n] rep_of ufa_union ufa_invar ufa_\<alpha>"
+proof -
+  note [simp] = ufa_init_invar ufa_init_correct
+    ufa_find_correct ufa_union_invar ufa_union_correct
+  show ?thesis
+    by unfold_locales (auto simp: Field_iff ufa_\<alpha>_lenD)
+qed
+
+locale union_find_explain =
+  union_find init rep_of union invar "\<alpha> :: 'c \<Rightarrow> 'a rel" for init rep_of union invar \<alpha> +
+
+fixes explain :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) set"
+assumes \<alpha>_explain:
+  "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l); (x, y) \<in> \<alpha> l \<rbrakk>
+  \<Longrightarrow> (x, y) \<in> (explain l x y)\<^sup>*"
+    
 
 no_notation Ref.update ("_ := _" 62)
 
@@ -32,13 +69,13 @@ abbreviation "initial_ufe n \<equiv> \<lparr> uf_list = [0..<n], unions = [], au
 paragraph \<open>Union\<close>
 text \<open>Extension of the union operations to the \<open>ufe_data_structure\<close>.\<close>
 fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufe_data_structure" where
-  "ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y =
+  "ufe_union \<lparr> uf_list = l, unions = u, au = a \<rparr> x y =
     (if rep_of l x \<noteq> rep_of l y then
       \<lparr> uf_list = ufa_union l x y
       , unions = u @ [(x,y)]
       , au = a[rep_of l x := Some (length u)]
       \<rparr>
-    else \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
+    else \<lparr> uf_list = l, unions = u, au = a \<rparr>)"
 
 text \<open>Helper lemmata for \<open>ufe_union\<close>.\<close>
 lemma ufe_union1[simp]:
@@ -91,25 +128,22 @@ lemma apply_unions_cons:
 
 paragraph \<open>Explain\<close>
 
-text \<open>Finds the path from x to \<open>rep_of\<close> x.\<close>
-function path_to_rep :: "nat list \<Rightarrow> nat \<Rightarrow> nat list" where 
-  "path_to_rep l x = (if l ! x = x then [] else path_to_rep l (l ! x) @ [l ! x])"
-  by pat_completeness auto
-
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
-fun lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "lowest_common_ancestor l x y = 
-    last (longest_common_prefix (path_to_rep l x) (path_to_rep l y))"
+definition lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
+  "lowest_common_ancestor l x y \<equiv> 
+    snd (last (longest_common_prefix (awalk_from_rep l x) (awalk_from_rep l y)))"
 
 lemma lowest_common_ancestor_symmetric:
   "lowest_common_ancestor l x y = lowest_common_ancestor l y x"
-proof-
+proof -
   have
-    "longest_common_prefix (path_to_rep l x) (path_to_rep l y) =
-    longest_common_prefix (path_to_rep l y) (path_to_rep l x)"
-    by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1 longest_common_prefix_prefix2 prefix_order.dual_order.eq_iff)
-  then show ?thesis by auto
+    "longest_common_prefix (awalk_from_rep l x) (awalk_from_rep l y)
+    = longest_common_prefix (awalk_from_rep l y) (awalk_from_rep l x)"
+    by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
+          longest_common_prefix_prefix2 prefix_order.eq_iff)
+  then show ?thesis
+    unfolding lowest_common_ancestor_def by auto
 qed
 
 text \<open>Finds the newest edge on the path from x to y
@@ -122,7 +156,7 @@ function (domintros) find_newest_on_path ::
 
 text \<open>Explain operation, as described in the paper.\<close>
 function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where
-  "explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = 
+  "explain \<lparr> uf_list = l, unions = u, au = a \<rparr> x y = 
     (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
     else 
       let
@@ -166,7 +200,7 @@ lemma explain_cases:
     and "(ay, by) = u ! the (newest_index_y)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "\<not>(newest_index_x \<ge> newest_index_y)"
-  by (metis old.prod.exhaust)
+  by (metis prod.exhaust)
 
 text \<open>We also rewrite the \<open>explain.domintros\<close> to a simpler form.\<close>
 thm explain.domintros
@@ -188,7 +222,7 @@ lemma explain_case_x_domain:
   \<Longrightarrow> newest_index_x \<ge> newest_index_y
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
   using explain.domintros 
-  by (smt (verit, best) Pair_inject lowest_common_ancestor.simps)
+  by (smt (verit, best) Pair_inject lowest_common_ancestor_def)
 
 lemma explain_case_y_domain:
   "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr> 
@@ -202,7 +236,7 @@ lemma explain_case_y_domain:
   \<Longrightarrow> \<not>(newest_index_x \<ge> newest_index_y)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
   using explain.domintros
-  by (smt (verit, best) lowest_common_ancestor.simps prod.inject)
+  by (smt (verit, best) lowest_common_ancestor_def prod.inject)
 
 text \<open>And we also rewrite the simp rules:\<close>
 lemma explain_empty[simp]:
@@ -239,14 +273,6 @@ lemma explain_case_y[simp]:
 
 subsection \<open>Lemmas about \<open>rep_of\<close>\<close>
 
-lemma rep_of_less_length_l:
-  "ufa_invar l \<Longrightarrow> x < length l \<Longrightarrow> rep_of l x < length l"
-  by (induction rule: rep_of_induct, auto simp add: rep_of_simps)
-
-lemma rep_of_root:
-  "ufa_invar l \<Longrightarrow> x < length l \<Longrightarrow> l ! rep_of l x = rep_of l x"
-  by (induction rule: rep_of_induct, auto simp add: rep_of_simps)
-
 lemma rep_of_domain: "rep_of_dom (l, i) \<Longrightarrow> l ! i \<noteq> i \<Longrightarrow> rep_of_dom (l, l ! i)"
   apply(induction rule: rep_of.pinduct)
   using rep_of.domintros by blast
@@ -261,7 +287,7 @@ lemma ufe_union_uf_list:
 proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
   case True
   assume invar: "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
-  from True invar rep_of_root have "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
+  from True invar rep_of_min have "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
     by metis
   with True have "ufa_union (uf_list ufe) x y = uf_list ufe" 
     by (metis list_update_id)
@@ -275,9 +301,9 @@ next
 qed
 
 lemma ufa_union_root: 
-  assumes "(ufa_union l a b) ! i = i" "ufa_invar l" 
-    "a < length l" "b < length l"
+  assumes "ufa_union l a b ! i = i" "ufa_invar l" 
+      and "a < length l" "b < length l"
   shows "l ! i = i"
-  using assms by (metis nth_list_update_neq rep_of_root)
+  using assms by (metis nth_list_update_neq rep_of_min)
 
 end
