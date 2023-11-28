@@ -9,6 +9,7 @@ theorem (in ufa_tree_ofL) lca_lowest_common_ancestor:
   assumes "y < length l"
       and "rep_of l x = rep_of l y"
     shows "lca (lowest_common_ancestor l x y) x y"
+  find_theorems "?f (longest_common_prefix _ _)"
 proof-
   have path_from_rep_x: "path l (rep_of l x) (path_from_rep l x) x"
     using assms path_path_from_rep by metis

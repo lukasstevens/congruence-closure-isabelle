@@ -37,10 +37,10 @@ qed
 locale union_find_explain =
   union_find init rep_of union invar "\<alpha> :: 'c \<Rightarrow> 'a rel" for init rep_of union invar \<alpha> +
 
-fixes explain :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) set"
-assumes \<alpha>_explain:
-  "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l); (x, y) \<in> \<alpha> l \<rbrakk>
-  \<Longrightarrow> (x, y) \<in> (explain l x y)\<^sup>*"
+  fixes explain :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) set"
+  assumes \<alpha>_explain:
+    "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l); (x, y) \<in> \<alpha> l \<rbrakk>
+    \<Longrightarrow> (x, y) \<in> (explain l x y)\<^sup>*"
     
 
 no_notation Ref.update ("_ := _" 62)
@@ -131,8 +131,28 @@ paragraph \<open>Explain\<close>
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
 definition lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "lowest_common_ancestor l x y \<equiv> 
-    snd (last (longest_common_prefix (awalk_from_rep l x) (awalk_from_rep l y)))"
+  "lowest_common_ancestor l x y \<equiv>
+    let
+      awx = awalk_from_rep l x;
+      awy = awalk_from_rep l y
+    in
+      last (rep_of l x # map snd (longest_common_prefix awx awy))"
+
+lemma (in ufa_tree_ofL) lowest_common_ancestor_alt_def:
+  assumes "y \<in> verts (ufa_tree_of l x)" "z \<in> verts (ufa_tree_of l x)"
+  shows "lowest_common_ancestor l y z =
+    last (longest_common_prefix
+      (awalk_verts (rep_of l y) (awalk_from_rep l y))
+      (awalk_verts (rep_of l z) (awalk_from_rep l z)))"
+proof -
+  from assms have rep_of_eq: "rep_of l y = rep_of l z"
+    using in_verts_ufa_tree_ofD(2) by simp
+  note awalks = assms[THEN awalk_awalk_from_rep, unfolded this]
+  note * = longest_common_prefix_awalk_verts_eq[OF this, symmetric]
+  with rep_of_eq show ?thesis
+      unfolding lowest_common_ancestor_def
+      by (auto simp: Let_def)
+qed
 
 lemma lowest_common_ancestor_symmetric:
   "lowest_common_ancestor l x y = lowest_common_ancestor l y x"
@@ -143,7 +163,8 @@ proof -
     by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
           longest_common_prefix_prefix2 prefix_order.eq_iff)
   then show ?thesis
-    unfolding lowest_common_ancestor_def by auto
+    unfolding lowest_common_ancestor_def
+    by (auto simp: Let_def)
 qed
 
 text \<open>Finds the newest edge on the path from x to y
@@ -287,7 +308,8 @@ lemma ufe_union_uf_list:
 proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
   case True
   assume invar: "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
-  from True invar rep_of_min have "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
+  from True invar rep_of_min have
+    "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
     by metis
   with True have "ufa_union (uf_list ufe) x y = uf_list ufe" 
     by (metis list_update_id)
@@ -296,8 +318,7 @@ proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
 next
   case False
   then show ?thesis
-    using ufe_data_structure.cases ufe_union2
-    by (metis ufe_data_structure.select_convs(1))
+    by (cases ufe) simp_all
 qed
 
 lemma ufa_union_root: 
