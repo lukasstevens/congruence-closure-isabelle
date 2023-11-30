@@ -122,7 +122,7 @@ fun apply_unions :: "(nat * nat) list \<Rightarrow> ufe_data_structure \<Rightar
   "apply_unions [] p = p"
 | "apply_unions ((x, y) # u) p = apply_unions u (ufe_union p x y)"
 
-lemma apply_unions_cons:
+lemma apply_unions_append:
   "apply_unions u1 a = b \<Longrightarrow> apply_unions u2 b = c \<Longrightarrow> apply_unions (u1 @ u2) a = c"
   by (induction u1 a rule: apply_unions.induct) simp_all
 
@@ -132,39 +132,19 @@ text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
 definition lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
   "lowest_common_ancestor l x y \<equiv>
-    let
-      awx = awalk_from_rep l x;
-      awy = awalk_from_rep l y
-    in
-      last (rep_of l x # map snd (longest_common_prefix awx awy))"
-
-lemma (in ufa_tree_ofL) lowest_common_ancestor_alt_def:
-  assumes "y \<in> verts (ufa_tree_of l x)" "z \<in> verts (ufa_tree_of l x)"
-  shows "lowest_common_ancestor l y z =
-    last (longest_common_prefix
-      (awalk_verts (rep_of l y) (awalk_from_rep l y))
-      (awalk_verts (rep_of l z) (awalk_from_rep l z)))"
-proof -
-  from assms have rep_of_eq: "rep_of l y = rep_of l z"
-    using in_verts_ufa_tree_ofD(2) by simp
-  note awalks = assms[THEN awalk_awalk_from_rep, unfolded this]
-  note * = longest_common_prefix_awalk_verts_eq[OF this, symmetric]
-  with rep_of_eq show ?thesis
-      unfolding lowest_common_ancestor_def
-      by (auto simp: Let_def)
-qed
+    last (longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y))"
 
 lemma lowest_common_ancestor_symmetric:
   "lowest_common_ancestor l x y = lowest_common_ancestor l y x"
 proof -
   have
-    "longest_common_prefix (awalk_from_rep l x) (awalk_from_rep l y)
-    = longest_common_prefix (awalk_from_rep l y) (awalk_from_rep l x)"
+    "longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y)
+    = longest_common_prefix (awalk_verts_from_rep l y) (awalk_verts_from_rep l x)"
     by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
           longest_common_prefix_prefix2 prefix_order.eq_iff)
   then show ?thesis
     unfolding lowest_common_ancestor_def
-    by (auto simp: Let_def)
+    by auto
 qed
 
 text \<open>Finds the newest edge on the path from x to y
@@ -303,18 +283,17 @@ lemma rep_of_idx2:
   by (simp add: rep_of.psimps)
 
 lemma ufe_union_uf_list:
-  "ufa_invar (uf_list ufe) \<Longrightarrow> x < length (uf_list ufe) 
-  \<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
+  assumes "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
+    shows "uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
 proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
   case True
-  assume invar: "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
-  from True invar rep_of_min have
+  with assms rep_of_min have
     "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
     by metis
   with True have "ufa_union (uf_list ufe) x y = uf_list ufe" 
     by (metis list_update_id)
-  then show ?thesis 
-    by (simp add: True)
+  with True show ?thesis
+    by simp
 next
   case False
   then show ?thesis

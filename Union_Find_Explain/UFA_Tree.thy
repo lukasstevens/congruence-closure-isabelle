@@ -74,7 +74,7 @@ sublocale fin_digraph "ufa_tree_of l x"
   using ufa_invar lt_length
   by (unfold_locales) (auto simp: ufa_invarD rep_of_idx ufa_tree_of_def)
 
-lemma x_in_pverts[simp]: "x \<in> verts (ufa_tree_of l x)"
+lemma x_in_verts[simp]: "x \<in> verts (ufa_tree_of l x)"
   using lt_length unfolding verts_ufa_tree_of by simp
 
 lemma ufa_tree_of_idx[simp]:
@@ -88,8 +88,9 @@ lemma ufa_tree_of_rep_of:
   by (auto simp: rep_of_idem)
 
 lemma awalk_idx:
-  assumes "l ! x \<noteq> x"
-  shows "awalk (l ! x) [(l ! x, x)] x"
+  assumes "y \<in> verts (ufa_tree_of l x)"
+  assumes "l ! y \<noteq> y"
+  shows "awalk (l ! y) [(l ! y, y)] y"
   using ufa_invar lt_length assms arc_implies_awalk
   unfolding ufa_tree_of_def
   by (auto simp: ufa_invarD rep_of_idx)
@@ -117,9 +118,9 @@ proof -
   from assms ufa_invar have "awalk_from_rep_dom (l, y)"
     by (simp add: in_verts_ufa_tree_ofD(1) ufa_invarD(1))
   then show ?thesis
-    using assms rep_of_if_idx_same[OF _ x_in_pverts]
+    using assms rep_of_if_idx_same[OF _ x_in_verts]
     by (induction rule: awalk_from_rep.pinduct)
-      (auto simp: awalk_from_rep.psimps pre_digraph.awalk_verts_conv )
+      (auto simp: awalk_from_rep.psimps pre_digraph.awalk_verts_conv)
 qed
 
 lemma awalk_awalk_from_rep:
@@ -131,7 +132,7 @@ proof(induction rule: rep_of_induct)
   then interpret l: ufa_tree_ofL l i
     by unfold_locales blast
   from base have "awalk_from_rep l i = []"
-    by (metis l.awalk_from_rep_rep_of l.x_in_pverts rep_of_refl)
+    by (metis l.awalk_from_rep_rep_of l.x_in_verts rep_of_refl)
   with base show "?case"
     by (simp add: awalk_Nil_iff rep_of_refl)
 next
@@ -145,6 +146,40 @@ next
     using step  by (metis l.awalk_idx ufa_tree_of_eq_if_in_verts)
   ultimately show ?case
     using step by (simp add: awalk_from_rep.psimps ufa_invarD(1))
+qed
+
+lemma awalk_verts_from_rep_eq_awalk_verts:
+  assumes "y \<in> verts (ufa_tree_of l x)"
+  shows "awalk_verts_from_rep l y = awalk_verts (rep_of l y) (awalk_from_rep l y)"
+proof -
+  from ufa_invar in_verts_ufa_tree_ofD(1)[OF assms] show ?thesis
+    using assms
+  proof(induction rule: rep_of_induct)
+    case (base i)
+    then interpret l: ufa_tree_ofL l i
+      by unfold_locales auto
+    from base show ?case
+      using ufa_invarD(1) rep_of_refl
+      by (simp add: awalk_verts_from_rep.psimps awalk_from_rep.psimps)
+  next
+    case (step i)
+    then interpret l: ufa_tree_ofL l i
+      by unfold_locales auto
+    from step have "rep_of l (l ! i) = rep_of l i"
+      using rep_of_idx by blast
+    with step have "awalk (rep_of l i) (awalk_from_rep l (l ! i)) (l ! i)"
+      using awalk_awalk_from_rep by (metis idx_in_pverts_ufa_tree_ofI)
+    note awalk_appendI[OF this awalk_idx]
+    with step have "awalk (rep_of l i) (awalk_from_rep l (l ! i) @ [(l ! i, i)]) i"
+      by blast
+    note awalk_verts_append[OF this]
+    moreover from step have "awalk_verts_from_rep l (l ! i)
+      = awalk_verts (rep_of l (l ! i)) (awalk_from_rep l (l ! i))"
+      using idx_in_pverts_ufa_tree_ofI by blast
+    ultimately show ?case
+      using step ufa_invarD(1) rep_of_idx
+      by (auto simp: awalk_verts_from_rep.psimps awalk_from_rep.psimps)
+  qed
 qed
 
 lemma awalk_verts_awalk_from_rep:

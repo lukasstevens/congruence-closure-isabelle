@@ -6,70 +6,19 @@ begin
 subsection \<open>Proofs about the domain of the helper functions\<close>
 
 theorem (in ufa_tree_ofL) lca_lowest_common_ancestor:    
-  assumes "y < length l"
-      and "rep_of l x = rep_of l y"
+  assumes "y \<in> verts (ufa_tree_of l x)"
     shows "lca (lowest_common_ancestor l x y) x y"
-  find_theorems "?f (longest_common_prefix _ _)"
-proof-
-  have path_from_rep_x: "path l (rep_of l x) (path_from_rep l x) x"
-    using assms path_path_from_rep by metis
-  have path_from_rep_y: "path l (rep_of l y) (path_from_rep l y) y"
-    using assms path_path_from_rep by metis
-  let ?lca = "lowest_common_ancestor l x y"
-  let ?lcp = "longest_common_prefix (path_from_rep l x) (path_from_rep l y)"
-  from path_root_x path_root_y path_hd have lcp_not_empty: "?lcp \<noteq> []" 
-    by (metis assms(4) list.distinct(1) list.sel(1) list_encode.cases longest_common_prefix.simps(1) path_not_empty)
-  obtain p1 where p1_def: "path_from_rep l x = ?lcp @ p1"
-    using longest_common_prefix_prefix1 prefixE by blast
-  from path_divide1 have path_lca_x: "path l ?lca (?lca # p1) x"
-    using lcp_not_empty lowest_common_ancestor.simps p1_def path_root_x by presburger
-  obtain p2 where p2_def: "(path_from_rep l y) = ?lcp @ p2"
-    using longest_common_prefix_prefix2 prefixE by blast
-  from path_divide1 have path_lca_y: "path l ?lca (?lca # p2) y"
-    using p2_def lcp_not_empty lowest_common_ancestor.simps path_root_y by presburger
-  then have commmon_ancestor: "common_ancestor l x y ?lca" 
-    using path_lca_x by auto
-  have "path l r p3 ?lca \<and> path l r p4 ca \<and> common_ancestor l x y ca
-\<Longrightarrow> length p3 \<ge> length p4"
-    for r p3 p4 ca
-  proof(rule ccontr)
-    assume assm: "path l r p3 (lowest_common_ancestor l x y) \<and> path l r p4 ca \<and> common_ancestor l x y ca"
-      and length: "\<not> length p4 \<le> length p3"
-    then obtain pCaY pCaX where pCaY: "path l ca pCaY y" and pCaX: "path l ca pCaX x"
-      by blast
-    then obtain pRootR where pRootR: "path l (rep_of l x) pRootR r" 
-      by (metis assm assms(1) path_nodes_lt_length_l path_rep_eq path_path_from_rep)
-    have path_root_ca: "path l (rep_of l x) (pRootR @ tl p4) ca" 
-      using assm pRootR path_concat1 by auto
-    then have "path l (rep_of l x) (pRootR @ tl p4 @ tl pCaX) x" 
-      using pCaX path_concat1 by fastforce 
-    then have *: "path_from_rep l x = pRootR @ tl p4 @ tl pCaX" 
-      using assms(1) path_root_x path_unique by auto
-    have "path l (rep_of l x) (pRootR @ tl p4 @ tl pCaY) y" 
-      using pCaY path_concat1 path_root_ca by fastforce
-    then have "path_from_rep l y = pRootR @ tl p4 @ tl pCaY" 
-      using assms(1,4) path_root_y path_unique by simp
-    then have prefix1: "prefix (pRootR @ tl p4) (path_from_rep l x)" 
-      and prefix2: "prefix (pRootR @ tl p4) (path_from_rep l y)"
-      using * by fastforce+
-    have path_root_lca: "path l (rep_of l x) (pRootR @ tl p3) ?lca" 
-      using assm pRootR path_concat1 by blast
-    then have "path l (rep_of l x) (pRootR @ tl p3 @ p1) x" 
-      using path_concat1 path_lca_x by fastforce
-    then have *: "path_from_rep l x = pRootR @ tl p3 @ p1" 
-      using assms(1) path_root_x path_unique by auto
-    have "path l (rep_of l x) (pRootR @ tl p3 @ p2) y" 
-      using path_concat1 path_lca_y path_root_lca by fastforce
-    then have "path_from_rep l y = pRootR @ tl p3 @ p2" 
-      using assms(1) assms(4) path_root_y path_unique by auto
-    have "\<not> prefix ?lcp (pRootR @ tl p4)" 
-      by (metis "*" Orderings.order_eq_iff prefix1 prefix2 append.assoc append_eq_append_conv assm assms(1) length longest_common_prefix_max_prefix p1_def path_last path_root_ca path_root_lca path_unique prefix_order.dual_order.antisym)
-    then show "False" using longest_common_prefix_max_prefix prefix1 prefix2 
-      by (metis (no_types, lifting) * Cons_prefix_Cons append.assoc append_same_eq assm length list.sel(3) p1_def path.cases prefix_length_le same_prefix_prefix)
-  qed
-  then show ?thesis
-    using commmon_ancestor
-    by blast
+proof -
+  from assms have "rep_of l x = rep_of l y"
+    using in_verts_ufa_tree_ofD(2) by simp
+  note awalk_awalk_from_rep[OF x_in_verts]
+   and awalk_awalk_from_rep[OF assms, folded this]
+  note lca_last_longest_common_prefix_awalk_verts[OF this]
+  with \<open>rep_of l x = rep_of l y\<close> show ?thesis
+    unfolding lowest_common_ancestor_def
+    unfolding awalk_verts_from_rep_eq_awalk_verts[OF x_in_verts]
+    unfolding awalk_verts_from_rep_eq_awalk_verts[OF assms]
+    by simp
 qed
 
 subsection \<open>Correctness of \<open>find_newest_on_path\<close>.\<close>
@@ -247,7 +196,7 @@ next
   have IH: "length (unions ?ufe) \<le> length (unions ufe0) + length un'"
     using Suc un' by auto
   have *:"apply_unions un ufe0 = apply_unions [xy] ?ufe" 
-    by (simp add: un' apply_unions_cons)
+    by (simp add: un' apply_unions_append)
   obtain x2 y2 where xy:"xy = (x2,y2)"
     using prod_decode_aux.cases by blast
   then show ?case 
@@ -256,7 +205,7 @@ next
     then have "ufe_union ?ufe x2 y2 = ?ufe" 
       by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
     then show ?thesis 
-      using Suc.prems IH un' xy apply_unions_cons by auto
+      using Suc.prems IH un' xy apply_unions_append by auto
   next
     case False
     obtain l1 u1 a1 where ufe: "?ufe = \<lparr>uf_list = l1, unions = u1, au = a1\<rparr>" 
@@ -309,7 +258,7 @@ next
       by (metis ufe_data_structure.select_convs(1) ufe_union_length_uf_list)
   qed
   then have "apply_unions (u @ [(x,y)]) (initial_ufe (length l)) = apply_unions [(x, y)] ufe" 
-    using apply_unions_cons assms by fastforce
+    using apply_unions_append assms by fastforce
   then have "apply_unions (unions (ufe_union ufe x y)) 
 (initial_ufe (length (uf_list (ufe_union ufe x y)))) = ufe_union ufe x y" 
     by (metis apply_unions.simps(1,2) assms(1) ufe_data_structure.select_convs(1,2) ufe_union_length_uf_list unions)
@@ -348,7 +297,7 @@ next
   have c: "ufe_valid_invar ?c" 
     using Suc un' valid_unions assms(1) by auto
   have "apply_unions u ufe = apply_unions [xy] ?c" 
-    by (simp add: un' apply_unions_cons)
+    by (simp add: un' apply_unions_append)
   then have *: "apply_unions u ufe = ufe_union ?c x2 y2" 
     by (simp add: \<open>xy = (x2, y2)\<close>)
   obtain l1 u1 a1 where ufe: "?c = \<lparr>uf_list = l1, unions = u1, au = a1\<rparr>" 
@@ -406,7 +355,7 @@ next
   obtain pufe where pufe: "pufe = apply_unions un (initial_ufe (length (uf_list ufe)))"
     by simp
   then have pufe2: "ufe_union pufe x2 y2 = ufe" 
-    by (metis Suc.prems(1) apply_unions.simps(1,2) apply_unions_cons u)
+    by (metis Suc.prems(1) apply_unions.simps(1,2) apply_unions_append u)
   then show ?case
   proof(cases "rep_of (uf_list pufe) x2 = rep_of (uf_list pufe) y2")
     case True
@@ -460,11 +409,11 @@ proof
   with same_rep have "ufe_union l x y = l"
     by auto
   then have 1: "apply_unions (p @ [(x,y)]) (initial_ufe (length (uf_list a))) = l" 
-    by (metis l apply_unions.simps apply_unions_cons)
+    by (metis l apply_unions.simps apply_unions_append)
   then have "apply_unions (p @ [(x,y)] @ t) (initial_ufe (length (uf_list a))) = a" 
     using invar unions_a by auto
   then have "length (unions a) \<le> length (p  @ t)"
-    by (metis 1 l add_cancel_left_left apply_unions_cons length_append apply_unions_length_unions list.size(3) ufe_data_structure.select_convs(2))
+    by (metis 1 l add_cancel_left_left apply_unions_append length_append apply_unions_length_unions list.size(3) ufe_data_structure.select_convs(2))
   then show "False"
     by (simp add: unions_a)
 qed
