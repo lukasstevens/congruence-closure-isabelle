@@ -76,7 +76,7 @@ function (domintros) cc_explain_aux :: "congruence_closure \<Rightarrow> nat lis
   | "cc_explain_aux cc l ((a, b) # xs) =
 (if are_congruent cc (a \<approx> b)
 then
-  (let c = lowest_common_ancestor (proof_forest cc) a b;
+  (let c = ufa_lca (proof_forest cc) a b;
     (output1, new_l, pending1) = explain_along_path cc l a c;
     (output2, new_new_l, pending2) = explain_along_path cc new_l b c
   in
@@ -90,7 +90,7 @@ lemma cc_explain_aux_simp1:
 
 lemma cc_explain_aux_simp2:
   assumes "cc_explain_aux_dom (cc, l, ((a, b) # xs))"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "are_congruent cc (a \<approx> b)"
     "(output1, new_l, pending1) = explain_along_path cc l a c"
     "(output2, new_new_l, pending2) = explain_along_path cc new_l b c"
@@ -862,7 +862,7 @@ theorem cc_explain_aux_domain:
       \<comment> \<open>We define the variables the same was as in \<open>cc_explain_aux\<close>\<close>
     obtain a b c output1 new_l pending1 output2 new_new_l pending2 where 
       defs: "(a, b) = k" 
-      "c = lowest_common_ancestor (proof_forest cc) a b"
+      "c = ufa_lca (proof_forest cc) a b"
       "(output1, new_l, pending1) = explain_along_path cc l a c"
       "(output2, new_new_l, pending2) = explain_along_path cc new_l b c"
       by (metis surj_pair)
@@ -899,7 +899,7 @@ If not then then we can use induction hypothesis 2.\<close>
       then have invar: "ufa_invar pf" 
         using "less.prems" cc unfolding proof_forest_invar_def by simp
       then obtain p1 p2 where p: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b" 
-        using is_lca_lowest_common_ancestor invar valid defs
+        using is_lca_ufa_lca invar valid defs
         by (metis \<open>rep_of pf a = rep_of pf b\<close> cc congruence_closure.select_convs(5))
       have dom1: "explain_along_path_dom (cc, l, a, c)" 
         using "Cons.prems" explain_along_path_domain p by blast
@@ -945,7 +945,7 @@ and \<open>explain_along_path_eq_classes_if_pending_not_empty\<close>\<close>
           by simp
         from True2 True have "(pending1 @ pending2 @ xs') = xs'" by simp
         then show ?thesis using cc_explain_aux.domintros defs True2 domain
-          by (metis Pair_inject lowest_common_ancestor.simps)
+          by (metis Pair_inject ufa_lca.simps)
 
       next
         case False
@@ -971,7 +971,7 @@ and \<open>explain_along_path_eq_classes_if_pending_not_empty\<close>\<close>
         have "cc_explain_aux_dom (cc, new_new_l, (pending1 @ pending2 @ xs'))" 
           using Cons.prems(4) by blast
         then show ?thesis using cc_explain_aux.domintros defs False cong 
-          by (metis Pair_inject lowest_common_ancestor.simps)
+          by (metis Pair_inject ufa_lca.simps)
       qed
     qed
   qed
@@ -1564,9 +1564,9 @@ lemma cc_explain_aux_valid:
       unfolding same_eq_classes_invar_def cc congruence_closure.select_convs by simp
     then have invar: "ufa_invar pf" 
       using "2.prems" cc unfolding proof_forest_invar_def by simp
-    define c where "c = lowest_common_ancestor (proof_forest cc) a b"
+    define c where "c = ufa_lca (proof_forest cc) a b"
     then obtain p1 p2 where p: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b" 
-      using is_lca_lowest_common_ancestor invar valid
+      using is_lca_ufa_lca invar valid
       by (metis \<open>rep_of pf a = rep_of pf b\<close> cc congruence_closure.select_convs(5))
     obtain output1 new_l pending1 where 
       rec1: "explain_along_path cc l a c = (output1, new_l, pending1)"

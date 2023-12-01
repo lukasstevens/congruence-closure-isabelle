@@ -76,7 +76,7 @@ qed
 
 fun elements_on_path :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list"
   where
-    "elements_on_path pf a b = (let c = lowest_common_ancestor pf a b in 
+    "elements_on_path pf a b = (let c = ufa_lca pf a b in 
       (path_to_c pf a c) @ (path_to_c pf b c)
 )"
 
@@ -630,13 +630,13 @@ lemma longest_common_prefix_empty2:
   using assms 
   using longest_common_prefix.simps(2) longest_common_prefix.simps(3) by blast
 
-lemma lowest_common_ancestor_if_last_equal_element:
+lemma ufa_lca_if_last_equal_element:
   assumes "ufa_invar l" 
     "rep_of l x = rep_of l y" "x < length l" "y < length l"
     "path l (rep_of l x) (p1 @ [c] @ p2) x"
     "path l (rep_of l y) (p1 @ [c] @ p3) y"
     "hd p2 \<noteq> hd p3"
-  shows "lowest_common_ancestor l x y = c"
+  shows "ufa_lca l x y = c"
 proof-
   have "path_to_rep l x = p1 @ [c] @ p2" "path_to_rep l y = p1 @ [c] @ p3"
     using assms path_path_to_rep path_unique by blast+
@@ -649,10 +649,10 @@ proof-
     by simp
 qed
 
-lemma lowest_common_ancestor_then_last_equal_element:
+lemma ufa_lca_then_last_equal_element:
   assumes "ufa_invar l" 
     "rep_of l x = rep_of l y" "x < length l" "y < length l"
-    "lowest_common_ancestor l x y = c"
+    "ufa_lca l x y = c"
     "path l (rep_of l x) (p1 @ [c] @ p2) x"
     "path l (rep_of l y) (p1 @ [c] @ p3) y"
     "p2 \<noteq> []" "p3 \<noteq> []"
@@ -682,27 +682,27 @@ proof
     using p path_no_cycle assms path_nodes_lt_length_l by blast
 qed
 
-lemma add_edge_lowest_common_ancestor:
+lemma add_edge_ufa_lca:
   assumes "ufa_invar l" "a < length l" "b < length l" "rep_of l a \<noteq> rep_of l b"
-    "lowest_common_ancestor l x y \<notin> set (path_to_rep l a)" 
+    "ufa_lca l x y \<notin> set (path_to_rep l a)" 
     "rep_of l x = rep_of l y" "x < length l" "y < length l"
-  shows "lowest_common_ancestor l x y = lowest_common_ancestor (add_edge l a b) x y"
+  shows "ufa_lca l x y = ufa_lca (add_edge l a b) x y"
 proof-
-  obtain p1 p2 where paths: "path l (lowest_common_ancestor l x y) p1 x"
-    "path l (lowest_common_ancestor l x y) p2 y" using assms
-    by (meson is_lca_lowest_common_ancestor)
-  then have paths': "path (add_edge l a b) (lowest_common_ancestor l x y) p1 x"
-    "path (add_edge l a b) (lowest_common_ancestor l x y) p2 y" using assms add_edge_path by auto
+  obtain p1 p2 where paths: "path l (ufa_lca l x y) p1 x"
+    "path l (ufa_lca l x y) p2 y" using assms
+    by (meson is_lca_ufa_lca)
+  then have paths': "path (add_edge l a b) (ufa_lca l x y) p1 x"
+    "path (add_edge l a b) (ufa_lca l x y) p2 y" using assms add_edge_path by auto
   then obtain p3 p4 where paths2: "path_to_rep (add_edge l a b) x = p3 @ p1" 
     "path_to_rep (add_edge l a b) y = p4 @ p2" using paths 
     by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_path_to_rep path_unique)
   then obtain p5 p6 where paths3: "path_to_rep l x = p5 @ p1" 
     "path_to_rep l y = p6 @ p2" using paths 
     by (smt (verit, ccfv_SIG) add_edge_ufa_invar_invar assms path_concat2 path_nodes_lt_length_l path_rep_eq path_path_to_rep path_unique)
-  have hd: "hd p1 = lowest_common_ancestor l x y" "hd p2 = lowest_common_ancestor l x y"
+  have hd: "hd p1 = ufa_lca l x y" "hd p2 = ufa_lca l x y"
     using paths by (metis hd_path)+
-  then have "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y])  (lowest_common_ancestor l x y)"
-    "path (add_edge l a b) (rep_of (add_edge l a b) y) (p4 @ [lowest_common_ancestor l x y])  (lowest_common_ancestor l x y)"
+  then have "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [ufa_lca l x y])  (ufa_lca l x y)"
+    "path (add_edge l a b) (rep_of (add_edge l a b) y) (p4 @ [ufa_lca l x y])  (ufa_lca l x y)"
     using paths2 paths'
     by (metis add_edge_ufa_invar_invar assms(1-4) list.discI path.cases path_divide2 path_nodes_lt_length_l path_path_to_rep)+
   then have eq: "p3 = p4" using assms
@@ -712,34 +712,34 @@ proof-
       apply (simp add: add_edge_ufa_invar_invar assms(1-4))
      apply (simp add: add_edge_preserves_length' assms(1-4))
     using rep_of_add_edge_aux assms by presburger
-  have ptr_add_edge: "path_to_rep (add_edge l a b) x = (p3 @ [lowest_common_ancestor l x y] @ tl p1)"
-    "path_to_rep (add_edge l a b) y = (p4 @ [lowest_common_ancestor l x y] @ tl p2)"
+  have ptr_add_edge: "path_to_rep (add_edge l a b) x = (p3 @ [ufa_lca l x y] @ tl p1)"
+    "path_to_rep (add_edge l a b) y = (p4 @ [ufa_lca l x y] @ tl p2)"
      apply (metis Cons_eq_appendI empty_append_eq_id hd(1) list.collapse path_not_empty paths(1) paths2(1))
     by (metis append_Cons append_Nil hd(2) list.exhaust_sel path_not_empty paths'(2) paths2(2))
   then have path_add_edge: 
-    "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y] @ tl p1) x"
-    "path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [lowest_common_ancestor l x y] @ tl p2) y"
+    "path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [ufa_lca l x y] @ tl p1) x"
+    "path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [ufa_lca l x y] @ tl p2) y"
     using paths2 path_path_to_rep[OF invar(1)] hd assms(1,7,8) invar eq by metis+
-  have *: "path l (rep_of l x) (p5 @ [lowest_common_ancestor l x y] @ tl p1) x"
-    "path l (rep_of l y) (p6 @ [lowest_common_ancestor l x y] @ tl p2) y"
+  have *: "path l (rep_of l x) (p5 @ [ufa_lca l x y] @ tl p1) x"
+    "path l (rep_of l y) (p6 @ [ufa_lca l x y] @ tl p2) y"
      apply (metis Cons_eq_appendI append_Nil assms(1) assms(7) hd(1) hd_Cons_tl path_not_empty path_path_to_rep paths(1) paths3(1))
-    by (metis \<open>path_to_rep (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> assms(1) assms(8) path_path_to_rep paths2(2) paths3(2) same_append_eq)
+    by (metis \<open>path_to_rep (add_edge l a b) y = p4 @ [ufa_lca l x y] @ tl p2\<close> assms(1) assms(8) path_path_to_rep paths2(2) paths3(2) same_append_eq)
   then have **: "p5 = p6" 
-    by (smt (verit) \<open>path_to_rep (add_edge l a b) x = p3 @ [lowest_common_ancestor l x y] @ tl p1\<close> \<open>path_to_rep (add_edge l a b) y = p4 @ [lowest_common_ancestor l x y] @ tl p2\<close> append_same_eq assms(1) assms(6) hd(1) hd(2) not_Cons_self2 path_divide2 path_unique paths2(1) paths2(2) same_append_eq self_append_conv tl_Nil)  
+    by (smt (verit) \<open>path_to_rep (add_edge l a b) x = p3 @ [ufa_lca l x y] @ tl p1\<close> \<open>path_to_rep (add_edge l a b) y = p4 @ [ufa_lca l x y] @ tl p2\<close> append_same_eq assms(1) assms(6) hd(1) hd(2) not_Cons_self2 path_divide2 path_unique paths2(1) paths2(2) same_append_eq self_append_conv tl_Nil)  
   then show ?thesis 
   proof(cases "tl p1 = [] \<or> tl p2 = []")
     case False
     then have hd2: "hd (tl p1) \<noteq> hd (tl p2)"
-      using lowest_common_ancestor_then_last_equal_element[OF assms(1,6,7,8) _ *(1)] * ** by blast 
-    then show ?thesis using hd hd2 paths2 lowest_common_ancestor_if_last_equal_element assms 
-      by (metis \<open>path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [lowest_common_ancestor l x y] @ tl p1) x\<close> \<open>path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [lowest_common_ancestor l x y] @ tl p2) y\<close> invar(1) invar(2) invar(3))
+      using ufa_lca_then_last_equal_element[OF assms(1,6,7,8) _ *(1)] * ** by blast 
+    then show ?thesis using hd hd2 paths2 ufa_lca_if_last_equal_element assms 
+      by (metis \<open>path (add_edge l a b) (rep_of (add_edge l a b) x) (p3 @ [ufa_lca l x y] @ tl p1) x\<close> \<open>path (add_edge l a b) (rep_of (add_edge l a b) y) (p3 @ [ufa_lca l x y] @ tl p2) y\<close> invar(1) invar(2) invar(3))
   next
     case True
-    have "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_rep (add_edge l a b) x)"
-      "prefix (p3 @ [lowest_common_ancestor l x y]) (path_to_rep (add_edge l a b) y)" 
+    have "prefix (p3 @ [ufa_lca l x y]) (path_to_rep (add_edge l a b) x)"
+      "prefix (p3 @ [ufa_lca l x y]) (path_to_rep (add_edge l a b) y)" 
       by (auto simp add: eq ptr_add_edge)
     have "longest_common_prefix (path_to_rep (add_edge l a b) x) (path_to_rep (add_edge l a b) y)
-= p3 @ [lowest_common_ancestor l x y]"
+= p3 @ [ufa_lca l x y]"
       using longest_common_prefix_empty2 ptr_add_edge longest_common_prefix_concat 
       by (metis (no_types, opaque_lifting) True append.right_neutral eq)
     then show ?thesis
@@ -748,7 +748,7 @@ proof-
 qed
 
 lemma add_edge_elements_on_path:
-  assumes "c = lowest_common_ancestor pf x y"
+  assumes "c = ufa_lca pf x y"
     "c \<notin> set (path_to_rep pf a)"
     "ufa_invar pf"
     "x < length pf" "y < length pf"
@@ -758,8 +758,8 @@ lemma add_edge_elements_on_path:
   shows "elements_on_path pf x y = elements_on_path (add_edge pf a b) x y" 
 proof-
   obtain p1 p2 where paths: "path pf c p1 x" "path pf c p2 y" 
-    using assms is_lca_lowest_common_ancestor by presburger
-  have "c = lowest_common_ancestor (add_edge pf a b) x y" using add_edge_lowest_common_ancestor 
+    using assms is_lca_ufa_lca by presburger
+  have "c = ufa_lca (add_edge pf a b) x y" using add_edge_ufa_lca 
     using assms by blast
   then have "elements_on_path (add_edge pf a b) x y = path_to_c (add_edge pf a b) x c @ path_to_c (add_edge pf a b) y c" 
     "elements_on_path pf x y = path_to_c pf x c @ path_to_c pf y c" 
@@ -769,22 +769,22 @@ proof-
     "path_to_c pf y c = path_to_c (add_edge pf a b) y c"
     using assms add_edge_path_to_c paths by blast+
   then show ?thesis using assms add_edge_path_to_c 
-    by (metis \<open>c = lowest_common_ancestor (add_edge pf a b) x y\<close> elements_on_path.simps)
+    by (metis \<open>c = ufa_lca (add_edge pf a b) x y\<close> elements_on_path.simps)
 qed
 
-lemma lowest_common_ancestor_notin_elements_on_path:
+lemma ufa_lca_notin_elements_on_path:
   assumes "ufa_invar pf"
     "x < length pf" "y < length pf"
     "rep_of pf x = rep_of pf y"
     "a \<in> set (elements_on_path pf x y)"
-    "c = lowest_common_ancestor pf x y"
+    "c = ufa_lca pf x y"
   shows "a \<noteq> c" 
 proof- 
   obtain p1 p2 where "path pf c p1 x" "path pf c p2 y"
-    using is_lca_lowest_common_ancestor assms by blast
+    using is_lca_ufa_lca assms by blast
   then have p: "path pf c (c # path_to_c pf x c) x" 
     "path pf c (c # path_to_c pf y c) y" 
-    using is_lca_lowest_common_ancestor path_to_c_correct 
+    using is_lca_ufa_lca path_to_c_correct 
     by (metis assms(1) list.collapse path_hd path_not_empty)+
   then have "a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)"
     using assms elements_on_path.simps unfolding Let_def by auto
@@ -799,14 +799,14 @@ lemma elements_on_path_valid:
     "a \<in> set (elements_on_path pf x y)"
   shows "a < length pf"
 proof-
-  define c where "c = lowest_common_ancestor pf x y"
+  define c where "c = ufa_lca pf x y"
   then have "a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)"
     using assms elements_on_path.simps unfolding Let_def by auto
   obtain p1 p2 where "path pf c p1 x" "path pf c p2 y"
-    using is_lca_lowest_common_ancestor assms c_def by blast
+    using is_lca_ufa_lca assms c_def by blast
   then have p: "path pf c (c # path_to_c pf x c) x" 
     "path pf c (c # path_to_c pf y c) y" 
-    using is_lca_lowest_common_ancestor path_to_c_correct c_def
+    using is_lca_ufa_lca path_to_c_correct c_def
     by (metis assms(1) list.collapse path_hd path_not_empty)+
   then show ?thesis 
     by (metis \<open>a \<in> set (path_to_c pf x c) \<or> a \<in> set (path_to_c pf y c)\<close> in_set_conv_nth length_pos_if_in_set less_numeral_extra(3) list.size(3) list_tail_coinc nodes_path_lt_length_l path.cases)
@@ -877,8 +877,8 @@ pending_invar_def same_length_invar_def time_invar_def cc_list_invar_def
     by (metis (no_types, lifting) \<open>proof_forest (propagate_step l u t pe pf pfl ip a b eq) = add_edge pf a b\<close> \<open>rep_of (add_edge pf a b) a\<^sub>1 = rep_of (add_edge pf a b) b\<^sub>1\<close> \<open>rep_of (add_edge pf a b) a\<^sub>2 = rep_of (add_edge pf a b) b\<^sub>2\<close> add_edge_ufa_invar_invar)
   then have valid3: "x < length pf" 
     using \<open>length (proof_forest (propagate_step l u t pe pf pfl ip a b eq)) = length pf\<close> by presburger
-  define c\<^sub>1 where "c\<^sub>1 = lowest_common_ancestor pf a\<^sub>1 b\<^sub>1"
-  define c\<^sub>2 where "c\<^sub>2 = lowest_common_ancestor pf a\<^sub>2 b\<^sub>2"
+  define c\<^sub>1 where "c\<^sub>1 = ufa_lca pf a\<^sub>1 b\<^sub>1"
+  define c\<^sub>2 where "c\<^sub>2 = ufa_lca pf a\<^sub>2 b\<^sub>2"
   show "add_timestamp pf ti a b k ! x < add_timestamp pf ti a b k ! ka"
   proof(cases "c\<^sub>1 \<in> set (path_to_rep pf a)")
     case True
@@ -1048,9 +1048,9 @@ proof
     using path_to_c.psimps dom by simp
 qed
 
-lemma lowest_common_ancestor_a_a:
+lemma ufa_lca_a_a:
   assumes "ufa_invar pf" "a < length pf"
-  shows "lowest_common_ancestor pf a a = a"
+  shows "ufa_lca pf a a = a"
 proof-
   from path_to_rep_domain have "path_to_rep_dom (pf, a)" 
     using assms(1) assms(2) ufa_invarD(1) by auto
@@ -1067,22 +1067,22 @@ lemma elements_on_path_empty:
   shows "elements_on_path pf a b = [] \<longleftrightarrow> a = b"
 proof
   assume elements_empty: "elements_on_path pf a b = []"
-  define c where "c = lowest_common_ancestor pf a b"
+  define c where "c = ufa_lca pf a b"
   then have "c < length pf" 
-    by (metis assms is_lca_lowest_common_ancestor path_nodes_lt_length_l)
+    by (metis assms is_lca_ufa_lca path_nodes_lt_length_l)
   from c_def have "path_to_c pf a c = []" "path_to_c pf b c = []"
     using elements_on_path.simps elements_empty unfolding Let_def by auto
-  from is_lca_lowest_common_ancestor assms c_def 
+  from is_lca_ufa_lca assms c_def 
   obtain p1 p2 where "path pf c p1 a" "path pf c p2 b"
     by blast
   then show "a = b" using path_to_c_empty 
     using \<open>path_to_c pf a c = []\<close> \<open>path_to_c pf b c = []\<close> by auto
 next
   assume a_b: "a = b"
-  define c where "c = lowest_common_ancestor pf a b"
+  define c where "c = ufa_lca pf a b"
   then have "c = a"
-    using lowest_common_ancestor_a_a a_b assms(1,3) by auto
-  from is_lca_lowest_common_ancestor assms c_def 
+    using ufa_lca_a_a a_b assms(1,3) by auto
+  from is_lca_ufa_lca assms c_def 
   obtain p1 p2 where p: "path pf c p1 a" "path pf c p2 b"
     by blast
   then have "c < length pf" 
@@ -1389,7 +1389,7 @@ qed
 
 lemma pending_mset_less':
   assumes "cc_invar_t cc_t"
-    "c = lowest_common_ancestor (proof_forest cc_t) a b"
+    "c = ufa_lca (proof_forest cc_t) a b"
     "explain_along_path2 cc a c = (output1, pend1)" 
     "explain_along_path2 cc b c = (output2, pend2)" 
     "congruence_closure.truncate cc_t = cc"
@@ -1401,7 +1401,7 @@ proof-
   have *: "proof_forest cc = proof_forest cc_t" 
     unfolding assms(5)[symmetric] congruence_closure.truncate_def by simp
   then obtain p1 p2 where paths: "path (proof_forest cc_t) c p1 a" "path (proof_forest cc_t) c p2 b"
-    using assms(1,5,6,7,8,2) explain_along_path_lowest_common_ancestor by metis
+    using assms(1,5,6,7,8,2) explain_along_path_ufa_lca by metis
   then show ?thesis
   proof(cases "a = c")
     case True
@@ -1458,7 +1458,7 @@ theorem recursive_calls_mset_less:
   assumes "cc_invar_t cc_t"
     "explain_along_path2 (congruence_closure.truncate cc_t) a c = (output1, pend1)" 
     "explain_along_path2 (congruence_closure.truncate cc_t) b c = (output2, pend2)" 
-    "c = lowest_common_ancestor (proof_forest cc_t) a b"
+    "c = ufa_lca (proof_forest cc_t) a b"
     "congruence_closure.truncate cc_t = cc"
     "are_congruent cc (a \<approx> b)" "a < nr_vars cc" "b < nr_vars cc"
   shows "(timestamp_mset (pend1 @ pend2 @ xs) (proof_forest cc_t) (timestamps cc_t)) <
@@ -1478,7 +1478,7 @@ proof-
 = {#0#} + (timestamp_mset xs (proof_forest cc_t) (timestamps cc_t))"
       using timestamp_mset_simps by simp
     have "c = a" "c = b" 
-      using True invars assms(4) lowest_common_ancestor_a_a by auto
+      using True invars assms(4) ufa_lca_a_a by auto
     then have "pend1 = []" "pend2 = []" 
       using assms(2,3) explain_along_path2_simp1 by auto
     then show ?thesis 
@@ -1508,7 +1508,7 @@ theorem recursive_calls_mset_less':
   assumes "cc_invar_t cc_t"
     "explain_along_path2 (congruence_closure.truncate cc_t) a c = (output1, pend1)" 
     "explain_along_path2 (congruence_closure.truncate cc_t) b c = (output2, pend2)" 
-    "c = lowest_common_ancestor (proof_forest cc_t) a b"
+    "c = ufa_lca (proof_forest cc_t) a b"
     "are_congruent (congruence_closure.truncate cc_t) (a \<approx> b)" 
     "a < length (cc_list cc_t)" "b < length (cc_list cc_t)"
   shows "(timestamp_mset (pend1 @ pend2 @ xs) (proof_forest cc_t) (timestamps cc_t)) <
@@ -1567,7 +1567,7 @@ lemma cc_explain_aux2_domain:
       case True
       have *: "proof_forest (congruence_closure.truncate cc_t) = proof_forest cc_t" 
         using congruence_closure_t.cases congruence_closure.truncate_def congruence_closure.select_convs(5) by metis
-      define c where "c = lowest_common_ancestor (proof_forest cc_t) a b"
+      define c where "c = ufa_lca (proof_forest cc_t) a b"
       have valid: "a < length (proof_forest cc_t)" "b < length (proof_forest cc_t)" 
         "rep_of (proof_forest cc_t) a = rep_of (proof_forest cc_t) b"
         using "less.prems" a_b Cons 
@@ -1575,7 +1575,7 @@ lemma cc_explain_aux2_domain:
           same_eq_classes_invar_def
         by auto
       then obtain p1 p2 where paths: "path (proof_forest cc_t) c p1 a" "path (proof_forest cc_t) c p2 b"
-        using is_lca_lowest_common_ancestor less(2) unfolding congruence_closure.truncate_def proof_forest_invar_def 
+        using is_lca_ufa_lca less(2) unfolding congruence_closure.truncate_def proof_forest_invar_def 
           c_def * by force
       obtain output1 pending1 output2 pending2 where defs: 
         "(output1, pending1) = explain_along_path2 (congruence_closure.truncate cc_t) a c"
@@ -1601,7 +1601,7 @@ lemma cc_explain_aux2_domain:
       then have dom: "cc_explain_aux2_dom (congruence_closure.truncate cc_t, (pending1 @ pending2 @ xs'))"
         using less mset_less by blast
       show ?thesis using cc_explain_aux2.domintros(2)[of "congruence_closure.truncate cc_t" a b xs'] 
-        using defs dom True a_b Cons unfolding lowest_common_ancestor.simps c_def * 
+        using defs dom True a_b Cons unfolding ufa_lca.simps c_def * 
         by (metis prod.inject)+
     next
       case False
@@ -1630,7 +1630,7 @@ cc = congruence_closure.truncate cc_t \<Longrightarrow>
 (\<forall> (a, b) \<in> set xs . are_congruent cc (a \<approx> b)) \<Longrightarrow> 
  a < nr_vars cc \<Longrightarrow> b < nr_vars cc \<Longrightarrow>
         are_congruent cc (a \<approx> b) \<Longrightarrow>
-       c = lowest_common_ancestor (proof_forest cc) a b \<Longrightarrow>
+       c = ufa_lca (proof_forest cc) a b \<Longrightarrow>
     (output1, pending1) = explain_along_path2 cc a c \<Longrightarrow>
     (output2, pending2) = explain_along_path2 cc b c
 \<Longrightarrow> P cc (pending1 @ pending2 @ xs)
@@ -1652,14 +1652,14 @@ proof-
       by auto
     show ?case proof(cases "are_congruent cc (a \<approx> b)")
       case True
-      define c where "c = lowest_common_ancestor (proof_forest cc) a b"
+      define c where "c = ufa_lca (proof_forest cc) a b"
       obtain output1 pending1 output2 pending2
         where eap: "(output1, pending1) = explain_along_path2 cc a c" 
           "(output2, pending2) = explain_along_path2 cc b c"
         by (metis old.prod.exhaust)
       obtain p1 p2 where p: "path (proof_forest cc) c p1 a"
         "path (proof_forest cc) c p2 b"  
-        using "2.prems"(1) True c_def explain_along_path_lowest_common_ancestor in_bounds
+        using "2.prems"(1) True c_def explain_along_path_ufa_lca in_bounds
         unfolding cc_def congruence_closure.select_convs proof_forest_invar_def 
         by blast
       then have " \<forall>(k, j)\<in>set (pending1). k < nr_vars cc \<and> j < nr_vars cc" 

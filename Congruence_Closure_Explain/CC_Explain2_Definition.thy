@@ -65,7 +65,7 @@ function (domintros) cc_explain_aux2 :: "congruence_closure \<Rightarrow> (nat *
   | "cc_explain_aux2 cc ((a, b) # xs) =
 (if are_congruent cc (a \<approx> b)
 then
-  (let c = lowest_common_ancestor (proof_forest cc) a b;
+  (let c = ufa_lca (proof_forest cc) a b;
     (output1, pending1) = explain_along_path2 cc a c;
     (output2, pending2) = explain_along_path2 cc b c
   in
@@ -79,7 +79,7 @@ lemma cc_explain_aux2_simp1:
 
 lemma cc_explain_aux2_simp2:
   assumes "cc_explain_aux2_dom (cc, ((a, b) # xs))"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "are_congruent cc (a \<approx> b)"
     "(output1, pending1) = explain_along_path2 cc a c"
     "(output2, pending2) = explain_along_path2 cc b c"
@@ -347,7 +347,7 @@ qed simp
 lemma additional_uf_labels_set_explain_along_path':
   assumes "cc_invar cc"
     "explain_list_invar l (proof_forest cc)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pend1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pend2)"
     "a < nr_vars cc" "b < nr_vars cc"
@@ -356,8 +356,8 @@ lemma additional_uf_labels_set_explain_along_path':
 additional_uf_labels_set new_new_l (pf_labels cc)"
 proof-
 obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct unfolding proof_forest_invar_def 
-    by (metis assms(1) explain_along_path_lowest_common_ancestor)
+    using assms ufa_lca_correct unfolding proof_forest_invar_def 
+    by (metis assms(1) explain_along_path_ufa_lca)
   have 1: "additional_uf_labels_set l (pf_labels cc) \<subseteq> additional_uf_labels_set new_l (pf_labels cc)"
     using additional_uf_labels_set_explain_along_path assms paths 
     by blast
@@ -448,7 +448,7 @@ qed simp
 lemma additional_uf_pairs_set_explain_along_path'':
   assumes "cc_invar cc"
     "explain_list_invar l (proof_forest cc)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "a < nr_vars cc" "b < nr_vars cc"
     "are_congruent cc (a \<approx> b)"
     "explain_along_path cc l a c = (output1, new_l, pend1)"
@@ -460,7 +460,7 @@ proof-
     using assms unfolding proof_forest_invar_def same_length_invar_def
     by auto
   then obtain p1 p2 where "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct 
+    using assms ufa_lca_correct 
     by (metis are_congruent_implies_proof_forest_rep_of_eq length_explain_list_cc_list)
   then have 1: "additional_uf_pairs_set new_l (pf_labels cc) = 
 additional_uf_pairs_set l (pf_labels cc) \<union> set pend1" 
@@ -478,7 +478,7 @@ qed
 lemma additional_uf_pairs_set_explain_along_path':
   assumes "cc_invar cc"
     "explain_list_invar l (proof_forest cc)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pend1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pend2)"
     "a < nr_vars cc" "b < nr_vars cc"
@@ -487,8 +487,8 @@ lemma additional_uf_pairs_set_explain_along_path':
 additional_uf_pairs_set new_new_l (pf_labels cc)"
 proof-
 obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct unfolding proof_forest_invar_def 
-    by (metis assms(1) explain_along_path_lowest_common_ancestor)
+    using assms ufa_lca_correct unfolding proof_forest_invar_def 
+    by (metis assms(1) explain_along_path_ufa_lca)
   have 1: "additional_uf_pairs_set l (pf_labels cc) \<subseteq> additional_uf_pairs_set new_l (pf_labels cc)"
     using additional_uf_pairs_set_explain_along_path assms paths 
     by blast
@@ -765,7 +765,7 @@ lemma explain_along_path_explain_along_path2_output_subset':
   assumes "cc_invar cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . a < nr_vars cc \<and> b < nr_vars cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . are_congruent cc (a \<approx> b)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pending1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pending2)"
     "explain_list_invar l (proof_forest cc)"
@@ -774,8 +774,8 @@ lemma explain_along_path_explain_along_path2_output_subset':
        shows "output12 \<union> output22 \<subseteq> additional_uf_labels_set new_new_l (pf_labels cc)"
 proof-
   obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct unfolding proof_forest_invar_def 
-    by (metis assms(1) case_prod_conv explain_along_path_lowest_common_ancestor list.set_intros(1))
+    using assms ufa_lca_correct unfolding proof_forest_invar_def 
+    by (metis assms(1) case_prod_conv explain_along_path_ufa_lca list.set_intros(1))
   have 1: "output12 \<subseteq> additional_uf_labels_set new_l (pf_labels cc)"
     using explain_along_path_explain_along_path2_output_subset assms paths 
     by metis
@@ -888,7 +888,7 @@ lemma explain_along_path_explain_along_path2_pending_subset':
   assumes "cc_invar cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . a < nr_vars cc \<and> b < nr_vars cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . are_congruent cc (a \<approx> b)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pending1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pending2)"
     "equations_of_l_in_pending_invar3 cc l ((a, b) # xs)"
@@ -898,8 +898,8 @@ lemma explain_along_path_explain_along_path2_pending_subset':
   shows "set pending12 \<union> set pending22 \<subseteq> additional_uf_pairs_set new_new_l (pf_labels cc)"
 proof-
   obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct unfolding proof_forest_invar_def 
-    by (metis assms(1) case_prod_conv explain_along_path_lowest_common_ancestor list.set_intros(1))
+    using assms ufa_lca_correct unfolding proof_forest_invar_def 
+    by (metis assms(1) case_prod_conv explain_along_path_ufa_lca list.set_intros(1))
   have 1: "set pending12 \<subseteq> additional_uf_pairs_set new_l (pf_labels cc)"
     using explain_along_path_explain_along_path2_pending_subset assms paths 
     by metis
@@ -917,7 +917,7 @@ qed
 
 lemma explain_along_path_new_new_l_same_length:
   assumes "cc_invar cc"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "(output1, new_l, pending1) = explain_along_path cc l a c"
     "(output2, new_new_l, pending2) = explain_along_path cc new_l b c"
     "explain_list_invar l (proof_forest cc)"
@@ -926,9 +926,9 @@ lemma explain_along_path_new_new_l_same_length:
   shows "length l = length new_new_l"
 proof-
   obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using assms lowest_common_ancestor_correct unfolding proof_forest_invar_def 
+    using assms ufa_lca_correct unfolding proof_forest_invar_def 
     same_length_invar_def 
-    by (metis assms(1) explain_along_path_lowest_common_ancestor)
+    by (metis assms(1) explain_along_path_ufa_lca)
   with explain_along_path_new_l_length have "length l = length new_l" 
     by (metis assms(1) assms(3) assms(5))
   have eli: "explain_list_invar new_l (proof_forest cc)" using assms 

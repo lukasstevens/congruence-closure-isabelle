@@ -34,7 +34,7 @@ value ex4
 
 text \<open>Example 5\<close>
 
-abbreviation "ex5 \<equiv> lowest_common_ancestor l 3 1"
+abbreviation "ex5 \<equiv> ufa_lca l 3 1"
 value ex5
 
 text \<open>Example 6\<close>

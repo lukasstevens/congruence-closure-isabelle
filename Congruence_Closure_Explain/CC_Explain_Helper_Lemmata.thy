@@ -13,12 +13,12 @@ lemma pending_set_explain_Cons:
   "pending_set_explain ((a, b) # pend) = {(a \<approx> b)} \<union> pending_set_explain pend"
   by auto
 
-lemma explain_along_path_lowest_common_ancestor:
+lemma explain_along_path_ufa_lca:
   assumes "cc_invar cc"
 "a < nr_vars cc"
 "b < nr_vars cc"
 "are_congruent cc (a \<approx> b)"
-"c = lowest_common_ancestor (proof_forest cc) a b"
+"c = ufa_lca (proof_forest cc) a b"
 obtains p1 p2 where "path (proof_forest cc) c p1 a" 
       "path (proof_forest cc) c p2 b"
 proof-
@@ -34,7 +34,7 @@ proof-
     using are_congruent_rep_of assms 
     by blast
   ultimately show thesis
-      using * assms(5) is_lca_lowest_common_ancestor 
+      using * assms(5) is_lca_ufa_lca 
       by presburger
 qed
 
@@ -71,9 +71,9 @@ proof(cases "\<exists> pL . path l a pL b")
     using \<open>path l a pL b\<close> assms(1) assms(4) path_unique by blast
 next
   case False
-  define lca where "lca = lowest_common_ancestor l a b"
+  define lca where "lca = ufa_lca l a b"
   then obtain p1 p2 where "path l lca p1 a" "path l lca p2 b"
-    using lca_def is_lca_lowest_common_ancestor assms 
+    using lca_def is_lca_ufa_lca assms 
     using explain_list_invar_def path_nodes_lt_length_l by fastforce
   then have "path pf lca p1 a" "path pf lca p2 b" 
     using assms(2) explain_list_invar_paths by blast+
@@ -145,12 +145,12 @@ proof-
     by (simp add: \<open>rep_of cc_l a = rep_of cc_l b\<close> cc)
 qed
 
-subsection \<open>Lemmata about lowest_common_ancestor\<close>
+subsection \<open>Lemmata about ufa_lca\<close>
 
-lemma lowest_common_ancestor_root:
+lemma ufa_lca_root:
   assumes "ufa_invar l" "i < length l" "l ! i = i" "k < length l"
     "rep_of l k = rep_of l i"
-  shows "lowest_common_ancestor l i k = i"
+  shows "ufa_lca l i k = i"
 proof-
   have "path_to_rep l i = [i]" using assms 
     using path_path_to_rep path_to_rep_has_length_1 by blast
@@ -161,7 +161,7 @@ proof-
   have "rep_of l k = i" 
     by (simp add: assms(3) assms(5) rep_of_refl)
   then show ?thesis 
-    by (metis assms is_lca_lowest_common_ancestor path_no_root)
+    by (metis assms is_lca_ufa_lca path_no_root)
 qed
 
 lemma longest_common_prefix_delete_last:
@@ -218,15 +218,15 @@ lemma longest_common_prefix_delete_last:
   qed
 qed auto
 
-lemma lowest_common_ancestor_parent:
+lemma ufa_lca_parent:
   assumes "ufa_invar l"
-    "c = lowest_common_ancestor l a b"
+    "c = ufa_lca l a b"
     "a < length l" "b < length l"
     "c \<noteq> a" "rep_of l a = rep_of l b"
-  shows "lowest_common_ancestor l a b =
-lowest_common_ancestor l (l ! a) b"
+  shows "ufa_lca l a b =
+ufa_lca l (l ! a) b"
 proof-
-  obtain p where "path l c p a" using is_lca_lowest_common_ancestor assms 
+  obtain p where "path l c p a" using is_lca_ufa_lca assms 
     by presburger
   then have "l ! a \<noteq> a"
     using assms(5) path_root by auto
@@ -246,14 +246,14 @@ proof-
     by simp
 qed
 
-lemma lowest_common_ancestor_step:
+lemma ufa_lca_step:
   assumes "cc_invar cc"
     "explain_list_invar l (proof_forest cc)" 
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "a < nr_vars cc" "b < nr_vars cc"
     "rep_of (proof_forest cc) a = rep_of (proof_forest cc) b"
     "rep_of l a \<noteq> rep_of l c"
-  shows "c = lowest_common_ancestor (proof_forest cc)
+  shows "c = ufa_lca (proof_forest cc)
      (proof_forest cc ! rep_of l a) b"
 proof-
   have "ufa_invar (proof_forest cc)" "a < length (proof_forest cc)" 
@@ -263,30 +263,30 @@ proof-
     case (base i)
     have "b < length (proof_forest cc)" using length_explain_list_cc_list base 
       by (metis explain_list_invar_def)
-    then have "c = i" using base lowest_common_ancestor_root unfolding explain_list_invar_def
+    then have "c = i" using base ufa_lca_root unfolding explain_list_invar_def
       by presburger
     then show ?case 
       using base.prems(7) by auto
   next
     case (step i)
-    let ?c = "lowest_common_ancestor (proof_forest cc) (proof_forest cc ! i) b"
+    let ?c = "ufa_lca (proof_forest cc) (proof_forest cc ! i) b"
     show ?case
     proof (cases "rep_of l (proof_forest cc ! i) = rep_of l ?c")
       case True
       then show ?thesis using step unfolding same_length_invar_def  
-        by (metis (no_types, lifting) explain_list_invar_def lowest_common_ancestor_parent rep_of_refl rep_of_step)
+        by (metis (no_types, lifting) explain_list_invar_def ufa_lca_parent rep_of_refl rep_of_step)
     next
       case False
       have "proof_forest cc ! i < nr_vars cc" 
         "rep_of (proof_forest cc) (proof_forest cc ! i) = rep_of (proof_forest cc) b"
         using step unfolding proof_forest_invar_def ufa_invar_def same_length_invar_def 
          apply metis by (simp add: rep_of_idx step.hyps(1) step.hyps(2) step.prems(6))
-      with step False have 1: "lowest_common_ancestor (proof_forest cc) (proof_forest cc ! i) b
- = lowest_common_ancestor (proof_forest cc)
+      with step False have 1: "ufa_lca (proof_forest cc) (proof_forest cc ! i) b
+ = ufa_lca (proof_forest cc)
      (proof_forest cc ! rep_of l (proof_forest cc ! i)) b" 
         by blast
-      then have 2: "lowest_common_ancestor (proof_forest cc) (proof_forest cc ! rep_of l i) b
-= lowest_common_ancestor (proof_forest cc)
+      then have 2: "ufa_lca (proof_forest cc) (proof_forest cc ! rep_of l i) b
+= ufa_lca (proof_forest cc)
      (proof_forest cc ! rep_of l (proof_forest cc ! i)) b" 
         using explain_list_invar_def rep_of_idx rep_of_refl step.hyps(2) step.prems(2) by fastforce
       have "ufa_invar (proof_forest cc)" "i < length (proof_forest cc)" "b < length (proof_forest cc)"
@@ -294,9 +294,9 @@ proof-
           apply blast 
          apply (simp add: step.hyps(2)) using step unfolding same_length_invar_def 
         by presburger
-      then have 3: "lowest_common_ancestor (proof_forest cc) (proof_forest cc ! i) b
-= lowest_common_ancestor (proof_forest cc) i b" 
-        by (metis lowest_common_ancestor_parent step.prems(3) step.prems(6) step.prems(7))
+      then have 3: "ufa_lca (proof_forest cc) (proof_forest cc ! i) b
+= ufa_lca (proof_forest cc) i b" 
+        by (metis ufa_lca_parent step.prems(3) step.prems(6) step.prems(7))
       with 1 2 step show ?thesis 
         by metis
     qed
@@ -320,7 +320,7 @@ theorem explain_list_invar_explain_along_path'':
     "explain_list_invar l (proof_forest cc)" 
     "a < length l" "b < length l"
     "are_congruent cc (a \<approx> b) \<or> rep_of (proof_forest cc) a = rep_of (proof_forest cc) b"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output, new_l, pend)"
   shows "explain_list_invar new_l (proof_forest cc)"
 proof-
@@ -330,7 +330,7 @@ proof-
   have a_b: "a < nr_vars cc" "b < nr_vars cc" using same_length_invar_def assms(1,2,3,4)
     by (metis (full_types) length_explain_list_cc_list)+
   obtain p where p: "path (proof_forest cc) c p a" 
-    using is_lca_lowest_common_ancestor same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
+    using is_lca_ufa_lca same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
       assms proof_forest_invar_def a_b by force
   then have "explain_along_path_dom (cc, l, a, c)"
     using explain_along_path_domain assms(1,2) by blast
@@ -344,7 +344,7 @@ theorem explain_list_invar_explain_along_path''':
     "explain_list_invar l (proof_forest cc)" 
     "a < length l" "b < length l"
     "are_congruent cc (a \<approx> b) \<or> rep_of (proof_forest cc) a = rep_of (proof_forest cc) b"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output, new_l, pend)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pend2)"
   shows "explain_list_invar new_new_l (proof_forest cc)"
@@ -355,7 +355,7 @@ proof-
   have a_b: "a < nr_vars cc" "b < nr_vars cc" using same_length_invar_def assms(1,2,3,4)
     by (metis (full_types) length_explain_list_cc_list)+
   obtain p where p: "path (proof_forest cc) c p b" 
-    using is_lca_lowest_common_ancestor same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
+    using is_lca_ufa_lca same_length_invar_def are_congruent_implies_proof_forest_rep_of_eq
       assms proof_forest_invar_def a_b by force
   have "explain_list_invar new_l (proof_forest cc)" 
     using explain_list_invar_explain_along_path'' a_b assms by blast
@@ -369,7 +369,7 @@ lemma explain_along_path_pending_in_bounds2:
     "\<forall> (a, b) \<in> set xs . a < nr_vars cc \<and> b < nr_vars cc"
     "a < nr_vars cc" "b < nr_vars cc"
     "are_congruent cc (a \<approx> b)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "(output1, new_l, pending1) = explain_along_path cc l a c" 
     "(output2, new_new_l, pending2) = explain_along_path cc new_l b c"
   shows "\<forall> (k, j) \<in> set (pending1 @ pending2 @ xs) . k < nr_vars cc \<and> j < nr_vars cc"
@@ -381,7 +381,7 @@ proof-
     using assms unfolding same_length_invar_def apply argo
     using assms unfolding same_length_invar_def by argo
   then obtain p1 p2 where "path (proof_forest cc) c p1 a" "path (proof_forest cc) c p2 b"
-    using is_lca_lowest_common_ancestor assms by presburger
+    using is_lca_ufa_lca assms by presburger
   then have *: "\<forall> (k, j) \<in> set pending1 . k < nr_vars cc \<and> j < nr_vars cc"
     using assms explain_along_path_pending_in_bounds by (metis snd_conv)
   have "explain_list_invar new_l (proof_forest cc)" using explain_list_invar_explain_along_path' assms 
@@ -581,7 +581,7 @@ proof-
         by (metis (no_types, lifting) False explain_list_invar_def path_nodes_lt_length_l)
       then obtain p3' p4' where path_to_lca: "path (proof_forest cc) c p3' a"
         "path (proof_forest cc) c p4' x"
-        using "1.prems" is_lca_lowest_common_ancestor explain_list_invar_def 
+        using "1.prems" is_lca_ufa_lca explain_list_invar_def 
         using proof_forest_invar_def by blast
       have not_none: "(pf_labels cc) ! rep_of l a \<noteq> None" using pf_labels_explain_along_path_case_2 
         using "1.prems" False explain_list_invar_def path_nodes_lt_length_l by auto
@@ -631,7 +631,7 @@ lemma explain_along_path_induct2[consumes 4, case_names base One Two]:
     "explain_list_invar l (proof_forest cc)"
 
 "rep_of (proof_forest cc) a = rep_of (proof_forest cc) b"
-"c = lowest_common_ancestor (proof_forest cc) a b"
+"c = ufa_lca (proof_forest cc) a b"
 "a < length l" "b < length l"
 
 "explain_along_path cc l a c = (output, new_l, pend)"
@@ -675,7 +675,7 @@ lemma explain_along_path_induct2[consumes 4, case_names base One Two]:
       P cc l a c ({(F x\<^sub>1 x\<^sub>2 \<approx> x'), (F y\<^sub>1 y\<^sub>2 \<approx> y)} \<union> output) new_l ([(x\<^sub>1, y\<^sub>1), (x\<^sub>2, y\<^sub>2)] @ pend))"
 shows "P cc l a c output new_l pend"
 proof-
-  obtain p where p: "path (proof_forest cc) c p a" using assms(1-6) length_explain_list_cc_list is_lca_lowest_common_ancestor 
+  obtain p where p: "path (proof_forest cc) c p a" using assms(1-6) length_explain_list_cc_list is_lca_ufa_lca 
     unfolding proof_forest_invar_def same_length_invar_def
     by (metis explain_list_invar_def)
   show ?thesis 
@@ -702,7 +702,7 @@ cc_invar cc \<Longrightarrow> explain_list_invar l (proof_forest cc)
 (\<forall> (a, b) \<in> set xs . a < nr_vars cc \<and> b < nr_vars cc) \<Longrightarrow>
  a < nr_vars cc \<Longrightarrow> b < nr_vars cc \<Longrightarrow>
         are_congruent cc (a \<approx> b) \<Longrightarrow>
-       c = lowest_common_ancestor (proof_forest cc) a b \<Longrightarrow>
+       c = ufa_lca (proof_forest cc) a b \<Longrightarrow>
     (output1, new_l, pending1) = explain_along_path cc l a c \<Longrightarrow>
     (output2, new_new_l, pending2) = explain_along_path cc new_l b c
 \<Longrightarrow> P cc new_new_l (pending1 @ pending2 @ xs)
@@ -723,7 +723,7 @@ proof-
     have in_bounds: "a < nr_vars cc" "b < nr_vars cc" using 2(6) by auto 
     show ?case proof(cases "are_congruent cc (a \<approx> b)")
       case True
-      define c where "c = lowest_common_ancestor (proof_forest cc) a b"
+      define c where "c = ufa_lca (proof_forest cc) a b"
       obtain output1 new_l pending1 output2 new_new_l pending2
         where eap: "(output1, new_l, pending1) = explain_along_path cc l a c" 
           "(output2, new_new_l, pending2) = explain_along_path cc new_l b c"

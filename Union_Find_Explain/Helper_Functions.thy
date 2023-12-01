@@ -5,9 +5,9 @@ begin
 
 subsection \<open>Proofs about the domain of the helper functions\<close>
 
-theorem (in ufa_tree_ofL) lca_lowest_common_ancestor:    
+theorem (in ufa_tree) lca_ufa_lca:    
   assumes "y \<in> verts (ufa_tree_of l x)"
-    shows "lca (lowest_common_ancestor l x y) x y"
+    shows "lca (ufa_lca l x y) x y"
 proof -
   from assms have "rep_of l x = rep_of l y"
     using in_verts_ufa_tree_ofD(2) by simp
@@ -15,7 +15,7 @@ proof -
    and awalk_awalk_from_rep[OF assms, folded this]
   note lca_last_longest_common_prefix_awalk_verts[OF this]
   with \<open>rep_of l x = rep_of l y\<close> show ?thesis
-    unfolding lowest_common_ancestor_def
+    unfolding ufa_lca_def
     unfolding awalk_verts_from_rep_eq_awalk_verts[OF x_in_verts]
     unfolding awalk_verts_from_rep_eq_awalk_verts[OF assms]
     by simp
@@ -662,11 +662,11 @@ next
     by (metis Cons_eq_appendI * empty_append_eq_id nth_list_update_neq path_snoc path_path_from_rep path_unique rep_of_min ufa_invarD(2))
 qed
 
-lemma lowest_common_ancestor_ufa_union_invar:
+lemma ufa_lca_ufa_union_invar:
   assumes "ufa_invar l" and "rep_of l x = rep_of l y"
     and "x < length l" and "y < length l" 
     and "x2 < length l" and "y2 < length l"
-  shows "lowest_common_ancestor (ufa_union l x2 y2) x y = lowest_common_ancestor l x y"
+  shows "ufa_lca (ufa_union l x2 y2) x y = ufa_lca l x y"
 proof(cases "rep_of l x2 = rep_of l x")
   case True
   then show ?thesis 
@@ -692,7 +692,7 @@ proof(cases "rep_of l x2 = rep_of l x")
     have "hd (longest_common_prefix (path_from_rep l x) (path_from_rep l y)) = rep_of l x" 
       by (metis list.collapse list.distinct(1) longest_common_prefix.simps)
     with assms path_path_from_rep hd_x hd_y * show ?thesis 
-      by (metis last_appendR list.sel(1) longest_common_prefix.simps(1) lowest_common_ancestor.simps neq_Nil_conv path_not_empty)
+      by (metis last_appendR list.sel(1) longest_common_prefix.simps(1) ufa_lca.simps neq_Nil_conv path_not_empty)
   qed
 next
   case False
@@ -700,17 +700,17 @@ next
     using assms path_from_rep_ufa_union1 by auto
 qed
 
-lemma lowest_common_ancestor_ufe_union_invar:
+lemma ufa_lca_ufe_union_invar:
   assumes "ufe = \<lparr>uf_list = l, unions = un, au = a\<rparr>"
     and "ufe_valid_invar ufe" and "rep_of l x = rep_of l y"
     and "x < length l" and "y < length l" 
     and "x2 < length l" and "y2 < length l"
-  shows "lowest_common_ancestor (uf_list (ufe_union ufe x2 y2)) x y = lowest_common_ancestor l x y"
+  shows "ufa_lca (uf_list (ufe_union ufe x2 y2)) x y = ufa_lca l x y"
 proof-
   from assms(1,2) have "ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   then show ?thesis 
-    using assms lowest_common_ancestor_ufa_union_invar by auto
+    using assms ufa_lca_ufa_union_invar by auto
 qed
 
 lemma find_newest_on_path_dom_ufe_union:
@@ -1017,25 +1017,25 @@ lemma find_newest_x_neq_None_or_find_newest_y_neq_None:
     and "x < length l"
     and "y < length l"
     and "rep_of l x = rep_of l y"
-  shows "find_newest_on_path l a y (lowest_common_ancestor l x y) \<noteq> None
-          \<or> find_newest_on_path l a x (lowest_common_ancestor l x y) \<noteq> None"
+  shows "find_newest_on_path l a y (ufa_lca l x y) \<noteq> None
+          \<or> find_newest_on_path l a x (ufa_lca l x y) \<noteq> None"
 proof(rule ccontr)
   from ufe_valid_invar_imp_ufa_invar have "ufa_invar l" 
     by (metis assms(2) ufe_data_structure.select_convs(1))
-  with is_lca_lowest_common_ancestor assms ufe_valid_invar_imp_ufa_invar obtain pLcaX pLcaY 
-    where pLcaX: "path l (lowest_common_ancestor l x y) pLcaX x" and pLcaY:"path l (lowest_common_ancestor l x y) pLcaY y"
+  with is_lca_ufa_lca assms ufe_valid_invar_imp_ufa_invar obtain pLcaX pLcaY 
+    where pLcaX: "path l (ufa_lca l x y) pLcaX x" and pLcaY:"path l (ufa_lca l x y) pLcaY y"
     by presburger
-  then have dom_y: "find_newest_on_path_dom(l, a, y, (lowest_common_ancestor l x y))"
-    and dom_x: "find_newest_on_path_dom(l, a, x, (lowest_common_ancestor l x y))"
+  then have dom_y: "find_newest_on_path_dom(l, a, y, (ufa_lca l x y))"
+    and dom_x: "find_newest_on_path_dom(l, a, x, (ufa_lca l x y))"
     using \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l by auto
-  assume assm:"\<not> (find_newest_on_path l a y (lowest_common_ancestor l x y) \<noteq> None \<or>
-                find_newest_on_path l a x (lowest_common_ancestor l x y) \<noteq> None)"
-  then have "find_newest_on_path l a x (lowest_common_ancestor l x y) = None" by simp
+  assume assm:"\<not> (find_newest_on_path l a y (ufa_lca l x y) \<noteq> None \<or>
+                find_newest_on_path l a x (ufa_lca l x y) \<noteq> None)"
+  then have "find_newest_on_path l a x (ufa_lca l x y) = None" by simp
   with dom_x assms pLcaX
-    find_newest_on_path_if_None have x: "x = lowest_common_ancestor l x y" 
+    find_newest_on_path_if_None have x: "x = ufa_lca l x y" 
     by blast
   with dom_y assms pLcaY
-    find_newest_on_path_if_None have "y = lowest_common_ancestor l x y" 
+    find_newest_on_path_if_None have "y = ufa_lca l x y" 
     using assm by blast
   then show "False" 
     using x assms(1) by linarith

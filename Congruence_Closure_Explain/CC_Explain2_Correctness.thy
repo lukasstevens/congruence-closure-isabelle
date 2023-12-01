@@ -159,10 +159,10 @@ proof-
       unfolding congruence_closure.truncate_def congruence_closure.select_convs 2(9) by auto
     then show ?case proof(cases "are_congruent cc (a \<approx> b)")
       case True
-      define c where "c = lowest_common_ancestor (proof_forest cc) a b"
+      define c where "c = ufa_lca (proof_forest cc) a b"
       then obtain p1 p2 where p: "path (proof_forest cc) c p1 a"
         "path (proof_forest cc) c p2 b" using assms(2-) cc unfolding proof_forest_invar_def 
-        using cc "2.prems"(2) True case_prod_conv explain_along_path_lowest_common_ancestor
+        using cc "2.prems"(2) True case_prod_conv explain_along_path_ufa_lca
         by (metis list.set_intros(1))      
       obtain output1 pending1 output2 pending2 
         where

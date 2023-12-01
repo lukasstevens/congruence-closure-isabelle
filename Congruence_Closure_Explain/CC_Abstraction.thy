@@ -704,11 +704,11 @@ proof(induction "(a @ b)" "(a @ c)" arbitrary: a b rule: longest_common_prefix.i
     by auto
 qed auto
 
-lemma lowest_common_ancestor_fun_upd:
+lemma ufa_lca_fun_upd:
   assumes "ufa_invar l" "x < length l" "y < length l"
     "l ! a = a" "rep_of l a \<noteq> rep_of l b" "rep_of l x = rep_of l y"
     "a < length l" "b < length l"
-  shows "lowest_common_ancestor l x y = lowest_common_ancestor (l[a := b]) x y"
+  shows "ufa_lca l x y = ufa_lca (l[a := b]) x y"
 proof-
   have a_root: "a = rep_of l a" 
     by (simp add: assms rep_of_refl)

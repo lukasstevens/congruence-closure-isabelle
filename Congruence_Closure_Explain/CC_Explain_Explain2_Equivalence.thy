@@ -35,7 +35,7 @@ next
     using congruent are_congruent_rep_of(2) by presburger
   then obtain p1 p2 where p: "path (proof_forest cc) c p1 a" 
     "path (proof_forest cc) c p2 b"  
-    using congruent in_bounds explain_along_path_lowest_common_ancestor
+    using congruent in_bounds explain_along_path_ufa_lca
     by metis
   then have bounds1: "\<forall>(a, b)\<in>set pending1. a < nr_vars cc \<and> b < nr_vars cc"
     using explain_along_path2_pending_in_bounds congruent
@@ -126,7 +126,7 @@ text \<open>Invariant to show the equivalence of \<open>cc_explain\<close> and \
 definition was_already_in_pending where
   "was_already_in_pending cc l a b xs \<equiv> 
     (((a, b) \<in> set xs) \<or> 
-        (let c = lowest_common_ancestor (proof_forest cc) a b;
+        (let c = ufa_lca (proof_forest cc) a b;
              (output1, pending1) = explain_along_path2 cc a c;
              (output2, pending2) = explain_along_path2 cc b c
          in ((output1 \<union> output2) \<subseteq> additional_uf_labels_set l (pf_labels cc)
@@ -143,7 +143,7 @@ lemma equations_of_l_in_pending_invar_a_b:
   assumes "cc_invar cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . a < nr_vars cc \<and> b < nr_vars cc"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . are_congruent cc (a \<approx> b)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pending1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pending2)"
     "equations_of_l_in_pending_invar cc l ((a, b) # xs)"
@@ -201,7 +201,7 @@ qed simp
 lemma changed_edge_in_pending':
   assumes "cc_invar cc"
     "explain_list_invar l (proof_forest cc)"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pend1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pend2)"
     "a < nr_vars cc" "b < nr_vars cc"
@@ -211,9 +211,9 @@ lemma changed_edge_in_pending':
   shows "(a\<^sub>1, b\<^sub>1) \<in> set (pend1 @ pend2) \<and> (a\<^sub>2, b\<^sub>2) \<in> set (pend1 @ pend2)" 
 proof-
   obtain p1 p2 where paths: "path (proof_forest cc) c p1 a" 
-"path (proof_forest cc) c p2 b" using assms lowest_common_ancestor_correct 
+"path (proof_forest cc) c p2 b" using assms ufa_lca_correct 
     unfolding proof_forest_invar_def same_length_invar_def  
-    by (meson assms(1) explain_along_path_lowest_common_ancestor)
+    by (meson assms(1) explain_along_path_ufa_lca)
   then show ?thesis proof(cases "new_l ! n = n")
     case True
     have "explain_list_invar new_l (proof_forest cc)"
@@ -237,7 +237,7 @@ lemma equations_of_l_in_pending_invar_invar:
     "\<forall> (a, b) \<in> set ((a, b) # xs) . a < length (cc_list cc_t) \<and> b < length (cc_list cc_t)"
     "\<forall> (a, b) \<in> set ((a, b) # xs) . are_congruent (congruence_closure.truncate cc_t) (a \<approx> b)"
     "cc = congruence_closure.truncate cc_t"
-    "c = lowest_common_ancestor (proof_forest cc) a b"
+    "c = ufa_lca (proof_forest cc) a b"
     "explain_along_path cc l a c = (output1, new_l, pending1)"
     "explain_along_path cc new_l b c = (output2, new_new_l, pending2)"
     "equations_of_l_in_pending_invar cc l ((a, b) # xs)"
@@ -264,7 +264,7 @@ pfl: "pf_labels cc ! n = (Some (Two (F a\<^sub>1 a\<^sub>2 \<approx> a') (F b\<^
   show "was_already_in_pending cc new_new_l x\<^sub>1 x\<^sub>2 (pending1 @ pending2 @ xs)"
     unfolding was_already_in_pending_def
   proof- 
-    define c where "c = lowest_common_ancestor (proof_forest cc) x\<^sub>1 x\<^sub>2"
+    define c where "c = ufa_lca (proof_forest cc) x\<^sub>1 x\<^sub>2"
     obtain output12 pending12 output22 pending22 where 
       rec: "(output12, pending12) = explain_along_path2 cc x\<^sub>1 c"
       "(output22, pending22) = explain_along_path2 cc x\<^sub>2 c" 
@@ -326,7 +326,7 @@ pfl: "pf_labels cc ! n = (Some (Two (F a\<^sub>1 a\<^sub>2 \<approx> a') (F b\<^
       qed
     qed
     then show "(x\<^sub>1, x\<^sub>2) \<in> set (pending1 @ pending2 @ xs) \<or>
-    (let c = lowest_common_ancestor (proof_forest cc) x\<^sub>1 x\<^sub>2; (output1, pending1) = explain_along_path2 cc x\<^sub>1 c;
+    (let c = ufa_lca (proof_forest cc) x\<^sub>1 x\<^sub>2; (output1, pending1) = explain_along_path2 cc x\<^sub>1 c;
          (output2, pending2) = explain_along_path2 cc x\<^sub>2 c
      in output1 \<union> output2 \<subseteq> additional_uf_labels_set new_new_l (pf_labels cc) \<and>
         set pending1 \<union> set pending2 \<subseteq> additional_uf_pairs_set new_new_l (pf_labels cc))" 
@@ -418,7 +418,7 @@ cc_explain_aux cc l xs \<union> additional_uf_labels_set l (pf_labels cc)"
     case (Cons ab xs2')
     obtain a b where ab: "ab = (a, b)" 
       by force
-    define c where "c = lowest_common_ancestor (proof_forest cc) a b"
+    define c where "c = ufa_lca (proof_forest cc) a b"
     obtain output12 output22 pending12 pending22 where 
       defs: "explain_along_path2 cc a c = (output12, pending12)"
       "explain_along_path2 cc b c = (output22, pending22)"
@@ -439,7 +439,7 @@ cc_explain_aux cc l xs \<union> additional_uf_labels_set l (pf_labels cc)"
         ab Cons proof_forest_invar_def by auto
     then obtain p1 p2 where path: "path (proof_forest cc) c p1 a"
       "path (proof_forest cc) c p2 b"
-      using c_def lowest_common_ancestor_correct  
+      using c_def ufa_lca_correct  
       by presburger
     then have are_congruent: 
       "\<forall>a\<in>set (pending12 @ pending12 @ xs). case a of (a, b) \<Rightarrow> are_congruent cc (a \<approx> b)"

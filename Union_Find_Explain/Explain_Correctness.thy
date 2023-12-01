@@ -107,7 +107,7 @@ qed
 
 lemma explain_case_x_x_neq_lca:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -126,7 +126,7 @@ qed
 
 lemma explain_case_y_y_neq_lca:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -145,7 +145,7 @@ qed
 
 lemma explain_case_x_newest_index_x_Some:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -159,7 +159,7 @@ proof-
     by fastforce
   with assms explain_case_x_x_neq_lca have *: "x \<noteq> lca"
     by blast
-  from assms is_lca_lowest_common_ancestor obtain pX where "path l lca pX x" 
+  from assms is_lca_ufa_lca obtain pX where "path l lca pX x" 
     using invar by presburger
   with * find_newest_on_path_Some assms
   obtain k_x where k_x: "newest_index_x = Some k_x \<and> k_x < length u" 
@@ -174,7 +174,7 @@ qed
 
 lemma explain_case_y_newest_index_y_Some:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -188,7 +188,7 @@ proof-
     by fastforce
   with assms explain_case_y_y_neq_lca have *: "y \<noteq> lca"
     using assms find_newest_on_path.domintros invar by blast
-  from assms is_lca_lowest_common_ancestor obtain pY where "path l lca pY y" 
+  from assms is_lca_ufa_lca obtain pY where "path l lca pY y" 
     using invar by presburger
   with * find_newest_on_path_Some assms
   obtain k_y where k_y: "newest_index_y = Some k_y \<and> k_y < length u" 
@@ -202,7 +202,7 @@ qed
 
 lemma explain_case_x_newest_index_index2:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -212,7 +212,7 @@ lemma explain_case_x_newest_index_index2:
 proof-
   from assms(1) have invar: "ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  from invar assms is_lca_lowest_common_ancestor 
+  from invar assms is_lca_ufa_lca 
   obtain p where "path l lca p x" 
     by presburger
   with assms find_newest_on_path_correct have **: "newest_index_x = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
@@ -237,7 +237,7 @@ qed
 
 lemma explain_case_x_newest_index_index:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -255,7 +255,7 @@ qed
 
 lemma explain_case_y_newest_index_index2:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -265,7 +265,7 @@ lemma explain_case_y_newest_index_index2:
 proof-
   from assms(1) have invar: "ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  from invar assms is_lca_lowest_common_ancestor 
+  from invar assms is_lca_ufa_lca 
   obtain p where "path l lca p y" 
     by presburger
   with assms find_newest_on_path_correct have **: "newest_index_y = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
@@ -290,7 +290,7 @@ qed
 
 lemma explain_case_y_newest_index_index:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -309,7 +309,7 @@ qed
 lemma explain_case_x_rep_of_ax_bx:
   assumes "ufe_valid_invar ufe_before"
     and "ufe_before = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -341,7 +341,7 @@ qed
 lemma explain_case_y_rep_of_ay_by:
   assumes "ufe_valid_invar ufe_before"
     and "ufe_before = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
@@ -375,7 +375,7 @@ paragraph \<open>Inverse direction of \<open>explain.domintros\<close>:\<close>
 lemma explain_domain_cases:
   assumes "explain_dom (ufe, x, y)"
     and "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>" 
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)"
@@ -534,14 +534,14 @@ qed
 
 lemma paths_lca_disjoint:
   assumes "ufa_invar l"
-    and "path l (lowest_common_ancestor l x y) pX x"
-    and "path l (lowest_common_ancestor l x y) pY y"
+    and "path l (ufa_lca l x y) pX x"
+    and "path l (ufa_lca l x y) pY y"
     and "i1 < length pX"
     and "i2 < length pY"
     and "i1 \<noteq> 0"
   shows "pX ! i1 \<noteq> pY ! i2"
 proof
-  let ?lca = "lowest_common_ancestor l x y"
+  let ?lca = "ufa_lca l x y"
   let ?prefixX = "path_from_rep l ?lca @ tl (take i1 pX @ [pX ! i1])"
   let ?prefixY = "path_from_rep l ?lca @ tl (take i2 pY @ [pY ! i2])"
   let ?pathX = "path_from_rep l ?lca @ tl pX"
@@ -582,7 +582,7 @@ proof
   have "path l (rep_of l x) (longest_common_prefix ?pathX ?pathY) (last (longest_common_prefix ?pathX ?pathY))"
     by (smt (verit, ccfv_SIG) append_is_Nil_conv assms(2) longest_common_prefix_prefix1 paths_iff prefix_def)
   with path_rep_lca have "longest_common_prefix ?pathX ?pathY = path_from_rep l ?lca"
-    by (metis paths_to_root assms(1) lowest_common_ancestor.simps path_unique)
+    by (metis paths_to_root assms(1) ufa_lca.simps path_unique)
   then show "False" 
     using prefix2 assms(4,6) path_concat1 by force
 qed
@@ -592,18 +592,18 @@ lemma explain_index_neq:
     and "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "x < length l" and "y < length l"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)" 
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
   shows "newest_index_x \<noteq> newest_index_y"
 proof-
   from assms have invar:"ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-  with assms is_lca_lowest_common_ancestor 
+  with assms is_lca_ufa_lca 
   obtain pX where p1: "path l lca pX x" by presburger
   then have dom: "find_newest_on_path_dom (l, a, x, lca)" 
     by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-  from assms is_lca_lowest_common_ancestor \<open>ufa_invar l\<close>
+  from assms is_lca_ufa_lca \<open>ufa_invar l\<close>
   obtain pY where p2: "path l lca pY y" by presburger
   then have "find_newest_on_path_dom (l, a, y, lca)"
     by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
@@ -659,7 +659,7 @@ lemma explain_case_x_rep_of_ax_bx_ufe_union:
   assumes "ufe_valid_invar ufe_before"
     and "ufe_before = \<lparr>uf_list = l1, unions = u1, au = a1\<rparr>"
     and "ufe_union ufe_before x2 y2 = \<lparr>uf_list = l, unions = u, au = a\<rparr> "
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "x2 < length l" and "y2 < length l"
     and "newest_index_x = find_newest_on_path l a x lca"
@@ -696,7 +696,7 @@ proof-
       case False
         \<comment> \<open>ufe_after has changed, but lca, newest_index etc. haven't changed. \<close>
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
-        where defs1: "lca' = lowest_common_ancestor l1 x y"
+        where defs1: "lca' = ufa_lca l1 x y"
           "newest_index_x' = find_newest_on_path l1 a1 x lca'"
           "newest_index_y' = find_newest_on_path l1 a1 y lca'"
           "axbx' = u1 ! the (newest_index_x')" 
@@ -704,9 +704,9 @@ proof-
       obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
         "(ay', by') = ayby'" by (metis prod.exhaust_sel)
       note defs = defs1 defs2
-      with assms defs lowest_common_ancestor_ufe_union_invar have "lca = lca'" 
+      with assms defs ufa_lca_ufe_union_invar have "lca = lca'" 
         by (metis True ufe_data_structure.select_convs(1) ufe_union_length_uf_list)
-      from defs is_lca_lowest_common_ancestor obtain px' py' where "path l1 lca' px' x" "path l1 lca' py' y" 
+      from defs is_lca_ufa_lca obtain px' py' where "path l1 lca' px' x" "path l1 lca' py' y" 
         using invar1 length_eq True assms(5) assms(6) by presburger
       with defs assms False find_newest_on_path_ufe_union_invar have "newest_index_x' = newest_index_x" 
         and  "newest_index_y' = newest_index_y" 
@@ -957,7 +957,7 @@ lemma explain_symmetric_domain:
   then have invar: "ufa_invar l"
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
-    where defs1: "lca' = lowest_common_ancestor l y x"
+    where defs1: "lca' = ufa_lca l y x"
       "newest_index_x' = find_newest_on_path l a y lca'"
       "newest_index_y' = find_newest_on_path l a x lca'"
       "axbx' = u ! the (newest_index_x')" 
@@ -971,14 +971,14 @@ lemma explain_symmetric_domain:
     then show ?thesis using explain_empty_domain by auto
   next
     case (case_x ufe lca newest_index_x newest_index_y ax bx ay "by")
-    with defs lowest_common_ancestor_symmetric have "lca = lca'" 
+    with defs ufa_lca_symmetric have "lca = lca'" 
       by presburger
     then have "newest_index_x' = newest_index_y" 
       and  "newest_index_y' = newest_index_x"
       by (auto simp add: case_x defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_x defs)+
-    from is_lca_lowest_common_ancestor case_x "1.prems" invar 
+    from is_lca_ufa_lca case_x "1.prems" invar 
     obtain p where  p: "path l lca p x" 
       by (metis ufe_data_structure.select_convs(1))
     obtain k_x where k_x: "newest_index_x = Some k_x \<and> k_x < length u" "ax < length l" "bx < length l"
@@ -994,14 +994,14 @@ lemma explain_symmetric_domain:
       by (metis  \<open>\<not> newest_index_y' \<le> newest_index_x'\<close>  \<open>lca = lca'\<close> \<open>newest_index_x' = newest_index_y\<close> \<open>newest_index_y' = newest_index_x\<close> defs1(1) explain_case_y_domain option.sel ufe_data_structure.select_convs(1))
   next
     case (case_y ufe lca newest_index_x newest_index_y ax bx ay "by")
-    with defs lowest_common_ancestor_symmetric have "lca = lca'" 
+    with defs ufa_lca_symmetric have "lca = lca'" 
       by presburger
     then have "newest_index_x' = newest_index_y" 
       and  "newest_index_y' = newest_index_x"
       by (auto simp add: case_y defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_y defs)+
-    from is_lca_lowest_common_ancestor case_y "1.prems" invar 
+    from is_lca_ufa_lca case_y "1.prems" invar 
     obtain p where  p:"path l lca p y" 
       by (metis ufe_data_structure.select_convs(1))
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
@@ -1037,7 +1037,7 @@ theorem explain_symmetric:
   then have invar: "ufa_invar l"
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
-    where defs1: "lca' = lowest_common_ancestor l y x"
+    where defs1: "lca' = ufa_lca l y x"
       "newest_index_x' = find_newest_on_path l a y lca'"
       "newest_index_y' = find_newest_on_path l a x lca'"
       "axbx' = u ! the (newest_index_x')" 
@@ -1051,7 +1051,7 @@ theorem explain_symmetric:
     then show ?thesis by auto
   next
     case (case_x ufe lca newest_index_x newest_index_y ax bx ay "by")
-    with defs lowest_common_ancestor_symmetric have "lca = lca'" 
+    with defs ufa_lca_symmetric have "lca = lca'" 
       by presburger
     then have "newest_index_x' = newest_index_y" 
       and  "newest_index_y' = newest_index_x"
@@ -1074,14 +1074,14 @@ theorem explain_symmetric:
     finally show ?thesis by (metis "*" case_x(1))
   next
     case (case_y ufe lca newest_index_x newest_index_y ax bx ay "by")
-    with defs lowest_common_ancestor_symmetric have "lca = lca'" 
+    with defs ufa_lca_symmetric have "lca = lca'" 
       by presburger
     then have "newest_index_x' = newest_index_y" 
       and  "newest_index_y' = newest_index_x"
       by (auto simp add: case_y defs)
     then have equalities: "ax' = ay"  "ay' = ax"  "bx' = by"  "by' = bx"
       by (metis Pair_inject case_y defs)+
-    from is_lca_lowest_common_ancestor case_y "1.prems" invar
+    from is_lca_ufa_lca case_y "1.prems" invar
     obtain p where p: "path l lca p y" 
       by (metis ufe_data_structure.select_convs(1))
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
@@ -1128,7 +1128,7 @@ lemma explain_cases_simple[consumes 3, case_names base case_x case_y]:
   ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>
 \<Longrightarrow> ufe_valid_invar ufe
 \<Longrightarrow> x < length l \<Longrightarrow> y < length l
-\<Longrightarrow> lca = lowest_common_ancestor l x y
+\<Longrightarrow> lca = ufa_lca l x y
 \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
 \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
 \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
@@ -1140,7 +1140,7 @@ lemma explain_cases_simple[consumes 3, case_names base case_x case_y]:
 P y x \<Longrightarrow> ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>
 \<Longrightarrow> ufe_valid_invar ufe
 \<Longrightarrow> x < length l \<Longrightarrow> y < length l
-\<Longrightarrow> lca = lowest_common_ancestor l x y
+\<Longrightarrow> lca = ufa_lca l x y
 \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
 \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
 \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
@@ -1151,7 +1151,7 @@ P y x \<Longrightarrow> ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>
   shows "P x y"
 proof-
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
-    where defs1: "lca' = lowest_common_ancestor l x y"
+    where defs1: "lca' = ufa_lca l x y"
       "newest_index_x' = find_newest_on_path l a x lca'"
       "newest_index_y' = find_newest_on_path l a y lca'"
       "axbx' = u ! the (newest_index_x')" 
@@ -1175,7 +1175,7 @@ proof-
   next
     case c
     with assms defs  show ?thesis 
-      by (metis lowest_common_ancestor_symmetric ufe_data_structure.select_convs(1))
+      by (metis ufa_lca_symmetric ufe_data_structure.select_convs(1))
   qed
 qed
 
@@ -1221,7 +1221,7 @@ lemma explain_domain_ufe_union_invar:
       have "l2 = ufa_union l x2 y2" "u2 = u @ [(x2, y2)]" "a2 = a[rep_of l x2 := Some (length u)]"
         using False case_x ufe_union by simp+
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
-        where defs1: "lca' = lowest_common_ancestor l2 x y"
+        where defs1: "lca' = ufa_lca l2 x y"
           "newest_index_x' = find_newest_on_path l2 a2 x lca'"
           "newest_index_y' = find_newest_on_path l2 a2 y lca'"
           "axbx' = u2 ! the (newest_index_x')" 
@@ -1239,8 +1239,8 @@ lemma explain_domain_ufe_union_invar:
           \<comment> \<open>ax and bx stay the same after the union\<close>
       from case_x "1.prems" ufe_union 
       have lca_eq: "lca = lca'" 
-        by (metis \<open>l2 = ufa_union l x2 y2\<close> \<open>ufa_invar l\<close> defs1(1) lowest_common_ancestor_ufa_union_invar ufe_data_structure.select_convs(1))
-      with "1.prems" case_x is_lca_lowest_common_ancestor obtain plx where plx: "path l lca plx x" 
+        by (metis \<open>l2 = ufa_union l x2 y2\<close> \<open>ufa_invar l\<close> defs1(1) ufa_lca_ufa_union_invar ufe_data_structure.select_convs(1))
+      with "1.prems" case_x is_lca_ufa_lca obtain plx where plx: "path l lca plx x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       with find_newest_on_path_ufe_union_invar 
       have nix_eq: "newest_index_x' = newest_index_x" 
@@ -1262,7 +1262,7 @@ lemma explain_domain_ufe_union_invar:
         "explain_dom (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, x, ax')"
         "explain_dom (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, bx', y)"
         by auto
-      from "1.prems" lca_eq case_x is_lca_lowest_common_ancestor 
+      from "1.prems" lca_eq case_x is_lca_ufa_lca 
       obtain ply where ply: "path l lca ply y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       with "1.prems" defs case_x find_newest_on_path_ufe_union_invar 
@@ -1287,10 +1287,10 @@ lemma explain_domain_ufe_union_invar:
       using case_y.prems(7-11) by auto
         \<comment>\<open>We need to prove the induction hypotheses for the symmetric case.\<close>
     with explain_symmetric_domain union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-      linorder_not_less case_y lowest_common_ancestor_symmetric  
+      linorder_not_less case_y ufa_lca_symmetric  
     have a: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
@@ -1307,10 +1307,10 @@ lemma explain_domain_ufe_union_invar:
          (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, y, xab))"  
       by (metis ufe_data_structure.select_convs(1))
     with explain_symmetric_domain union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-      linorder_not_less case_y lowest_common_ancestor_symmetric  
+      linorder_not_less case_y ufa_lca_symmetric  
     have b: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
@@ -1327,11 +1327,11 @@ lemma explain_domain_ufe_union_invar:
          (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, ya, x))"
       by (metis ufe_data_structure.select_convs(1))
     with explain_symmetric_domain union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-      linorder_not_less case_y lowest_common_ancestor_symmetric  
+      linorder_not_less case_y ufa_lca_symmetric  
       linorder_le_cases
     have c: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
@@ -1348,11 +1348,11 @@ lemma explain_domain_ufe_union_invar:
          (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2, y, ya))"
       by metis
     with explain_symmetric_domain union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-      linorder_not_less case_y lowest_common_ancestor_symmetric  
+      linorder_not_less case_y ufa_lca_symmetric  
       linorder_le_cases
     have d: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
@@ -1458,19 +1458,19 @@ proof-
         by simp
     next
       case False
-      let ?lca = "lowest_common_ancestor l x y"
+      let ?lca = "ufa_lca l x y"
       let ?newest_index_x = "find_newest_on_path l a x ?lca"
         and ?newest_index_y = "find_newest_on_path l a y ?lca"
       let ?axbx = "u ! the ?newest_index_x"
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      from is_lca_lowest_common_ancestor 1 False obtain pLcaX where 
+      from is_lca_ufa_lca 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
         by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-      from is_lca_lowest_common_ancestor 1 False obtain pLcaY where 
+      from is_lca_ufa_lca 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"
@@ -1566,7 +1566,7 @@ proof-
       with case_x rep_of_ufe_union_invar have rep: "rep_of l2 x = rep_of l2 y"
         by (metis ufe_data_structure.select_convs(1))
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
-        where defs1: "lca' = lowest_common_ancestor l2 x y"
+        where defs1: "lca' = ufa_lca l2 x y"
           "newest_index_x' = find_newest_on_path l2 a2 x lca'"
           "newest_index_y' = find_newest_on_path l2 a2 y lca'"
           "axbx' = u2 ! the (newest_index_x')" 
@@ -1574,18 +1574,18 @@ proof-
       obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
         "(ay', by') = ayby'" by (metis prod.exhaust_sel)
       note defs = defs1 defs2
-      with lowest_common_ancestor_ufe_union_invar case_x
+      with ufa_lca_ufe_union_invar case_x
       have lca: "lca = lca'" 
         by (metis ufe_data_structure.select_convs(1) union)
       from 1 have invar: "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      with is_lca_lowest_common_ancestor case_x
+      with is_lca_ufa_lca case_x
       obtain px where px: "path l lca px x" 
         by (metis ufe_data_structure.ext_inject)
       with find_newest_on_path_ufe_union_invar case_x defs lca
       have newest_index_x: "newest_index_x = newest_index_x'"
         by (metis path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3) union)
-      from invar is_lca_lowest_common_ancestor case_x 1
+      from invar is_lca_ufa_lca case_x 1
       obtain py where py: "path l lca py y" 
         by (metis ufe_data_structure.ext_inject)
       with find_newest_on_path_ufe_union_invar case_x defs lca
@@ -1639,10 +1639,10 @@ proof-
         using case_y.prems(7-11) by auto
           \<comment>\<open>We need to prove the induction hypotheses for the symmetric case.\<close>
       with dom explain_symmetric union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-        linorder_not_less case_y lowest_common_ancestor_symmetric  
+        linorder_not_less case_y ufa_lca_symmetric  
       have a: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
@@ -1659,10 +1659,10 @@ proof-
         \<subseteq> explain (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2) y xab)"
         by (metis ufe_data_structure.select_convs(1))
       with dom explain_symmetric union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-        linorder_not_less case_y lowest_common_ancestor_symmetric 
+        linorder_not_less case_y ufa_lca_symmetric 
       have b: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
@@ -1679,11 +1679,11 @@ proof-
         \<subseteq> explain (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2) ya x)"
         by (metis ufe_data_structure.select_convs(1))
       with dom explain_symmetric union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-        linorder_not_less case_y lowest_common_ancestor_symmetric  
+        linorder_not_less case_y ufa_lca_symmetric  
         linorder_le_cases
       have c: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
@@ -1700,11 +1700,11 @@ proof-
         \<subseteq> explain (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x2 y2) y ya)"
         by metis
       with dom explain_symmetric union_ufe_valid_invar *(1) ufe_union_length_uf_list 
-        linorder_not_less case_y lowest_common_ancestor_symmetric  
+        linorder_not_less case_y ufa_lca_symmetric  
         linorder_le_cases
       have d: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
-        xa = lowest_common_ancestor l y x \<Longrightarrow>
+        xa = ufa_lca l y x \<Longrightarrow>
         xba = find_newest_on_path l a y xa \<Longrightarrow>
         xc = find_newest_on_path l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
@@ -1777,19 +1777,19 @@ proof-
         by simp
     next
       case False
-      let ?lca = "lowest_common_ancestor l x y"
+      let ?lca = "ufa_lca l x y"
       let ?newest_index_x = "find_newest_on_path l a x ?lca"
         and ?newest_index_y = "find_newest_on_path l a y ?lca"
       let ?axbx = "u ! the ?newest_index_x"
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
         by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
-      from is_lca_lowest_common_ancestor 1 False obtain pLcaX where 
+      from is_lca_ufa_lca 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
         by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
-      from is_lca_lowest_common_ancestor 1 False obtain pLcaY where 
+      from is_lca_ufa_lca 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
       then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"

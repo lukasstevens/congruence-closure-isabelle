@@ -130,12 +130,12 @@ paragraph \<open>Explain\<close>
 
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
-definition lowest_common_ancestor :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "lowest_common_ancestor l x y \<equiv>
+definition ufa_lca :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
+  "ufa_lca l x y \<equiv>
     last (longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y))"
 
-lemma lowest_common_ancestor_symmetric:
-  "lowest_common_ancestor l x y = lowest_common_ancestor l y x"
+lemma ufa_lca_symmetric:
+  "ufa_lca l x y = ufa_lca l y x"
 proof -
   have
     "longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y)
@@ -143,7 +143,7 @@ proof -
     by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
           longest_common_prefix_prefix2 prefix_order.eq_iff)
   then show ?thesis
-    unfolding lowest_common_ancestor_def
+    unfolding ufa_lca_def
     by auto
 qed
 
@@ -161,7 +161,7 @@ function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarr
     (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
     else 
       let
-        lca = lowest_common_ancestor l x y;
+        lca = ufa_lca l x y;
         newest_index_x = find_newest_on_path l a x lca;
         newest_index_y = find_newest_on_path l a y lca
       in
@@ -185,7 +185,7 @@ lemma explain_cases:
     and "x = y \<or> rep_of l x \<noteq> rep_of l y"
   | (case_x) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
@@ -194,7 +194,7 @@ lemma explain_cases:
     and "newest_index_x \<ge> newest_index_y"
   | (case_y) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = lowest_common_ancestor l x y"
+    and "lca = ufa_lca l x y"
     and "newest_index_x = find_newest_on_path l a x lca"
     and "newest_index_y = find_newest_on_path l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
@@ -216,28 +216,28 @@ lemma explain_case_x_domain:
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, ax)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, bx, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = lowest_common_ancestor l x y
+  \<Longrightarrow> lca = ufa_lca l x y
   \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
   \<Longrightarrow> newest_index_x \<ge> newest_index_y
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
   using explain.domintros 
-  by (smt (verit, best) Pair_inject lowest_common_ancestor_def)
+  by (smt (verit, best) Pair_inject ufa_lca_def)
 
 lemma explain_case_y_domain:
   "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr> 
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, by)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, ay, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = lowest_common_ancestor l x y
+  \<Longrightarrow> lca = ufa_lca l x y
   \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
   \<Longrightarrow> \<not>(newest_index_x \<ge> newest_index_y)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
   using explain.domintros
-  by (smt (verit, best) lowest_common_ancestor_def prod.inject)
+  by (smt (verit, best) ufa_lca_def prod.inject)
 
 text \<open>And we also rewrite the simp rules:\<close>
 lemma explain_empty[simp]:
@@ -249,7 +249,7 @@ lemma explain_empty[simp]:
 lemma explain_case_x[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = lowest_common_ancestor l x y
+  \<Longrightarrow> lca = ufa_lca l x y
   \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
@@ -262,7 +262,7 @@ lemma explain_case_x[simp]:
 lemma explain_case_y[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = lowest_common_ancestor l x y
+  \<Longrightarrow> lca = ufa_lca l x y
   \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
