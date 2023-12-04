@@ -23,51 +23,105 @@ qed
 
 subsection \<open>Correctness of \<open>find_newest_on_path\<close>.\<close>
 
-abbreviation "Newest_on_path l a x y newest \<equiv>
-\<exists> p . path l y p x \<and> newest = (MAX i \<in> set [1..<length p]. a ! (p ! i))"
+lemma find_newest_on_path_dom_idx:
+  assumes "find_newest_on_path_dom l (y, x)" "x \<noteq> y"
+  shows "find_newest_on_path_dom l (y, l ! x)"
+  using assms find_newest_on_path.domintros
+  by (induction rule: find_newest_on_path.pinduct) blast
 
-lemma find_newest_on_path_dom': 
-"find_newest_on_path_dom (l, a, x, y) \<Longrightarrow> x \<noteq> y \<Longrightarrow> find_newest_on_path_dom (l, a, l ! x, y)"
-  apply(induction rule: find_newest_on_path.pinduct)
-  using find_newest_on_path.domintros by blast
-
-lemma find_newest_on_path_domain:
-  assumes "ufa_invar l"
-    and "x < length l"
-    and "y < length l"
-    and "path l y p x"
-  shows "find_newest_on_path_dom (l, a, x, y)"
-  using assms proof(induction arbitrary: p rule: rep_of_induct)
-  case (base i)
-  then have "i = y" using path_root 
-    by auto
-  then show ?case using find_newest_on_path.domintros by auto
-next
-  case (step i)
-  then show ?case
-  proof(cases "i = y")
-    case True
-    then show ?thesis 
-      using find_newest_on_path.domintros by blast
+lemma (in ufa_tree) find_newest_on_path_domain:
+  assumes "awalk y p z"
+  shows "find_newest_on_path_dom l (y, z)"
+proof -
+  from assms have "z \<in> verts (ufa_tree_of l x)"
+    by blast
+  from in_verts_ufa_tree_ofD(1)[OF this(1)] assms show ?thesis
+  proof(induction arbitrary: p rule: rep_of_induct)
+    case (base i)
+    then show ?case
+      using find_newest_on_path.domintros awalk_idx_sameD by blast
   next
-    case False
-    have path_y: "path l y (butlast p) (last (butlast p))" 
-      by (metis False append_butlast_last_id list_e_eq_lel(2) path.cases path_divide1 path_properties step.prems(2))
-    have "last (butlast p) = l ! i" using path_penultimate False step(6) 
-      by (metis Misc.last_in_set path_y length_butlast length_pos_if_in_set path_not_empty zero_less_diff)
-    then have "find_newest_on_path_dom (l, a, l ! i, y)"
-      using path_y step by auto
-    then show ?thesis 
-      using find_newest_on_path.domintros by blast
+    case (step i)
+    then show ?case
+    proof(cases "i = y")
+      case True
+      then show ?thesis 
+        using find_newest_on_path.domintros by blast
+    next
+      case False
+      with step have "p \<noteq> []"
+        using awalk_ends by blast
+      note awalk_not_Nil_butlastD[OF _ this]
+       and awlast_butlast_eq_idx_if_awalk[OF _ this]
+      with step have "awalk y (butlast p) (l ! i)"
+        by metis+
+      with step have "find_newest_on_path_dom l (y, l ! i)"
+        by blast
+      then show ?thesis
+        using find_newest_on_path.domintros by blast
+    qed
   qed
 qed
 
-theorem find_newest_on_path_correct:
-  assumes path: "path l y p x"
-    and invar: "ufa_invar l"
-    and xy: "x \<noteq> y"
-  shows "Newest_on_path l a x y (find_newest_on_path l a x y)"
-proof
+theorem (in ufe_tree) find_newest_on_path_correct:
+  assumes "awalk y p z"
+      and "y \<noteq> z"
+    shows "newest_on_walk (find_newest_on_path l au y z) y p z"
+proof -
+  from assms have "l ! z \<noteq> z"
+    using awalk_idx_sameD(1) by blast
+  note find_newest_on_path_domain[OF assms(1)]
+  then show ?thesis 
+    using assms
+  proof(induction arbitrary: p rule: find_newest_on_path.pinduct)
+    case (1 y z)
+    then show ?case
+    proof(cases "y = l ! z")
+      case True
+      with 1 have "p = [(l ! z, z)]"
+        by (metis awalkE' awalk_idx unique_awalk_All)
+      with 1 show ?thesis
+        unfolding newest_on_walk_def
+        using find_newest_on_path.psimps[where ?x=z]
+        using find_newest_on_path.psimps[where ?x="l ! z"]
+        by (auto simp: find_newest_on_path_dom_idx)
+    next
+      case False
+      with 1 have "p \<noteq> []"
+        by auto
+      with 1 have
+        awalk_butlast: "awalk y (butlast p) (l ! z)" and
+        awalk_last: "awalk (l ! z) [last p] z"
+        using awalk_not_Nil_butlastD awlast_butlast_eq_idx_if_awalk
+        by auto
+      with awalk_verts_append[where ?p="butlast p" and ?q="[last p]"]
+      have awalk_verts_p:
+        "awalk_verts y p = awalk_verts y (butlast p) @ [z]"
+        using \<open>awalk y p z\<close> \<open>p \<noteq> []\<close> by auto
+      moreover
+      note "1.IH"[OF \<open>y \<noteq> z\<close> \<open>awalk y (butlast p) (l ! z)\<close> \<open>y \<noteq> l ! z\<close>]
+      moreover from \<open>p \<noteq> []\<close> have "p = butlast p @ [last p]"
+        by simp
+      moreover
+      from \<open>awalk y p z\<close> awalk_butlast awalk_verts_p
+      have "z \<notin> set (awalk_verts y (butlast p))"
+        by (metis distinct_awalk_verts not_distinct_conv_prefix)
+      then have "z \<notin> set (tl (awalk_verts y (butlast p)))"
+        by (meson in_set_tlD)
+      then have "au ! z \<notin> (!) au ` set (tl (awalk_verts y (butlast p)))"    
+        using distinct_au
+        sorry
+      ultimately show ?thesis
+        using "1.prems" "1.hyps"
+        unfolding newest_on_walk_def
+        using find_newest_on_path.psimps[where ?x=z]
+        apply(auto intro!: Max.insert_not_elem)
+        
+        find_theorems "Max (insert _ _)"
+        sorry
+    qed
+  qed
+
   from assms path_no_root have no_root: "l ! x \<noteq> x" by simp
   from assms have x: "x < length l" and y: "y < length l" 
     by (auto simp add: path_nodes_lt_length_l)

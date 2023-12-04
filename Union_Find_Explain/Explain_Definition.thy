@@ -72,7 +72,7 @@ fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Right
   "ufe_union \<lparr> uf_list = l, unions = u, au = a \<rparr> x y =
     (if rep_of l x \<noteq> rep_of l y then
       \<lparr> uf_list = ufa_union l x y
-      , unions = u @ [(x,y)]
+      , unions = u @ [(x, y)]
       , au = a[rep_of l x := Some (length u)]
       \<rparr>
     else \<lparr> uf_list = l, unions = u, au = a \<rparr>)"
@@ -149,11 +149,17 @@ qed
 
 text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
-function (domintros) find_newest_on_path ::
-  "nat list \<Rightarrow> nat option list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option" where
-  "find_newest_on_path l a x y = 
-    (if x = y then None else max (a ! x) (find_newest_on_path l a (l ! x) y))"
+context
+  fixes l :: "nat list"
+  fixes au :: "nat option list"
+begin
+
+function (domintros) find_newest_on_path :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
+  "find_newest_on_path y x =
+    (if y = x then None else max (au ! x) (find_newest_on_path y (l ! x)))"
   by pat_completeness auto
+
+end
 
 text \<open>Explain operation, as described in the paper.\<close>
 function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where

@@ -45,6 +45,7 @@ lemmas
   rep_of_iff = rep_of_iff[OF ufa_invar] and
   rep_of_bound[simp, intro] = rep_of_bound[OF ufa_invar] and
   rep_of_induct = rep_of_induct[OF ufa_invar, case_names base step, consumes 1] and
+  ufa_union_invar[simp, intro] = ufa_union_invar[OF ufa_invar] and
   ufa_union_aux = ufa_union_aux[OF ufa_invar]
  
 lemma verts_ufa_tree_of:
@@ -137,20 +138,16 @@ lemma awalk_awalk_from_rep:
   using in_verts_ufa_tree_ofD(1)[OF assms] assms
 proof(induction rule: rep_of_induct)
   case (base i)
-  then interpret l: ufa_tree l i
-    by unfold_locales blast
   from base have "awalk_from_rep l i = []"
-    by (metis l.awalk_from_rep_rep_of l.x_in_verts rep_of_refl)
+    by (metis awalk_from_rep_rep_of rep_of_refl)
   with base show "?case"
     by (simp add: awalk_Nil_iff rep_of_simps)
 next
   case (step i)
-  then interpret l: ufa_tree l i
-    by unfold_locales blast
   from step have "awalk (rep_of l i) (awalk_from_rep l (l ! i)) (l ! i)"
     by fastforce
   moreover have "awalk (l ! i) [(l ! i, i)] i"
-    using step by (metis l.awalk_idx ufa_tree_of_eq_if_in_verts)
+    using step by (metis awalk_idx ufa_tree_of_eq_if_in_verts)
   ultimately show ?case
     using step by (simp add: awalk_from_rep.psimps)
 qed
@@ -187,6 +184,13 @@ proof
   qed
 qed
 
+lemma eq_awalk_from_rep_if_awalk_rep_of:
+  assumes "y \<in> verts (ufa_tree_of l x)"
+  assumes "awalk (rep_of l y) p y"
+  shows "p = awalk_from_rep l y"
+  using assms awalk_awalk_from_rep unique_awalk_ufa_tree_of_rep
+  using in_verts_ufa_tree_ofD(2) by auto
+
 sublocale fin_directed_tree "ufa_tree_of l x" "rep_of l x"
   using unique_awalk_ufa_tree_of_rep
   by unfold_locales (use verts_ufa_tree_of in auto)
@@ -199,15 +203,11 @@ proof -
     using assms
   proof(induction rule: rep_of_induct)
     case (base i)
-    then interpret l: ufa_tree l i
-      by unfold_locales auto
     from base show ?case
       using rep_of_refl
       by (simp add: awalk_verts_from_rep.psimps awalk_from_rep.psimps)
   next
     case (step i)
-    then interpret l: ufa_tree l i
-      by unfold_locales auto
     from step have "rep_of l (l ! i) = rep_of l i"
       by simp
     with step have "awalk (rep_of l i) (awalk_from_rep l (l ! i)) (l ! i)"
@@ -223,6 +223,53 @@ proof -
       using step
       by (auto simp: awalk_verts_from_rep.psimps[where ?x=i] awalk_from_rep.psimps[where ?x=i])
   qed
+qed
+
+lemma awalk_idx_sameD:
+  assumes "awalk z p y"
+  assumes "l ! y = y"
+  shows "y = z" "p = []"
+proof -
+  from assms(1) have
+    "z \<in> verts (ufa_tree_of l x)" and
+    y_in_verts: "y \<in> verts (ufa_tree_of l x)"
+    by blast+
+  with \<open>l ! y = y\<close> have "\<not> z \<rightarrow>\<^sup>+\<^bsub>ufa_tree_of l x\<^esub> y" for z
+    using not_root_if_dominated rep_of_if_idx_same
+    by (metis tranclD2 x_in_verts)
+  with assms have "z = rep_of l y"
+    using rep_of_refl
+    by (metis reachable_awalkI reachable_neq_reachable1)
+  moreover from \<open>awalk z p y\<close> have "z \<in> verts (ufa_tree_of l x)"
+    by blast
+  moreover note awalk_awalk_from_rep[OF y_in_verts]
+  moreover from \<open>l ! y = y\<close> have "awalk_from_rep l y = []"
+    by (meson awalk_from_rep.domintros awalk_from_rep.psimps)
+  moreover note eq_awalk_from_rep_if_awalk_rep_of[OF y_in_verts]
+  moreover note in_verts_ufa_tree_ofD[OF y_in_verts]
+  ultimately show "y = z" "p = []"
+    using assms by (metis awalk_ends)+
+qed
+
+lemma awlast_butlast_eq_idx_if_awalk:
+  assumes "awalk z p y"
+  assumes "p \<noteq> []"
+  shows "awlast z (butlast p) = l ! y"
+proof(cases "l ! y = y")
+  case True
+  with assms awalk_idx_sameD show ?thesis
+    by simp
+next
+  case False
+  from assms have "p = butlast p @ [last p]"
+    by simp
+  with assms have "awalk (awlast z (butlast p)) [last p] y"
+    using awalk_not_Nil_butlastD by blast
+  from assms have "y \<in> verts (ufa_tree_of l x)"
+    by blast
+  with awalk_idx[OF this False] \<open>awalk (awlast z (butlast p)) [last p] y\<close>
+  show "awlast z (butlast p) = l ! y"
+    by (metis awalk_Cons_iff awalk_empty_ends two_in_arcs_contr)
 qed
 
 end
@@ -308,6 +355,9 @@ locale ufe_invars = ufa_invars l for l +
     "\<And>i. Some i \<in> set au \<Longrightarrow> i < length unions"
   assumes length_au:
     "length au = length l"
+  assumes distinct_au:
+    "distinct (filter (Not o Option.is_none) au)"
+  \<comment> \<open>We need an invariant to ensure that au is not None if l ! x \<noteq> x\<close>
   assumes rep_of_before_au:
     "\<And>i j k.
       \<lbrakk> Some i \<in> set au; unions ! i = (j, k)
@@ -410,6 +460,41 @@ proof -
     using ufa_init_invar valid_au valid_unions
     by fastforce
 qed
+
+lemma ufe_invars_union:
+  assumes "x < length l" "y < length l"
+  assumes "rep_of l x \<noteq> rep_of l y"
+  defines "l' \<equiv> ufa_union l x y"
+  shows "ufe_invars l' (unions @ [(x, y)]) (au[rep_of l x := Some (length unions)])"
+proof -
+  from distinct_au valid_au have distinct_au_upd:
+    "distinct (filter (Not o Option.is_none) (au[i := Some (length unions)]))" for i
+  proof(induction au arbitrary: i)
+    case (Cons a au)
+    then have "distinct (filter (Not \<circ> Option.is_none) (au[i := Some (length unions)]))" for i
+      by (metis distinct.simps(2) filter.simps(2) list.set_intros(2))
+    with "Cons.prems" show ?case
+      by (cases a)
+        (auto simp: comp_def elim!: in_set_upd_cases split: nat.splits)
+  qed simp
+  note axioms = ufe_invars_axioms[unfolded ufe_invars_def ufe_invars_axioms_def]
+  with assms distinct_au_upd show ?thesis
+    by (unfold_locales)
+      (fastforce simp: less_Suc_eq elim!: in_set_upd_cases)+
+qed
+    
+end
+
+locale ufe_tree = ufe_invars l unions au for l unions au +
+  fixes x
+  assumes lt_length[simp, intro]: "x < length l"
+begin
+
+sublocale ufa_tree l x
+  using ufa_invar by unfold_locales simp_all
+
+definition "newest_on_walk newest y p z \<equiv>
+  awalk y p z \<and> newest = (MAX i \<in> set (tl (awalk_verts y p)). au ! i)"
 
 end
 
