@@ -1,7 +1,30 @@
 section \<open>Correctness proofs for Explain\<close>
 theory Explain_Correctness
-  imports Helper_Functions "HOL.List"
-begin 
+  imports Helper_Functions
+begin
+
+lemma (in ufe_invars) explain_dom_symmetric:
+  assumes "explain_dom l au unions (y, z)"
+  assumes "y < length l" "z < length l"
+  shows "explain_dom l au unions (z, y)"
+  using assms
+proof(induction rule: explain_induct)
+  case (eq x y)
+  then show ?case
+    using explain.domintros by blast
+next
+  case (neq_rep_of x y)
+  then show ?case
+    using explain.domintros by fastforce
+next
+  case (step x y lca newest_x newest_y ax bx)
+  then show ?case
+    
+    sorry
+next
+  case sym
+  then show ?case sorry
+qed
 
 subsection \<open>\<open>explain\<close> lemmas\<close>
 
@@ -109,8 +132,8 @@ lemma explain_case_x_x_neq_lca:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x \<ge> newest_index_y"
   shows "x \<noteq> lca"
@@ -120,16 +143,16 @@ proof-
   from find_newest_x_neq_None_or_find_newest_y_neq_None assms 
   obtain k_x' where "newest_index_x = Some k_x'" 
     by (metis less_eq_option_None_is_None option.collapse ufe_data_structure.select_convs(1))
-  with find_newest_on_path_if_Some show *: "x \<noteq> lca"
-    using assms(3) assms(5) find_newest_on_path.domintros invar by blast
+  with find_newest_on_walk_if_Some show *: "x \<noteq> lca"
+    using assms(3) assms(5) find_newest_on_walk.domintros invar by blast
 qed
 
 lemma explain_case_y_y_neq_lca:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x < newest_index_y"
   shows "y \<noteq> lca"
@@ -139,16 +162,16 @@ proof-
   from find_newest_x_neq_None_or_find_newest_y_neq_None assms 
   obtain k_y' where "newest_index_y = Some k_y'" 
     by (metis less_option_None option.collapse)
-  with find_newest_on_path_if_Some show *: "y \<noteq> lca"
-    using assms find_newest_on_path.domintros invar by blast
+  with find_newest_on_walk_if_Some show *: "y \<noteq> lca"
+    using assms find_newest_on_walk.domintros invar by blast
 qed
 
 lemma explain_case_x_newest_index_x_Some:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x \<ge> newest_index_y"
@@ -161,7 +184,7 @@ proof-
     by blast
   from assms is_lca_ufa_lca obtain pX where "path l lca pX x" 
     using invar by presburger
-  with * find_newest_on_path_Some assms
+  with * find_newest_on_walk_Some assms
   obtain k_x where k_x: "newest_index_x = Some k_x \<and> k_x < length u" 
     by blast
   then show "\<exists>k. newest_index_x = Some k \<and> k < length u" by simp
@@ -176,8 +199,8 @@ lemma explain_case_y_newest_index_y_Some:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ay, by) = u ! the (newest_index_y)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x < newest_index_y"
@@ -187,10 +210,10 @@ proof-
   have invar: "ufa_invar l" using assms(1,2) ufe_valid_invar_imp_ufa_invar 
     by fastforce
   with assms explain_case_y_y_neq_lca have *: "y \<noteq> lca"
-    using assms find_newest_on_path.domintros invar by blast
+    using assms find_newest_on_walk.domintros invar by blast
   from assms is_lca_ufa_lca obtain pY where "path l lca pY y" 
     using invar by presburger
-  with * find_newest_on_path_Some assms
+  with * find_newest_on_walk_Some assms
   obtain k_y where k_y: "newest_index_y = Some k_y \<and> k_y < length u" 
     by blast
   then show "\<exists>k. newest_index_y = Some k \<and> k < length u" by simp
@@ -204,8 +227,8 @@ lemma explain_case_x_newest_index_index2:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "x \<noteq> lca"
   shows "\<exists> i p . path l lca p x \<and> newest_index_x = (a ! (p ! i)) \<and> i < length p \<and> i > 0"
@@ -215,7 +238,7 @@ proof-
   from invar assms is_lca_ufa_lca 
   obtain p where "path l lca p x" 
     by presburger
-  with assms find_newest_on_path_correct have **: "newest_index_x = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
+  with assms find_newest_on_walk_correct have **: "newest_index_x = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
     using \<open>x \<noteq> lca\<close> invar path_unique by blast
   from assms have "length a = length l" 
     by (metis apply_unions_length_au length_replicate ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3))
@@ -239,8 +262,8 @@ lemma explain_case_x_newest_index_index:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x \<ge> newest_index_y"
   shows "\<exists> i p . path l lca p x \<and> newest_index_x = (a ! (p ! i)) \<and> i < length p \<and> i > 0"
@@ -257,8 +280,8 @@ lemma explain_case_y_newest_index_index2:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "y \<noteq> lca"
   shows "\<exists> i p . path l lca p y \<and> newest_index_y = (a ! (p ! i)) \<and> i < length p \<and> i > 0"
@@ -268,7 +291,7 @@ proof-
   from invar assms is_lca_ufa_lca 
   obtain p where "path l lca p y" 
     by presburger
-  with assms find_newest_on_path_correct have **: "newest_index_y = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
+  with assms find_newest_on_walk_correct have **: "newest_index_y = (MAX i\<in>set [1..<length p]. a ! (p ! i))"
     using \<open>y \<noteq> lca\<close> invar path_unique by blast
   from assms have "length a = length l" 
     by (metis apply_unions_length_au length_replicate ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3))
@@ -292,8 +315,8 @@ lemma explain_case_y_newest_index_index:
   assumes "ufe_valid_invar  \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x < newest_index_y"
   shows "\<exists> i p . path l lca p y \<and> newest_index_y = (a ! (p ! i)) \<and> i < length p \<and> i > 0"
@@ -311,8 +334,8 @@ lemma explain_case_x_rep_of_ax_bx:
     and "ufe_before = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x \<ge> newest_index_y"
@@ -343,8 +366,8 @@ lemma explain_case_y_rep_of_ay_by:
     and "ufe_before = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ay, by) = u ! the (newest_index_y)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x < newest_index_y"
@@ -376,8 +399,8 @@ lemma explain_domain_cases:
   assumes "explain_dom (ufe, x, y)"
     and "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>" 
     and "lca = ufa_lca l x y"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)"
     and "(ay, by) = u !  the (newest_index_y)"
     and "\<not> (x = y \<or> rep_of l x \<noteq> rep_of l y)"
@@ -593,41 +616,41 @@ lemma explain_index_neq:
     and "x < length l" and "y < length l"
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)" 
     and "lca = ufa_lca l x y"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
   shows "newest_index_x \<noteq> newest_index_y"
 proof-
   from assms have invar:"ufa_invar l" 
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   with assms is_lca_ufa_lca 
   obtain pX where p1: "path l lca pX x" by presburger
-  then have dom: "find_newest_on_path_dom (l, a, x, lca)" 
-    by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+  then have dom: "find_newest_on_walk_dom (l, a, x, lca)" 
+    by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
   from assms is_lca_ufa_lca \<open>ufa_invar l\<close>
   obtain pY where p2: "path l lca pY y" by presburger
-  then have "find_newest_on_path_dom (l, a, y, lca)"
-    by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+  then have "find_newest_on_walk_dom (l, a, y, lca)"
+    by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
   consider (a) "x = lca"  | (b) "y = lca" | (c) "x \<noteq> lca \<and> y \<noteq> lca"
     by blast
   then show ?thesis proof(cases)
     case a
-    then have *: "find_newest_on_path l a x lca = None"
-      using find_newest_on_path.psimps dom by presburger
+    then have *: "find_newest_on_walk l a x lca = None"
+      using find_newest_on_walk.psimps dom by presburger
     then have "y \<noteq> lca" 
       using assms a by blast
-    with find_newest_on_path_Some 
-    obtain k where "find_newest_on_path l a y lca = Some k"
+    with find_newest_on_walk_Some 
+    obtain k where "find_newest_on_walk l a y lca = Some k"
       by (metis assms(1) assms(2) p2)
     with assms * show ?thesis by force
   next 
     case b
-    then have *: "find_newest_on_path l a y lca = None"
-      using find_newest_on_path.psimps dom 
-      using \<open>find_newest_on_path_dom (l, a, y, lca)\<close> by force
+    then have *: "find_newest_on_walk l a y lca = None"
+      using find_newest_on_walk.psimps dom 
+      using \<open>find_newest_on_walk_dom (l, a, y, lca)\<close> by force
     then have "x \<noteq> lca" 
       using assms b by blast
-    with find_newest_on_path_Some 
-    obtain k where "find_newest_on_path l a x lca = Some k"
+    with find_newest_on_walk_Some 
+    obtain k where "find_newest_on_walk l a x lca = Some k"
       by (metis assms(1) assms(2) p1)
     with assms * show ?thesis by force
   next
@@ -662,8 +685,8 @@ lemma explain_case_x_rep_of_ax_bx_ufe_union:
     and "lca = ufa_lca l x y"
     and "x < length l" and "y < length l"
     and "x2 < length l" and "y2 < length l"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
     and "newest_index_x \<ge> newest_index_y"
@@ -697,8 +720,8 @@ proof-
         \<comment> \<open>ufe_after has changed, but lca, newest_index etc. haven't changed. \<close>
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
         where defs1: "lca' = ufa_lca l1 x y"
-          "newest_index_x' = find_newest_on_path l1 a1 x lca'"
-          "newest_index_y' = find_newest_on_path l1 a1 y lca'"
+          "newest_index_x' = find_newest_on_walk l1 a1 x lca'"
+          "newest_index_y' = find_newest_on_walk l1 a1 y lca'"
           "axbx' = u1 ! the (newest_index_x')" 
           "ayby' = u1 ! the (newest_index_y')"
       obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -708,11 +731,11 @@ proof-
         by (metis True ufe_data_structure.select_convs(1) ufe_union_length_uf_list)
       from defs is_lca_ufa_lca obtain px' py' where "path l1 lca' px' x" "path l1 lca' py' y" 
         using invar1 length_eq True assms(5) assms(6) by presburger
-      with defs assms False find_newest_on_path_ufe_union_invar have "newest_index_x' = newest_index_x" 
+      with defs assms False find_newest_on_walk_ufe_union_invar have "newest_index_x' = newest_index_x" 
         and  "newest_index_y' = newest_index_y" 
         by (metis \<open>lca = lca'\<close> length_eq path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3))+
       with defs assms explain_case_x_newest_index_x_Some obtain k where "newest_index_x' = Some k \<and> k < length u1" 
-        by (metis \<open>lca = lca'\<close> \<open>path l1 lca' px' x\<close>  explain_case_x_x_neq_lca find_newest_on_path_Some ufe_valid_invar)
+        by (metis \<open>lca = lca'\<close> \<open>path l1 lca' px' x\<close>  explain_case_x_x_neq_lca find_newest_on_walk_Some ufe_valid_invar)
       with defs assms unions_ufe_union_invar have equalities: "ax' = ax"  "bx' = bx"
         by (metis \<open>newest_index_x' = newest_index_x\<close> length_eq old.prod.inject option.sel ufe_data_structure.select_convs(2))+
       with explain_case_x_rep_of_ax_bx defs assms show ?thesis 
@@ -810,7 +833,7 @@ proof-
         using * ** by fastforce+
       have "x \<noteq> rep_of l x"
         by (metis \<open>path l (rep_of l1 x) p_rep_x x\<close> assms(5) invar list_tail_coinc p_rep_x' path_no_cycle path_not_empty)
-      with lca find_newest_on_path_correct[OF p_rep_x' invar] path_unique assms
+      with lca find_newest_on_walk_correct[OF p_rep_x' invar] path_unique assms
       have "newest_index_x = (MAX i \<in> set [1..<length (rep_of l y#p_rep_x)]. a ! ((rep_of l y#p_rep_x) ! i))"
         using invar p_rep_x' by blast
       also have "(MAX i \<in> set [1..<length (rep_of l y#p_rep_x)]. a ! ((rep_of l y#p_rep_x) ! i)) = a ! ((rep_of l y # p_rep_x) ! 1)"
@@ -904,7 +927,7 @@ proof-
         using * ** by fastforce+
       have "y \<noteq> rep_of l y" 
         by (metis \<open>path l (rep_of l1 y) p_rep_x y\<close> assms(6) invar list_tail_coinc p_rep_x' path_no_cycle path_not_empty)
-      with lca find_newest_on_path_correct[OF p_rep_x' invar] path_unique assms
+      with lca find_newest_on_walk_correct[OF p_rep_x' invar] path_unique assms
       have "newest_index_y = (MAX i \<in> set [1..<length (rep_of l y#p_rep_x)]. a ! ((rep_of l y#p_rep_x) ! i))"
         using invar p_rep_x' by metis
       also have "(MAX i \<in> set [1..<length (rep_of l y#p_rep_x)]. a ! ((rep_of l y#p_rep_x) ! i)) = Some (length u1)"
@@ -958,8 +981,8 @@ lemma explain_symmetric_domain:
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
     where defs1: "lca' = ufa_lca l y x"
-      "newest_index_x' = find_newest_on_path l a y lca'"
-      "newest_index_y' = find_newest_on_path l a x lca'"
+      "newest_index_x' = find_newest_on_walk l a y lca'"
+      "newest_index_y' = find_newest_on_walk l a x lca'"
       "axbx' = u ! the (newest_index_x')" 
       "ayby' = u ! the (newest_index_y')"
   obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -1007,9 +1030,9 @@ lemma explain_symmetric_domain:
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
     obtain k_y' where "newest_index_y = Some k_y'" 
       by (metis less_eq_option_None option.exhaust_sel)
-    with find_newest_on_path_if_Some have "y ~= lca" 
-      by (metis case_y(4) find_newest_on_path.domintros invar p path_nodes_lt_length_l)
-    with find_newest_on_path_Some[OF p "1.prems"(1)] "1.prems" case_y 
+    with find_newest_on_walk_if_Some have "y ~= lca" 
+      by (metis case_y(4) find_newest_on_walk.domintros invar p path_nodes_lt_length_l)
+    with find_newest_on_walk_Some[OF p "1.prems"(1)] "1.prems" case_y 
     obtain k_y where k_y: "newest_index_y = Some k_y \<and> k_y < length u" 
       by blast
     with "1.prems" have "fst (u ! k_y) < length l" "snd (u ! k_y) < length l"
@@ -1038,8 +1061,8 @@ theorem explain_symmetric:
     by (metis ufe_data_structure.select_convs(1) ufe_valid_invar_imp_ufa_invar)
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
     where defs1: "lca' = ufa_lca l y x"
-      "newest_index_x' = find_newest_on_path l a y lca'"
-      "newest_index_y' = find_newest_on_path l a x lca'"
+      "newest_index_x' = find_newest_on_walk l a y lca'"
+      "newest_index_y' = find_newest_on_walk l a x lca'"
       "axbx' = u ! the (newest_index_x')" 
       "ayby' = u ! the (newest_index_y')"
   obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -1087,9 +1110,9 @@ theorem explain_symmetric:
     with find_newest_x_neq_None_or_find_newest_y_neq_None case_y "1.prems"
     obtain k_y' where "newest_index_y = Some k_y'" 
       by (metis less_eq_option_None option.exhaust_sel)
-    with find_newest_on_path_if_Some have "y ~= lca" 
-      by (metis case_y(4) find_newest_on_path.domintros invar p path_nodes_lt_length_l)
-    with find_newest_on_path_Some[OF p "1.prems"(1)] "1.prems" case_y 
+    with find_newest_on_walk_if_Some have "y ~= lca" 
+      by (metis case_y(4) find_newest_on_walk.domintros invar p path_nodes_lt_length_l)
+    with find_newest_on_walk_Some[OF p "1.prems"(1)] "1.prems" case_y 
     obtain k_y where k_y: "newest_index_y = Some k_y \<and> k_y < length u" 
       by blast
     with "1.prems" have "fst (u ! k_y) < length l" "snd (u ! k_y) < length l"
@@ -1129,8 +1152,8 @@ lemma explain_cases_simple[consumes 3, case_names base case_x case_y]:
 \<Longrightarrow> ufe_valid_invar ufe
 \<Longrightarrow> x < length l \<Longrightarrow> y < length l
 \<Longrightarrow> lca = ufa_lca l x y
-\<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-\<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+\<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+\<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
 \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
 \<Longrightarrow> (ay, by) = u ! the (newest_index_y)
 \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)
@@ -1141,8 +1164,8 @@ P y x \<Longrightarrow> ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>
 \<Longrightarrow> ufe_valid_invar ufe
 \<Longrightarrow> x < length l \<Longrightarrow> y < length l
 \<Longrightarrow> lca = ufa_lca l x y
-\<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-\<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+\<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+\<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
 \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
 \<Longrightarrow> (ay, by) = u ! the (newest_index_y)
 \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)
@@ -1152,8 +1175,8 @@ P y x \<Longrightarrow> ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>
 proof-
   define lca' newest_index_x' newest_index_y' axbx' ayby' 
     where defs1: "lca' = ufa_lca l x y"
-      "newest_index_x' = find_newest_on_path l a x lca'"
-      "newest_index_y' = find_newest_on_path l a y lca'"
+      "newest_index_x' = find_newest_on_walk l a x lca'"
+      "newest_index_y' = find_newest_on_walk l a y lca'"
       "axbx' = u ! the (newest_index_x')" 
       "ayby' = u ! the (newest_index_y')"
   obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -1222,8 +1245,8 @@ lemma explain_domain_ufe_union_invar:
         using False case_x ufe_union by simp+
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
         where defs1: "lca' = ufa_lca l2 x y"
-          "newest_index_x' = find_newest_on_path l2 a2 x lca'"
-          "newest_index_y' = find_newest_on_path l2 a2 y lca'"
+          "newest_index_x' = find_newest_on_walk l2 a2 x lca'"
+          "newest_index_y' = find_newest_on_walk l2 a2 y lca'"
           "axbx' = u2 ! the (newest_index_x')" 
           "ayby' = u2 ! the (newest_index_y')"
       obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -1242,7 +1265,7 @@ lemma explain_domain_ufe_union_invar:
         by (metis \<open>l2 = ufa_union l x2 y2\<close> \<open>ufa_invar l\<close> defs1(1) ufa_lca_ufa_union_invar ufe_data_structure.select_convs(1))
       with "1.prems" case_x is_lca_ufa_lca obtain plx where plx: "path l lca plx x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      with find_newest_on_path_ufe_union_invar 
+      with find_newest_on_walk_ufe_union_invar 
       have nix_eq: "newest_index_x' = newest_index_x" 
         using case_x defs ufe_union lca_eq path_nodes_lt_length_l "1.prems"   
         by (metis ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3))
@@ -1265,7 +1288,7 @@ lemma explain_domain_ufe_union_invar:
       from "1.prems" lca_eq case_x is_lca_ufa_lca 
       obtain ply where ply: "path l lca ply y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      with "1.prems" defs case_x find_newest_on_path_ufe_union_invar 
+      with "1.prems" defs case_x find_newest_on_walk_ufe_union_invar 
       have "newest_index_y' = newest_index_y" 
         by (metis lca_eq path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3) ufe_union)
       with rep ** explain_case_x_domain
@@ -1291,8 +1314,8 @@ lemma explain_domain_ufe_union_invar:
     have a: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
         xaa = u ! the xba \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1311,8 +1334,8 @@ lemma explain_domain_ufe_union_invar:
     have b: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
         xaa = u ! the xba \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1332,8 +1355,8 @@ lemma explain_domain_ufe_union_invar:
     have c: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
         xaa = u ! the xc \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1353,8 +1376,8 @@ lemma explain_domain_ufe_union_invar:
     have d: "(\<And>xa xba xc xaa xab ya.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
         xaa = u ! the xc \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1459,8 +1482,8 @@ proof-
     next
       case False
       let ?lca = "ufa_lca l x y"
-      let ?newest_index_x = "find_newest_on_path l a x ?lca"
-        and ?newest_index_y = "find_newest_on_path l a y ?lca"
+      let ?newest_index_x = "find_newest_on_walk l a x ?lca"
+        and ?newest_index_y = "find_newest_on_walk l a y ?lca"
       let ?axbx = "u ! the ?newest_index_x"
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
@@ -1468,13 +1491,13 @@ proof-
       from is_lca_ufa_lca 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
-        by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+      then have domain_x: "find_newest_on_walk_dom (l, a, x, ?lca)"
+        by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
       from is_lca_ufa_lca 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"
-        by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+      then have domain_y: "find_newest_on_walk_dom (l, a, y, ?lca)"
+        by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
       from find_newest_x_neq_None_or_find_newest_y_neq_None 1 False
       have not_both_None: "?newest_index_x \<noteq> None \<or> ?newest_index_y \<noteq> None" 
         by (metis ufe_data_structure.select_convs(1))
@@ -1486,9 +1509,9 @@ proof-
         with not_both_None False have "?newest_index_x \<noteq> None"
           by (metis less_eq_option_None_is_None)
         then have "x \<noteq> ?lca" 
-          using domain_x find_newest_on_path.psimps by fastforce
+          using domain_x find_newest_on_walk.psimps by fastforce
         then obtain k where k: "?newest_index_x = Some k \<and> k < length u"
-          using "1.prems" pLcaX find_newest_on_path_Some by blast
+          using "1.prems" pLcaX find_newest_on_walk_Some by blast
         then have index_valid: "k < length u"
           by auto
         from 1 have ax_valid: "ax < length (uf_list \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
@@ -1513,9 +1536,9 @@ proof-
         with not_both_None False have "?newest_index_y \<noteq> None"
           by fastforce
         then have "y \<noteq> ?lca" 
-          using domain_y find_newest_on_path.psimps by fastforce
+          using domain_y find_newest_on_walk.psimps by fastforce
         then obtain k where k: "?newest_index_y = Some k \<and> k < length u"
-          using "1.prems" pLcaY find_newest_on_path_Some by blast
+          using "1.prems" pLcaY find_newest_on_walk_Some by blast
         then have index_valid: "k < length u"
           by auto
         from 1 have ay_valid: "ay < length (uf_list \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
@@ -1567,8 +1590,8 @@ proof-
         by (metis ufe_data_structure.select_convs(1))
       define lca' newest_index_x' newest_index_y' axbx' ayby' 
         where defs1: "lca' = ufa_lca l2 x y"
-          "newest_index_x' = find_newest_on_path l2 a2 x lca'"
-          "newest_index_y' = find_newest_on_path l2 a2 y lca'"
+          "newest_index_x' = find_newest_on_walk l2 a2 x lca'"
+          "newest_index_y' = find_newest_on_walk l2 a2 y lca'"
           "axbx' = u2 ! the (newest_index_x')" 
           "ayby' = u2 ! the (newest_index_y')"
       obtain ax' bx' ay' by' where defs2: "(ax', bx') = axbx'"
@@ -1582,18 +1605,18 @@ proof-
       with is_lca_ufa_lca case_x
       obtain px where px: "path l lca px x" 
         by (metis ufe_data_structure.ext_inject)
-      with find_newest_on_path_ufe_union_invar case_x defs lca
+      with find_newest_on_walk_ufe_union_invar case_x defs lca
       have newest_index_x: "newest_index_x = newest_index_x'"
         by (metis path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3) union)
       from invar is_lca_ufa_lca case_x 1
       obtain py where py: "path l lca py y" 
         by (metis ufe_data_structure.ext_inject)
-      with find_newest_on_path_ufe_union_invar case_x defs lca
+      with find_newest_on_walk_ufe_union_invar case_x defs lca
       have newest_index_y: "newest_index_y = newest_index_y'"
         by (metis path_nodes_lt_length_l ufe_data_structure.select_convs(1) ufe_data_structure.select_convs(3) union)
       from case_x explain_case_x_x_neq_lca have "lca \<noteq> x" 
         by (metis ufe_data_structure.select_convs(1) order_less_imp_le)
-      with find_newest_on_path_Some px
+      with find_newest_on_walk_Some px
       obtain k where k: "newest_index_x = Some k \<and> k < length u" 
         using case_x by metis
       with newest_index_x have "the newest_index_x = the newest_index_x'"
@@ -1643,8 +1666,8 @@ proof-
       have a: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
         xaa = u ! the xba \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1663,8 +1686,8 @@ proof-
       have b: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         xc \<le> xba \<Longrightarrow>
         xaa = u ! the xba \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1684,8 +1707,8 @@ proof-
       have c: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
         xaa = u ! the xc \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1705,8 +1728,8 @@ proof-
       have d: "(\<And>xa xba xc xaa xab ya l1 u1 a1.
         \<not> (y = x \<or> rep_of l y \<noteq> rep_of l x) \<Longrightarrow>
         xa = ufa_lca l y x \<Longrightarrow>
-        xba = find_newest_on_path l a y xa \<Longrightarrow>
-        xc = find_newest_on_path l a x xa \<Longrightarrow>
+        xba = find_newest_on_walk l a y xa \<Longrightarrow>
+        xc = find_newest_on_walk l a x xa \<Longrightarrow>
         \<not> xc \<le> xba \<Longrightarrow>
         xaa = u ! the xc \<Longrightarrow>
         (xab, ya) = xaa \<Longrightarrow>
@@ -1778,8 +1801,8 @@ proof-
     next
       case False
       let ?lca = "ufa_lca l x y"
-      let ?newest_index_x = "find_newest_on_path l a x ?lca"
-        and ?newest_index_y = "find_newest_on_path l a y ?lca"
+      let ?newest_index_x = "find_newest_on_walk l a x ?lca"
+        and ?newest_index_y = "find_newest_on_walk l a y ?lca"
       let ?axbx = "u ! the ?newest_index_x"
         and ?ayby = "u ! the ?newest_index_y"
       from "1.prems" have "ufa_invar l" 
@@ -1787,13 +1810,13 @@ proof-
       from is_lca_ufa_lca 1 False obtain pLcaX where 
         pLcaX: "path l ?lca pLcaX x" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      then have domain_x: "find_newest_on_path_dom (l, a, x, ?lca)"
-        by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+      then have domain_x: "find_newest_on_walk_dom (l, a, x, ?lca)"
+        by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
       from is_lca_ufa_lca 1 False obtain pLcaY where 
         pLcaY: "path l ?lca pLcaY y" 
         by (metis \<open>ufa_invar l\<close> ufe_data_structure.select_convs(1))
-      then have domain_y: "find_newest_on_path_dom (l, a, y, ?lca)"
-        by (simp add: \<open>ufa_invar l\<close> find_newest_on_path_domain path_nodes_lt_length_l)
+      then have domain_y: "find_newest_on_walk_dom (l, a, y, ?lca)"
+        by (simp add: \<open>ufa_invar l\<close> find_newest_on_walk_domain path_nodes_lt_length_l)
       from find_newest_x_neq_None_or_find_newest_y_neq_None 1 False
       have not_both_None: "?newest_index_x \<noteq> None \<or> ?newest_index_y \<noteq> None" 
         by (metis ufe_data_structure.select_convs(1))
@@ -1805,9 +1828,9 @@ proof-
         with not_both_None False have "?newest_index_x \<noteq> None"
           by (metis less_eq_option_None_is_None)
         then have "x \<noteq> ?lca" 
-          using domain_x find_newest_on_path.psimps by fastforce
+          using domain_x find_newest_on_walk.psimps by fastforce
         then obtain k where k: "?newest_index_x = Some k \<and> k < length u"
-          using "1.prems" pLcaX find_newest_on_path_Some by blast
+          using "1.prems" pLcaX find_newest_on_walk_Some by blast
         then have index_valid: "k < length u"
           by auto
         from 1 have ax_valid: "ax < length (uf_list \<lparr>uf_list = l, unions = u, au = a\<rparr>)"
@@ -1836,9 +1859,9 @@ proof-
         with not_both_None False have "?newest_index_y \<noteq> None"
           by fastforce
         then have "y \<noteq> ?lca" 
-          using domain_y find_newest_on_path.psimps by fastforce
+          using domain_y find_newest_on_walk.psimps by fastforce
         then obtain k where k: "?newest_index_y = Some k \<and> k < length u"
-          using "1.prems" pLcaY find_newest_on_path_Some by blast
+          using "1.prems" pLcaY find_newest_on_walk_Some by blast
         then have index_valid: "k < length u"
           by auto
         from 1 have ay_valid: "ay < length (uf_list \<lparr>uf_list = l, unions = u, au = a\<rparr>)"

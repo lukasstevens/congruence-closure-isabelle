@@ -43,6 +43,7 @@ lemmas
   rep_of_idx[simp] = rep_of_idx[OF ufa_invar] and
   rep_of_idem[simp] = rep_of_idem[OF ufa_invar] and
   rep_of_iff = rep_of_iff[OF ufa_invar] and
+  rep_of_min = rep_of_min[OF ufa_invar] and
   rep_of_bound[simp, intro] = rep_of_bound[OF ufa_invar] and
   rep_of_induct = rep_of_induct[OF ufa_invar, case_names base step, consumes 1] and
   ufa_union_invar[simp, intro] = ufa_union_invar[OF ufa_invar] and
@@ -109,7 +110,7 @@ lemma awalk_from_rep_rep_of:
   shows "awalk_from_rep l (rep_of l y) = []"
 proof -
   from in_verts_ufa_tree_ofD(2)[OF assms] have "rep_of l y = rep_of l x" .
-  with rep_of_min[OF ufa_invar lt_length, folded this] show ?thesis
+  with rep_of_min[OF lt_length, folded this] show ?thesis
     by (metis awalk_from_rep.domintros awalk_from_rep.psimps)
 qed
 
@@ -272,6 +273,48 @@ next
     by (metis awalk_Cons_iff awalk_empty_ends two_in_arcs_contr)
 qed
 
+context
+  fixes a b
+  assumes a_b_lt_length: "a < length l" "b < length l"
+begin
+
+interpretation ufa_tree_union: ufa_tree "ufa_union l a b" x
+  using ufa_invar lt_length a_b_lt_length
+  by unfold_locales auto
+
+lemma in_verts_ufa_tree_of_union_if_in_verts[simp, intro]:
+  assumes "y \<in> verts (ufa_tree_of l x)"
+  shows "y \<in> verts (ufa_tree_of (ufa_union l a b) x)"
+  using assms a_b_lt_length lt_length ufa_union_aux
+  unfolding ufa_tree_of_def
+  by auto
+
+lemma in_arcs_ufa_tree_of_union_if_in_arcs[simp, intro]:
+  assumes "e \<in> arcs (ufa_tree_of l x)"
+  shows "e \<in> arcs (ufa_tree_of (ufa_union l a b) x)"
+  using assms lt_length a_b_lt_length rep_of_min
+  unfolding ufa_tree_of_def
+  by (auto simp: ufa_union_aux) (metis nth_list_update_neq)+
+
+lemma awalk_ufa_union_if_awalk:
+  assumes "awalk y p z"
+  shows "ufa_tree_union.awalk y p z"
+  using assms
+proof(induction p arbitrary: y)
+  case Nil
+  then show ?case
+    using in_verts_ufa_tree_of_union_if_in_verts
+    by (auto simp: awalk_Nil_iff ufa_tree_union.awalk_Nil_iff)
+next
+  case (Cons a p)
+  then show ?case
+    unfolding awalk_Cons_iff ufa_tree_union.awalk_Cons_iff
+    using in_arcs_ufa_tree_of_union_if_in_arcs
+    by auto
+qed
+
+end
+
 end
 
 
@@ -346,27 +389,28 @@ qed simp
 
 locale ufe_invars = ufa_invars l for l +
   fixes unions :: "(nat \<times> nat) list"
-  fixes au :: "nat option list"
+  fixes au :: "int list"
 
   assumes valid_unions: "valid_unions (length l) unions"
   assumes eq_ufa_unions:
     "l = ufa_unions [0..<length l] unions"
   assumes valid_au:
-    "\<And>i. Some i \<in> set au \<Longrightarrow> i < length unions"
+    "\<And>i. i \<in> set au \<Longrightarrow> i \<ge> 0 \<Longrightarrow> i < length unions"
   assumes length_au:
     "length au = length l"
   assumes distinct_au:
-    "distinct (filter (Not o Option.is_none) au)"
-  \<comment> \<open>We need an invariant to ensure that au is not None if l ! x \<noteq> x\<close>
+    "distinct au"
+  assumes nth_au_nonneg_if_not_rep:
+    "\<And>y. y < length l \<Longrightarrow> l ! y \<noteq> y \<Longrightarrow> au ! y \<ge> 0"
   assumes rep_of_before_au:
     "\<And>i j k.
-      \<lbrakk> Some i \<in> set au; unions ! i = (j, k)
+      \<lbrakk> i \<in> set au; i \<ge> 0; unions ! i = (j, k)
       ; before = ufa_unions [0..<length l] (take i unions) \<rbrakk>
       \<Longrightarrow> rep_of before j \<noteq> rep_of before k"
 begin
 
 lemma rep_of_after_au:
-  assumes "Some i \<in> set au" "unions ! i = (j, k)"
+  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   assumes "i' > i"
   assumes "after = ufa_unions [0..<length l] (take i' unions)"
   shows "rep_of after j = rep_of after k"
@@ -393,7 +437,7 @@ next
   case (Suc i'')
   then have "i'' = (i' - 1) - Suc i" "i < i' - 1"
     by simp_all
-  note IH = "Suc.hyps"(1)[OF this(1) Suc.prems(1,2) this(2) HOL.refl]
+  note IH = "Suc.hyps"(1)[OF this(1) Suc.prems(1,2,3) this(2) HOL.refl]
   then show ?case
   proof(cases "i' < Suc (length unions)")
     case False
@@ -402,7 +446,7 @@ next
     moreover from False have "take (i' - 1) unions = unions"
       by simp
     ultimately show ?thesis
-      using IH Suc.prems(4) by simp
+      using IH Suc.prems(5) by simp
   next
     case True
     with Suc have "i' - 1 < length unions" "Suc (i' - 1) = i'"
@@ -426,12 +470,12 @@ next
       Union_Find.ufa_union_aux[OF \<open>ufa_invar ?l'\<close> a_b_lt_length this(2)]
 
     from IH show ?thesis
-      unfolding Suc.prems(4) ufa_unions_eq rep_of_eq by metis
+      unfolding Suc.prems(5) ufa_unions_eq rep_of_eq by metis
   qed
 qed
 
 lemma rep_of_au:
-  assumes "Some i \<in> set au" "unions ! i = (j, k)"
+  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   shows "rep_of l j = rep_of l k"
 proof -
   note eq_ufa_unions
@@ -443,7 +487,7 @@ proof -
 qed
 
 lemma rep_of_before_au':
-  assumes "Some i \<in> set au" "unions ! i = (j, k)"
+  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   assumes "i' \<le> i"
   assumes "before = ufa_unions [0..<length l] (take i' unions)"
   shows "rep_of before j \<noteq> rep_of before k"
@@ -453,32 +497,38 @@ proof -
     "take i'' (take i unions) = take i' unions"
     by (metis min.orderE take_take)
   
-  note rep_of_before_au[OF assms(1,2) HOL.refl]
+  note rep_of_before_au[OF assms(1,2,3) HOL.refl]
   note rep_of_ufa_unions_take_neq_if_rep_of_ufa_unions_neq[OF _ _ _ _ this]
   note this[where ?i=i'', unfolded take_i''_i]
-  with assms(1,2,4) show ?thesis
+  with assms(1,2,3,5) show ?thesis
     using ufa_init_invar valid_au valid_unions
     by fastforce
 qed
+  
 
 lemma ufe_invars_union:
   assumes "x < length l" "y < length l"
   assumes "rep_of l x \<noteq> rep_of l y"
   defines "l' \<equiv> ufa_union l x y"
-  shows "ufe_invars l' (unions @ [(x, y)]) (au[rep_of l x := Some (length unions)])"
+  shows "ufe_invars l' (unions @ [(x, y)]) (au[rep_of l x := length unions])"
 proof -
   from distinct_au valid_au have distinct_au_upd:
-    "distinct (filter (Not o Option.is_none) (au[i := Some (length unions)]))" for i
+    "distinct (au[i := length unions])" for i
   proof(induction au arbitrary: i)
     case (Cons a au)
-    then have "distinct (filter (Not \<circ> Option.is_none) (au[i := Some (length unions)]))" for i
-      by (metis distinct.simps(2) filter.simps(2) list.set_intros(2))
+    then have "distinct (au[i := length unions])" for i
+      by simp
     with "Cons.prems" show ?case
-      by (cases a)
+      by (cases "a \<ge> 0")
         (auto simp: comp_def elim!: in_set_upd_cases split: nat.splits)
   qed simp
+  from nth_au_nonneg_if_not_rep length_au have nth_au_nonneg:
+    "au[rep_of l x := length unions] ! y \<ge> 0"
+    if "y < length l'" "l' ! y \<noteq> y" for y
+    using that unfolding l'_def
+    by (auto simp: nth_list_update')
   note axioms = ufe_invars_axioms[unfolded ufe_invars_def ufe_invars_axioms_def]
-  with assms distinct_au_upd show ?thesis
+  with assms distinct_au_upd nth_au_nonneg show ?thesis
     by (unfold_locales)
       (fastforce simp: less_Suc_eq elim!: in_set_upd_cases)+
 qed

@@ -61,10 +61,12 @@ Data structure for the union, find and explain operations:
 record ufe_data_structure =
   uf_list :: "nat list"
   unions :: "(nat * nat) list"
-  au :: "nat option list"
+  au :: "int list"
 
 text \<open>For the initialisation of the union find algorithm.\<close>
-abbreviation "initial_ufe n \<equiv> \<lparr> uf_list = [0..<n], unions = [], au = replicate n None \<rparr>"
+term upto
+abbreviation "initial_ufe n \<equiv> \<lparr> uf_list = [0..<n], unions = []
+                              , au = [-n .. -1] \<rparr>"
 
 paragraph \<open>Union\<close>
 text \<open>Extension of the union operations to the \<open>ufe_data_structure\<close>.\<close>
@@ -73,11 +75,12 @@ fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Right
     (if rep_of l x \<noteq> rep_of l y then
       \<lparr> uf_list = ufa_union l x y
       , unions = u @ [(x, y)]
-      , au = a[rep_of l x := Some (length u)]
+      , au = a[rep_of l x := length u]
       \<rparr>
     else \<lparr> uf_list = l, unions = u, au = a \<rparr>)"
 
 text \<open>Helper lemmata for \<open>ufe_union\<close>.\<close>
+(*
 lemma ufe_union1[simp]:
   "rep_of l x = rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
   by simp
@@ -111,11 +114,12 @@ lemma ufe_union2_au[simp]:
 lemma P_ufe_unionE[consumes 1, case_names rep_neq]:
   assumes "P l u a"
   assumes "\<And> x y. rep_of l x \<noteq> rep_of l y \<Longrightarrow> 
-          P (ufa_union l x y) (u @ [(x,y)]) (a[rep_of l x := Some (length u)])"
+          P (ufa_union l x y) (u @ [(x,y)]) (a[rep_of l x := length u])"
   shows "P (uf_list (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y)) 
            (unions (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y)) 
            (au (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y))"
   using assms by auto
+*)
 
 text \<open>For the application of a list of unions.\<close>
 fun apply_unions :: "(nat * nat) list \<Rightarrow> ufe_data_structure \<Rightarrow> ufe_data_structure" where
@@ -151,37 +155,68 @@ text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
 context
   fixes l :: "nat list"
-  fixes au :: "nat option list"
+  fixes au :: "int list"
 begin
 
-function (domintros) find_newest_on_path :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
-  "find_newest_on_path y x =
-    (if y = x then None else max (au ! x) (find_newest_on_path y (l ! x)))"
+function (domintros) find_newest_on_walk :: "nat \<Rightarrow> nat \<Rightarrow> int" where
+  "find_newest_on_walk y x =
+    (if y = x then -1 else max (au ! x) (find_newest_on_walk y (l ! x)))"
   by pat_completeness auto
 
-end
+context
+  fixes unions :: "(nat \<times> nat) list"
+begin
 
 text \<open>Explain operation, as described in the paper.\<close>
-function (domintros) explain :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where
-  "explain \<lparr> uf_list = l, unions = u, au = a \<rparr> x y = 
+function (domintros) explain :: "nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where
+  "explain x y = 
     (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
     else 
       let
         lca = ufa_lca l x y;
-        newest_index_x = find_newest_on_path l a x lca;
-        newest_index_y = find_newest_on_path l a y lca
+        newest_x = find_newest_on_walk lca x;
+        newest_y = find_newest_on_walk lca y
       in
-      if newest_index_x \<ge> newest_index_y then
-        let (ax, bx) = u ! the (newest_index_x) in
-          {(ax, bx)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x ax 
-            \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> bx y
-      else 
-        let (ay, by) = u ! the (newest_index_y) in
-          {(ay, by)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x by 
-            \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> ay y
+        if newest_x \<ge> newest_y then
+          let (ax, bx) = unions ! nat newest_x
+          in {(ax, bx)} \<union> explain x ax \<union> explain bx y
+        else
+          explain y x
   )"
   by pat_completeness auto
 
+lemma explain_induct[consumes 1, case_names eq neq_rep_of step sym]:
+  assumes "explain_dom (x, y)"
+  assumes "\<And>x y. x = y \<Longrightarrow> P x y"
+  assumes "\<And>x y. rep_of l x \<noteq> rep_of l y \<Longrightarrow> P x y"
+  assumes "\<And>x y lca newest_x newest_y ax bx.
+     \<lbrakk> explain_dom (x, y)
+     ; x \<noteq> y; rep_of l x = rep_of l y
+     ; lca = ufa_lca l x y
+     ; newest_x = find_newest_on_walk lca x
+     ; newest_y = find_newest_on_walk lca y
+     ; newest_x \<ge> newest_y
+     ; unions ! nat newest_x = (ax, bx)
+     ; P x ax; P bx y
+     \<rbrakk> \<Longrightarrow> P x y"
+  assumes "\<And>x y lca newest_x newest_y ax bx.
+     \<lbrakk> explain_dom (x, y)
+     ; x \<noteq> y; rep_of l x = rep_of l y
+     ; lca = ufa_lca l x y
+     ; newest_x = find_newest_on_walk lca x
+     ; newest_y = find_newest_on_walk lca y
+     ; newest_x < newest_y
+     ; P y x
+     \<rbrakk> \<Longrightarrow> P x y"
+  shows "P x y"
+  using assms explain.pinduct
+  by (metis linorder_le_less_linear surj_pair)
+
+end
+
+end
+
+(*
 text \<open>The \<open>explain.cases\<close> theorem is not very useful, we define a better one.
       It also defines variables which will be useful in the proofs. \<close>
 thm explain.cases
@@ -192,8 +227,8 @@ lemma explain_cases:
   | (case_x) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
     and "(ay, by) = u ! the (newest_index_y)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)" 
@@ -201,8 +236,8 @@ lemma explain_cases:
   | (case_y) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
     and "lca = ufa_lca l x y"
-    and "newest_index_x = find_newest_on_path l a x lca"
-    and "newest_index_y = find_newest_on_path l a y lca"
+    and "newest_index_x = find_newest_on_walk l a x lca"
+    and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
     and "(ay, by) = u ! the (newest_index_y)" 
     and "\<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)"
@@ -223,8 +258,8 @@ lemma explain_case_x_domain:
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, bx, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
   \<Longrightarrow> lca = ufa_lca l x y
-  \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-  \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+  \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+  \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
   \<Longrightarrow> newest_index_x \<ge> newest_index_y
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
@@ -237,8 +272,8 @@ lemma explain_case_y_domain:
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, ay, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
   \<Longrightarrow> lca = ufa_lca l x y
-  \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-  \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+  \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+  \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
   \<Longrightarrow> \<not>(newest_index_x \<ge> newest_index_y)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) "
@@ -256,8 +291,8 @@ lemma explain_case_x[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
   \<Longrightarrow> lca = ufa_lca l x y
-  \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-  \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+  \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+  \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
   \<Longrightarrow> newest_index_x \<ge> newest_index_y
   \<Longrightarrow> explain  \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = 
@@ -269,14 +304,15 @@ lemma explain_case_y[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
   \<Longrightarrow> lca = ufa_lca l x y
-  \<Longrightarrow> newest_index_x = find_newest_on_path l a x lca
-  \<Longrightarrow> newest_index_y = find_newest_on_path l a y lca
+  \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
+  \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
   \<Longrightarrow> \<not>(newest_index_x \<ge> newest_index_y)
   \<Longrightarrow> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = 
           {(ay, by)} \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> x by 
             \<union> explain \<lparr>uf_list = l, unions = u, au = a\<rparr> ay y"
   by (auto simp add: explain.psimps Let_def)  
+*)
 
 subsection \<open>Lemmas about \<open>rep_of\<close>\<close>
 
@@ -299,7 +335,7 @@ proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
   with True have "ufa_union (uf_list ufe) x y = uf_list ufe" 
     by (metis list_update_id)
   with True show ?thesis
-    by simp
+    by (cases ufe) simp
 next
   case False
   then show ?thesis
