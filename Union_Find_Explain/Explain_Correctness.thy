@@ -3,29 +3,94 @@ theory Explain_Correctness
   imports Helper_Functions
 begin
 
+lemma (in ufe_tree) neq_find_newest_on_path:
+  assumes "x \<noteq> y" "y \<in> verts (ufa_tree_of l x)"
+  assumes ulca_eq: "ulca = ufa_lca l x y"
+  shows "find_newest_on_walk l au ulca x \<noteq> find_newest_on_walk l au ulca y"
+proof -
+  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of l x)\<close>]
+  with ulca_eq obtain px py where
+    px: "awalk ulca px x" and py: "awalk ulca py y"
+    by (meson lca_reachableD reachable_awalk)
+  note find_newest_on_walk_dom = this[THEN find_newest_on_walk_domain]
+  note find_newest_on_walk_psimps = this[THEN find_newest_on_walk.psimps]
+  consider (lca_x) "x = ulca" | (lca_y) "y = ulca" | (neq_lca) "x \<noteq> ulca \<and> y \<noteq> ulca"
+    using \<open>x \<noteq> y\<close> by auto
+  then show ?thesis
+  proof cases
+    case lca_x
+    then have "find_newest_on_walk l au ulca x = -1"
+      using find_newest_on_walk_psimps(1) by auto
+    moreover from lca_x have "find_newest_on_walk l au ulca y \<ge> 0"
+      using \<open>x \<noteq> y\<close> newest_on_walk_in_bounds
+      using newest_on_walk_find_newest_on_walk[OF \<open>awalk ulca py y\<close>]
+      by blast
+    ultimately show ?thesis
+      by simp
+  next
+    case lca_y
+    then have "find_newest_on_walk l au ulca y = -1"
+      using find_newest_on_walk_psimps(2) by auto
+    moreover from lca_y have "find_newest_on_walk l au ulca x \<ge> 0"
+      using \<open>x \<noteq> y\<close> newest_on_walk_in_bounds
+      using newest_on_walk_find_newest_on_walk[OF \<open>awalk ulca px x\<close>]
+      by blast
+    ultimately show ?thesis
+      by simp
+  next
+    case neq_lca
+    moreover from neq_lca px py obtain ix iy where
+      ix: "ix \<in> set (tl (awalk_verts ulca px))" "find_newest_on_walk l au ulca x = au ! ix" and
+      iy: "iy \<in> set (tl (awalk_verts ulca py))" "find_newest_on_walk l au ulca y = au ! iy"
+      by (metis newest_on_walkE newest_on_walk_find_newest_on_walk) 
+    moreover note ps[unfolded ulca_eq] = px py
+    note disjoint_tl_awalk_verts_if_awalk_lca[OF lca_ulca \<open>x \<noteq> y\<close> this]
+    with ix iy ulca_eq have "ix \<noteq> iy"
+      by blast
+    moreover from px py ix iy have
+      "ix \<in> verts (ufa_tree_of l x)" "iy \<in> verts (ufa_tree_of l x)"
+      by (meson awalk_decomp awalk_last_in_verts in_set_tlD)+
+    then have "ix < length au" "iy < length au"
+      using in_verts_ufa_tree_ofD(1) length_au by simp_all
+    ultimately show ?thesis
+      using distinct_au[unfolded distinct_conv_nth] by simp
+  qed
+qed
+
 lemma (in ufe_invars) explain_dom_symmetric:
-  assumes "explain_dom l au unions (y, z)"
-  assumes "y < length l" "z < length l"
-  shows "explain_dom l au unions (z, y)"
+  assumes "explain_dom l au unions (x, y)"
+  assumes "x < length l" "y < length l"
+  shows "explain_dom l au unions (y, x)"
   using assms
-proof(induction rule: explain_induct)
-  case (eq x y)
-  then show ?case
-    using explain.domintros by blast
-next
-  case (neq_rep_of x y)
-  then show ?case
-    using explain.domintros by fastforce
-next
-  case (step x y lca newest_x newest_y ax bx)
+proof(induction rule: explain_pinduct)
+  case (newest_x x y lca newest_x newest_y ax bx)
+  then interpret ufe_tree l unions au x
+    by (unfold_locales) blast
+  from newest_x neq_find_newest_on_path have "newest_x \<noteq> newest_y"
+    using in_vertsI by metis
+  from newest_x.hyps have "explain_dom l au unions (x, ax)" "explain_dom l au unions (bx, y)"
+     apply(induction rule: explain_pinduct)
+    apply(auto) sledgehammer
+    sorry
   then show ?case
     
     sorry
 next
-  case sym
-  then show ?case sorry
-qed
+  case (sym x y lca newest_x newest_y)
+  moreover obtain ay "by" where "unions ! nat newest_y = (ay, by)"
+    by force
+  moreover from sym have "newest_y \<ge> newest_x"
+    by simp
+  ultimately have "explain_dom l au unions (y, ay) \<and> explain_dom l au unions (by, x)"
 
+
+  from explain_step_domintro[OF _ _ _ sym.hyps(6,5) this] show ?case
+    thm explain_sym_domintro
+    sorry
+qed simp_all
+
+
+(*
 subsection \<open>\<open>explain\<close> lemmas\<close>
 
 paragraph \<open>A few lemmas about intermediate results of explain\<close>
@@ -1963,5 +2028,5 @@ next
     with a b c show ?thesis by auto
   qed
 qed
-
+*)
 end

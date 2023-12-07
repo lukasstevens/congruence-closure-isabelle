@@ -185,6 +185,7 @@ proof
   qed
 qed
 
+
 lemma eq_awalk_from_rep_if_awalk_rep_of:
   assumes "y \<in> verts (ufa_tree_of l x)"
   assumes "awalk (rep_of l y) p y"
@@ -272,6 +273,46 @@ next
   show "awlast z (butlast p) = l ! y"
     by (metis awalk_Cons_iff awalk_empty_ends two_in_arcs_contr)
 qed
+
+lemma awalk_singletonD:
+  assumes "awalk y [a] z"
+  shows "y = l ! z" "a = (l ! z, z)"
+proof -
+  from assms have "l ! z \<noteq> z"
+    using awalk_idx_sameD(2) by blast
+  with assms awalk_idx have "awalk (l ! z) [(l ! z, z)] z"
+    by auto
+  with assms unique_awalk_All show "y = l ! z" "a = (l ! z, z)"
+    by (metis awalk_Cons_iff awalk_empty_ends two_in_arcs_contr)+
+qed
+
+lemma not_rep_if_in_tl_awalk_verts:
+  assumes "awalk y p z"
+  assumes "v \<in> set (tl (awalk_verts y p))"
+  shows "l ! v \<noteq> v"
+  using assms
+proof(induction p arbitrary: z v rule: rev_induct)
+  case (snoc a as)   
+  then show ?case
+  proof(cases "v \<in> set (tl (awalk_verts y as))")
+    case True
+    from \<open>awalk y (as @ [a]) z\<close> have "awalk y as (l ! awlast y (as @ [a]))"
+      using awlast_butlast_eq_idx_if_awalk
+      by (metis awalkE awalk_append_iff snoc_eq_iff_butlast)
+    from snoc.IH[OF this True] show ?thesis .
+  next
+    case False
+    with snoc.prems have "awalk (awlast y as) [a] z"
+      by simp
+    moreover from snoc.prems False have "v = head (ufa_tree_of l x) a"
+      using awalk_verts_append[OF \<open>awalk y (as @ [a]) z\<close>]
+      by (cases a) auto
+    with snoc.prems False have "z = v"
+      by auto
+    ultimately show ?thesis
+      using awalk_idx_sameD(2) by blast
+  qed
+qed simp
 
 context
   fixes a b
@@ -545,6 +586,54 @@ sublocale ufa_tree l x
 
 definition "newest_on_walk newest y p z \<equiv>
   awalk y p z \<and> newest = (MAX i \<in> set (tl (awalk_verts y p)). au ! i)"
+
+lemma newest_on_walk_awalkD[simp]:
+  assumes "newest_on_walk newest y p z"
+  shows "awalk y p z"
+  using assms unfolding newest_on_walk_def by simp
+
+lemma newest_on_walkE:
+  assumes "newest_on_walk newest y p z"
+  assumes "y \<noteq> z"
+  obtains i where
+    "awalk y p z" "i \<in> set (tl (awalk_verts y p))"
+    "newest = au ! i" "\<forall>i' \<in> set (tl (awalk_verts y p)). au ! i' \<le> au ! i"
+proof -
+  from assms have "set (tl (awalk_verts y p)) \<noteq> {}"
+    unfolding newest_on_walk_def
+    by (cases p) auto
+  moreover have "finite (set (tl (awalk_verts y p)))"
+    by simp
+  ultimately obtain i where i: "i \<in> set (tl (awalk_verts y p))" "newest = au ! i"
+    using assms unfolding newest_on_walk_def
+    by (meson Max_in finite_imageI imageE image_is_empty)
+  with assms have "\<forall>i' \<in> set (tl (awalk_verts y p)). au ! i' \<le> au ! i"
+    unfolding newest_on_walk_def by force
+  with i that show ?thesis
+    using assms unfolding newest_on_walk_def by blast
+qed
+
+lemma newest_on_walk_in_bounds:
+  assumes "newest_on_walk newest y p z"
+  assumes "y \<noteq> z"
+  shows "0 \<le> newest" "newest < length unions"
+proof -
+  from newest_on_walkE[OF assms] obtain i where
+    "awalk y p z" and i: "i \<in> set (tl (awalk_verts y p))" "newest = au ! i"
+    by blast
+  then have "i \<in> verts (ufa_tree_of l x)"
+    by (meson awalk_decomp awalk_hd_in_verts in_set_tlD)
+  with length_au have "i < length au"
+    using in_verts_ufa_tree_ofD(1) by simp
+  with nth_au_nonneg_if_not_rep length_au \<open>awalk y p z\<close> i
+  show "0 \<le> newest"
+    by (metis not_rep_if_in_tl_awalk_verts)
+
+  from i \<open>i < length au\<close> have "newest \<in> set au"
+    by auto
+  with valid_au \<open>0 \<le> newest\<close> show "newest < length unions"
+    by (metis bot_nat_0.extremum int_nat_eq nat_less_iff)
+qed
 
 end
 

@@ -181,36 +181,110 @@ function (domintros) explain :: "nat \<Rightarrow> nat \<Rightarrow> (nat * nat)
           let (ax, bx) = unions ! nat newest_x
           in {(ax, bx)} \<union> explain x ax \<union> explain bx y
         else
-          explain y x
-  )"
+          let (ay, by) = unions ! nat newest_y
+          in {(ay, by)} \<union> explain x by \<union> explain ay y)"
   by pat_completeness auto
 
-lemma explain_induct[consumes 1, case_names eq neq_rep_of step sym]:
+lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
   assumes "explain_dom (x, y)"
   assumes "\<And>x y. x = y \<Longrightarrow> P x y"
   assumes "\<And>x y. rep_of l x \<noteq> rep_of l y \<Longrightarrow> P x y"
-  assumes "\<And>x y lca newest_x newest_y ax bx.
+  assumes "\<And>x y ulca newest_x newest_y ax bx.
      \<lbrakk> explain_dom (x, y)
      ; x \<noteq> y; rep_of l x = rep_of l y
-     ; lca = ufa_lca l x y
-     ; newest_x = find_newest_on_walk lca x
-     ; newest_y = find_newest_on_walk lca y
+     ; ulca = ufa_lca l x y
+     ; newest_x = find_newest_on_walk ulca x
+     ; newest_y = find_newest_on_walk ulca y
      ; newest_x \<ge> newest_y
      ; unions ! nat newest_x = (ax, bx)
      ; P x ax; P bx y
      \<rbrakk> \<Longrightarrow> P x y"
-  assumes "\<And>x y lca newest_x newest_y ax bx.
+  assumes "\<And>x y ulca newest_x newest_y ay by.
      \<lbrakk> explain_dom (x, y)
      ; x \<noteq> y; rep_of l x = rep_of l y
-     ; lca = ufa_lca l x y
-     ; newest_x = find_newest_on_walk lca x
-     ; newest_y = find_newest_on_walk lca y
+     ; ulca = ufa_lca l x y
+     ; newest_x = find_newest_on_walk ulca x
+     ; newest_y = find_newest_on_walk ulca y
      ; newest_x < newest_y
-     ; P y x
+     ; unions ! nat newest_y = (ay, by)
+     ; P x by; P ay y
      \<rbrakk> \<Longrightarrow> P x y"
   shows "P x y"
-  using assms explain.pinduct
+  using explain.pinduct[OF assms(1)] assms(2-)
   by (metis linorder_le_less_linear surj_pair)
+
+lemma explain_base_domintros[simp, intro]:
+  shows "x = y \<Longrightarrow> explain_dom (x, y)"
+    and "rep_of l x \<noteq> rep_of l y \<Longrightarrow> explain_dom (x, y)"
+  using explain.domintros[where ?x=x and ?y=y]
+  by simp_all
+
+lemma explain_newest_x_domintro:
+  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "ulca = ufa_lca l x y"
+  assumes "newest_x = find_newest_on_walk ulca x"
+  assumes "newest_y = find_newest_on_walk ulca y"
+  assumes "newest_x \<ge> newest_y"
+  assumes "unions ! nat newest_x = (ax, bx)"
+  assumes "explain_dom (x, ax)" "explain_dom (bx, y)"
+  shows "explain_dom (x, y)"
+  apply(rule explain.domintros)
+  using assms by simp_all
+
+lemma explain_newest_y_domintro:
+  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "ulca = ufa_lca l x y"
+  assumes "newest_x = find_newest_on_walk ulca x"
+  assumes "newest_y = find_newest_on_walk ulca y"
+  assumes "newest_x < newest_y"
+  assumes "unions ! nat newest_y = (ay, by)"
+  assumes "explain_dom (x, by)" "explain_dom (ay, y)"
+  shows "explain_dom (x, y)"
+  apply(rule explain.domintros)
+  using assms by simp_all
+
+lemma explain_newest_xD:
+  assumes "explain_dom (x, y)"
+  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "ulca = ufa_lca l x y"
+  assumes "newest_x = find_newest_on_walk ulca x"
+  assumes "newest_y = find_newest_on_walk ulca y"
+  assumes "newest_x \<ge> newest_y"
+  assumes "unions ! nat newest_x = (ax, bx)"
+  shows "explain_dom (x, ax)"
+proof -
+  from assms have "explain_dom (x, ax) \<and> explain_dom (bx, y)"
+  proof(induction arbitrary: ulca newest_x newest_y ax bx rule: explain_pinduct)
+    case (newest_x x y ulca' newest_x' newest_y' ax' bx')
+    show ?case
+      apply(rule explain_newest_x_domintro)
+      sorry
+  qed simp_all
+  
+(*
+lemma explain_dom_cases:
+  assumes "explain_dom (x, y)"
+  obtains
+    (eq) "x = y"
+  | (neq_rep_of) "rep_of l x \<noteq> rep_of l y"
+  | (step) ulca newest_x newest_y ax bx where
+      "x \<noteq> y" "rep_of l x = rep_of l y"
+      "ulca = ufa_lca l x y"
+      "newest_x = find_newest_on_walk ulca x"
+      "newest_y = find_newest_on_walk ulca y"
+      "newest_x \<ge> newest_y"
+      "unions ! nat newest_x = (ax, bx)"
+      "explain_dom (x, ax)" "explain_dom (bx, y)"
+  | (sym) ulca newest_x newest_y ay "by" where
+      "x \<noteq> y" "rep_of l x = rep_of l y"
+      "ulca = ufa_lca l x y"
+      "newest_x = find_newest_on_walk ulca x"
+      "newest_y = find_newest_on_walk ulca y"
+      "newest_x < newest_y"
+      "unions ! nat newest_y = (ay, by)"
+      "explain_dom (x, by)" "explain_dom (ay, y)"
+  using explain_pinduct[OF assms]  *)
+
 
 end
 

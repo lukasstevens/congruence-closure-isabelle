@@ -57,13 +57,13 @@ proof -
         by metis+
       with step have "find_newest_on_walk_dom l (y, l ! i)"
         by blast
-      then show ?thesis
+      then show ?thesis       
         using find_newest_on_walk.domintros by blast
     qed
   qed
 qed
 
-theorem (in ufe_tree) find_newest_on_walk_correct:
+theorem (in ufe_tree) newest_on_walk_find_newest_on_walk:
   assumes "awalk y p z"
       and "y \<noteq> z"
     shows "newest_on_walk (find_newest_on_walk l au y z) y p z"
