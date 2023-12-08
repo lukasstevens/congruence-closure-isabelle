@@ -389,6 +389,12 @@ lemma valid_unions_nthD[simp, dest]:
   using assms unfolding valid_unions_def
   using nth_mem by fastforce+
 
+lemma valid_unions_nth_eq_pairD:
+  assumes "valid_unions (length l) us" "i < length us"
+  assumes "us ! i = (a, b)"
+  shows "a < length l" "b < length l"
+  using assms valid_unions_nthD by force+
+
 lemma ufa_invar_ufa_unions[simp, intro]:
   assumes "ufa_invar l" "valid_unions (length l) us"
   shows "ufa_invar (ufa_unions l us)"
@@ -634,6 +640,16 @@ proof -
   with valid_au \<open>0 \<le> newest\<close> show "newest < length unions"
     by (metis bot_nat_0.extremum int_nat_eq nat_less_iff)
 qed
+
+lemma newest_on_walk_valid_union:
+  assumes "newest_on_walk newest y p z"
+  assumes "y \<noteq> z"
+  assumes "unions ! nat newest = (a, b)"
+  shows "a < length l" "b < length l"
+  using newest_on_walk_in_bounds[OF assms(1,2)]
+  using valid_unions_nthD[OF valid_unions]
+  using assms(3)
+  by (metis fst_conv snd_conv nat_less_iff)+
 
 end
 

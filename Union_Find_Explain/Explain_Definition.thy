@@ -243,24 +243,30 @@ lemma explain_newest_y_domintro:
   apply(rule explain.domintros)
   using assms by simp_all
 
-lemma explain_newest_xD:
+lemma explain_dom_newest_xD:
   assumes "explain_dom (x, y)"
   assumes "x \<noteq> y" "rep_of l x = rep_of l y"
   assumes "ulca = ufa_lca l x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
-  assumes "newest_x \<ge> newest_y"
   assumes "unions ! nat newest_x = (ax, bx)"
-  shows "explain_dom (x, ax)"
-proof -
-  from assms have "explain_dom (x, ax) \<and> explain_dom (bx, y)"
-  proof(induction arbitrary: ulca newest_x newest_y ax bx rule: explain_pinduct)
-    case (newest_x x y ulca' newest_x' newest_y' ax' bx')
-    show ?case
-      apply(rule explain_newest_x_domintro)
-      sorry
-  qed simp_all
-  
+  assumes "newest_x \<ge> newest_y"
+  shows "explain_dom (x, ax)" "explain_dom (bx, y)"
+  using assms
+  by (auto intro: accp_downward[OF assms(1)] simp: explain_rel.intros)
+
+lemma explain_dom_newest_yD:
+  assumes "explain_dom (x, y)"
+  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "ulca = ufa_lca l x y"
+  assumes "newest_x = find_newest_on_walk ulca x"
+  assumes "newest_y = find_newest_on_walk ulca y"
+  assumes "unions ! nat newest_y = (ay, by)"
+  assumes "newest_x < newest_y"
+  shows "explain_dom (x, by)" "explain_dom (ay, y)"
+  using assms
+  by (auto intro: accp_downward[OF assms(1)] simp: explain_rel.intros)
+
 (*
 lemma explain_dom_cases:
   assumes "explain_dom (x, y)"
