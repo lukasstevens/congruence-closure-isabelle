@@ -38,17 +38,17 @@ abbreviation (in union_find_explain_adt) uf_explain_1 ("uf'_explain\<index>") wh
 
 locale union_find = union_find_adt +
   fixes uf_adt (structure)
-  assumes part_equiv_\<alpha>[simp, intro]:
+  assumes part_equiv_\<alpha>:
         "uf_invar uf \<Longrightarrow> part_equiv (uf_\<alpha> uf)"
-      and invar_init[simp, intro]: "uf_invar uf_init"
+      and invar_init: "uf_invar uf_init"
       and \<alpha>_init: "uf_\<alpha> uf_init \<subseteq> Id" 
-      and \<alpha>_rep_of[simp]:
+      and \<alpha>_rep_of:
         "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
         \<Longrightarrow> uf_rep_of uf x = uf_rep_of uf y \<longleftrightarrow> (x, y) \<in> uf_\<alpha> uf"
-      and invar_union[simp, intro]:
+      and invar_union:
         "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
         \<Longrightarrow> uf_invar (uf_union uf x y)"
-      and \<alpha>_union[simp]:
+      and \<alpha>_union:
         "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
         \<Longrightarrow> uf_\<alpha> (uf_union uf x y) = per_union (uf_\<alpha> uf) x y"
 
@@ -57,21 +57,21 @@ locale union_find_parent = union_find_parent_adt + union_find +
     "uf_invar uf \<Longrightarrow> wf {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf)}"
   assumes parent_of_in_\<alpha>:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk> \<Longrightarrow> (uf_parent_of uf x, x) \<in> uf_\<alpha> uf"
-  assumes parent_of_refl_iff_rep_of_refl[simp]:
+  assumes parent_of_refl_iff_rep_of_refl:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk>
     \<Longrightarrow> uf_parent_of uf x = x \<longleftrightarrow> uf_rep_of uf x = x"
-  assumes rep_of_parent_of[simp]:
+  assumes rep_of_parent_of:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk>
     \<Longrightarrow> uf_rep_of uf (uf_parent_of uf x) = uf_rep_of uf x"
 begin
 
-lemma uf_parent_in_Field_\<alpha>I[simp, intro]:
+lemma parent_of_in_Field_\<alpha>I:
   "uf_invar uf \<Longrightarrow> x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_parent_of uf x \<in> Field (uf_\<alpha> uf)"
   using parent_of_in_\<alpha> by (meson FieldI1)
 
 lemma parent_of_in_\<alpha>_sym:
   "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk> \<Longrightarrow> (x, uf_parent_of uf x) \<in> uf_\<alpha> uf"
-  using part_equiv_\<alpha> parent_of_in_\<alpha> part_equiv_sym by fast
+  using part_equiv_\<alpha> parent_of_in_\<alpha> part_equiv_sym by metis
 
 end
 
