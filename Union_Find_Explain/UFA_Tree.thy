@@ -40,22 +40,8 @@ end
 
 end
 
-locale union_find_parent_invar = union_find_parent +
-  fixes uf
-  assumes invar_uf: "uf_invar uf"
+context union_find_parent_invar
 begin
-
-lemmas
-  part_equiv_\<alpha>[simp, intro] = part_equiv_\<alpha>[OF invar_uf] and
-  \<alpha>_rep_of = \<alpha>_rep_of[OF invar_uf] and
-  invar_union[simp, intro] = invar_union[OF invar_uf] and
-  \<alpha>_union[simp] = \<alpha>_union[OF invar_uf] and
-  wf_parent_of = wf_parent_of[OF invar_uf] and
-  parent_of_in_\<alpha>[intro] = parent_of_in_\<alpha>[OF invar_uf] and
-  parent_of_refl_iff_rep_of_refl = parent_of_refl_iff_rep_of_refl[OF invar_uf] and
-  rep_of_parent_of[simp] = rep_of_parent_of[OF invar_uf] and
-  parent_of_in_Field_\<alpha>I[intro] = parent_of_in_Field_\<alpha>I[OF invar_uf] and
-  parent_of_in_\<alpha>_sym = parent_of_in_\<alpha>_sym[OF invar_uf]
 
 lemma verts_ufa_tree_of:
   "verts (ufa_tree_of uf x) = uf_\<alpha> uf `` {x}"
@@ -413,30 +399,6 @@ proof(induction p arbitrary: z v rule: rev_induct)
   qed
 qed simp
 
-lemma (in -) Field_per_union[simp]: "Field (per_union R a b) = Field R"
-  unfolding per_union_def Field_def
-  by auto
-
-lemma (in -) finite_eq_class_per_union_if_finite_eq_class:
-  assumes "part_equiv R"
-  assumes "\<And>a. finite (R `` {a})"
-  shows "finite (per_union R b c `` {a})"
-proof -
-  from \<open>part_equiv R\<close>[THEN part_equiv_sym] have "{d. (d, c) \<in> R} = (R `` {c})" for c
-    unfolding Image_singleton by blast
-  with assms have "finite {d. (d, c) \<in> R}" for c
-    by simp
-  then have "finite {d. (a, b) \<in> R \<and> (d, c) \<in> R}" "finite {d. (d, b) \<in> R \<and> (a, c) \<in> R}"
-    using finite_subset by simp_all
-  with assms show ?thesis
-    unfolding per_union_def
-    by (auto simp: Image_singleton)
-qed
-
-lemma (in -) in_per_union_if_in_rel[simp]:
-  "(x, y) \<in> R \<Longrightarrow> (x, y) \<in> per_union R a b"
-  unfolding per_union_def by auto
-
 context
   fixes a b
   assumes a_b_in_Field_\<alpha>: "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
@@ -484,89 +446,123 @@ end
 
 end
 
+context union_find
+begin
 
-abbreviation "ufa_unions \<equiv> foldl (\<lambda>l (x, y). uf_union uf x y)"
+abbreviation "uf_unions \<equiv> foldl (\<lambda>uf (x, y). uf_union uf x y)"
 
-definition "valid_unions l us \<equiv> \<forall>(x, y) \<in> set us. x < l \<and> y < l"
+definition "valid_unions uf us \<equiv> \<forall>(x, y) \<in> set us. x \<in> Field (uf_\<alpha> uf) \<and> y \<in> Field (uf_\<alpha> uf)"
 
 lemma valid_unions_Nil[simp]:
-  "valid_unions l []"
+  "valid_unions uf []"
   unfolding valid_unions_def by simp
 
 lemma valid_unions_Cons[simp]:
-  "valid_unions l (x # xs) \<longleftrightarrow> fst x < l \<and> snd x < l \<and> valid_unions l xs"
+  "valid_unions uf (x # xs) \<longleftrightarrow>
+  fst x \<in> Field (uf_\<alpha> uf) \<and> snd x \<in> Field (uf_\<alpha> uf) \<and> valid_unions uf xs"
   unfolding valid_unions_def by (simp split: prod.splits)
 
 lemma valid_unions_append[simp]:
-  "valid_unions l (xs @ ys) \<longleftrightarrow> valid_unions l xs \<and> valid_unions l ys"
+  "valid_unions uf (xs @ ys) \<longleftrightarrow> valid_unions uf xs \<and> valid_unions uf ys"
   unfolding valid_unions_def by auto
 
-lemma length_ufa_unions[simp]:
-  "length (ufa_unions l as) = length l"
-  by (induction as rule: rev_induct) (simp_all split: prod.splits)
-
 lemma valid_unions_takeI[simp, intro]:
-  "valid_unions l us \<Longrightarrow> valid_unions l (take i us)"
+  "valid_unions uf us \<Longrightarrow> valid_unions uf (take i us)"
   unfolding valid_unions_def using in_set_takeD by fast
 
+end
+
+context union_find_invar
+begin
+
+lemma Field_\<alpha>_unions[simp]:
+  assumes "valid_unions uf us"
+  shows "Field (uf_\<alpha> (uf_unions uf us)) = Field (uf_\<alpha> uf)"
+  using assms invar_uf
+proof(induction us arbitrary: uf)
+  case (Cons u us)
+  then interpret union_find_invar where uf = uf
+    by unfold_locales
+  from Cons show ?case
+    by (cases u) (auto simp: valid_unions_def)
+qed simp
+
+lemma valid_union_union[simp, intro]:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "valid_unions uf us"
+  shows "valid_unions (uf_union uf x y) us"
+  using assms
+  by (induction us rule: rev_induct) auto
+
 lemma valid_unions_nthD[simp, dest]:
-  assumes "valid_unions (length l) us" "i < length us"
-  shows "fst (us ! i) < length l" "snd (us ! i) < length l"
+  assumes "valid_unions uf us" "i < length us"
+  shows "fst (us ! i) \<in> Field (uf_\<alpha> uf)" "snd (us ! i) \<in> Field (uf_\<alpha> uf)"
   using assms unfolding valid_unions_def
   using nth_mem by fastforce+
 
 lemma valid_unions_nth_eq_pairD:
-  assumes "valid_unions (length l) us" "i < length us"
+  assumes "valid_unions uf us" "i < length us"
   assumes "us ! i = (a, b)"
-  shows "a < length l" "b < length l"
+  shows "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
   using assms valid_unions_nthD by force+
 
-lemma ufa_invar_ufa_unions[simp, intro]:
-  assumes "ufa_invar l" "valid_unions (length l) us"
-  shows "ufa_invar (ufa_unions l us)"
-  using assms
-proof(induction us arbitrary: l)
+lemma uf_invar_uf_unions[simp, intro]:
+  assumes "valid_unions uf us"
+  shows "uf_invar (uf_unions uf us)"
+  using assms invar_uf
+proof(induction us arbitrary: uf)
   case (Cons u us)
-  then show ?case
-    by (cases u) (auto intro: Cons.IH simp: ufa_union_invar)
+  then interpret union_find_invar where uf = uf
+    by unfold_locales
+  from Cons show ?case
+    by (cases u) (auto intro!: Cons.IH)
 qed simp
 
 lemma rep_of_neq_if_rep_of_ufa_union_neq:
-  assumes "ufa_invar l"
-  assumes "x < length l" "y < length l" "j < length l" "k < length l"
-  assumes "rep_of (uf_union uf x y) j \<noteq> rep_of (uf_union uf x y) k"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_union uf x y) j \<noteq> uf_rep_of (uf_union uf x y) k"
   shows "uf_rep_of uf j \<noteq> uf_rep_of uf k"
-  by (metis assms ufa_union_aux)
+  using assms
+proof -
+  from assms interpret uf_union: union_find_invar where uf = "uf_union uf x y"
+    by unfold_locales auto
+  from assms show ?thesis
+    by (auto simp: \<alpha>_rep_of uf_union.\<alpha>_rep_of)
+qed  
 
-lemma rep_of_ufa_unions_take_neq_if_rep_of_ufa_unions_neq:
-  assumes "ufa_invar l" "valid_unions (length l) us"
-  assumes "j < length l" "k < length l"
-  assumes "rep_of (ufa_unions l us) j \<noteq> rep_of (ufa_unions l us) k"
-  shows "rep_of (ufa_unions l (take i us)) j \<noteq> rep_of (ufa_unions l (take i us)) k"
+lemma rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq:
+  assumes "valid_unions uf us"
+  assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
+  shows "uf_rep_of (uf_unions uf (take i us)) j \<noteq> uf_rep_of (uf_unions uf (take i us)) k"
   using assms
 proof(induction us arbitrary: i rule: rev_induct)
   case (snoc u us)
-  from snoc have "ufa_invar (ufa_unions l us)"
-    by auto
+  from snoc interpret uf_unions: union_find_invar where uf = "uf_unions uf us"
+    by unfold_locales auto
   from snoc have rep_of_ufa_union:
-    "rep_of (ufa_union (ufa_unions l us) (fst u) (snd u)) j
-    \<noteq> rep_of (ufa_union (ufa_unions l us) (fst u) (snd u)) k"
+    "uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) j
+    \<noteq> uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) k"
     by (cases u) simp
-  note rep_of_neq_if_rep_of_ufa_union_neq[OF \<open>ufa_invar (ufa_unions l us)\<close> _ _ _  _ this]
-  with snoc.prems have "rep_of (ufa_unions l us) j \<noteq> rep_of (ufa_unions l us) k"
-    by (simp split: prod.splits)
-  note snoc.IH[OF snoc.prems(1) _ snoc.prems(3,4) this]
-  with snoc.prems(2) rep_of_ufa_union show ?case
+  note uf_unions.rep_of_neq_if_rep_of_ufa_union_neq[OF _ _ _  _ this]
+  with snoc.prems have "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
+    by auto
+  note snoc.IH[OF _ snoc.prems(2,3) this]
+  with snoc.prems(1) rep_of_ufa_union show ?case
     by (cases "i \<le> length us") (auto split: prod.splits)
 qed simp
 
-locale ufe_invars = ufa_invars l for l +
-  fixes unions :: "(nat \<times> nat) list"
-  fixes au :: "int list"
+end
 
-  assumes valid_unions: "valid_unions (length l) unions"
-  assumes eq_ufa_unions:
-    "l = ufa_unions [0..<length l] unions"
+locale union_find_explain_invars =
+  union_find_parent_invar where uf = uf for uf +
+  fixes unions
+  fixes au
+
+  assumes valid_unions: "valid_unions uf unions"
+  assumes eq_uf_unions:
+    "uf = uf_unions uf_init unions"
   assumes valid_au:
     "\<And>i. i \<in> set au \<Longrightarrow> i \<ge> 0 \<Longrightarrow> i < length unions"
   assumes length_au:
@@ -578,15 +574,15 @@ locale ufe_invars = ufa_invars l for l +
   assumes rep_of_before_au:
     "\<And>i j k.
       \<lbrakk> i \<in> set au; i \<ge> 0; unions ! i = (j, k)
-      ; before = ufa_unions [0..<length l] (take i unions) \<rbrakk>
-      \<Longrightarrow> rep_of before j \<noteq> rep_of before k"
+      ; before = uf_unions uf_init (take i unions) \<rbrakk>
+      \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k"
 begin
 
 lemma rep_of_after_au:
   assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   assumes "i' > i"
-  assumes "after = ufa_unions [0..<length l] (take i' unions)"
-  shows "rep_of after j = rep_of after k"
+  assumes "after = uf_unions uf_init (take i' unions)"
+  shows "uf_rep_of after j = uf_rep_of after k"
   using assms
 proof(induction "i' - Suc i" arbitrary: i' after)
   case 0
@@ -597,10 +593,10 @@ proof(induction "i' - Suc i" arbitrary: i' after)
     by (metis diff_Suc_1 take_Suc_conv_app_nth)
 
   from assms valid_unions valid_au have j_k_lt_length:
-    "j < length (ufa_unions [0..<length l] (take (i' - 1) unions))"
-    "k < length (ufa_unions [0..<length l] (take (i' - 1) unions))"
+    "j < length (uf_unions uf_init (take (i' - 1) unions))"
+    "k < length (uf_unions uf_init (take (i' - 1) unions))"
     by force+
-  from ufa_init_invar have "ufa_invar (ufa_unions [0..<length l] (take (i' - 1) unions))"
+  from ufa_init_invar have "uf_invar (uf_unions uf_init (take (i' - 1) unions))"
     using valid_unions by fastforce
   note Union_Find.ufa_union_aux[OF this j_k_lt_length]
   note ufa_union = this[OF j_k_lt_length(1)] this[OF j_k_lt_length(2)]
@@ -625,13 +621,13 @@ next
     with Suc have "i' - 1 < length unions" "Suc (i' - 1) = i'"
       by linarith+
     note take_Suc_conv_app_nth[OF this(1), unfolded this(2)]
-    then have ufa_unions_eq: "ufa_unions [0..<length l] (take i' unions) =
-      ufa_union (ufa_unions [0..<length l] (take (i' - 1) unions))
-        (fst (unions ! (i' - 1))) (snd (unions ! (i' - 1)))" (is "_ = ufa_union ?l' ?a ?b")
+    then have uf_unions_eq: "uf_unions uf_init (take i' unions) =
+      uf_union (uf_unions uf_init (take (i' - 1) unions))
+        (fst (unions ! (i' - 1))) (snd (unions ! (i' - 1)))" (is "_ = uf_union ?l' ?a ?b")
       by (simp split: prod.split)
 
-    have "ufa_invar ?l'"
-      using ufa_init_invar ufa_invar_ufa_unions valid_unions by force
+    have "uf_invar ?l'"
+      using ufa_init_invar uf_invar_uf_unions valid_unions by force
     from valid_unions have "valid_unions (length ?l') unions"
       by simp
     then have a_b_in_Field_\<alpha>: "?a < length ?l'" "?b < length ?l'"
@@ -639,11 +635,11 @@ next
     have "j < length ?l'" "k < length ?l'"
       using assms valid_au valid_unions by force+
     note rep_of_eq =
-      Union_Find.ufa_union_aux[OF \<open>ufa_invar ?l'\<close> a_b_in_Field_\<alpha> this(1)]
-      Union_Find.ufa_union_aux[OF \<open>ufa_invar ?l'\<close> a_b_in_Field_\<alpha> this(2)]
+      Union_Find.ufa_union_aux[OF \<open>uf_invar ?l'\<close> a_b_in_Field_\<alpha> this(1)]
+      Union_Find.ufa_union_aux[OF \<open>uf_invar ?l'\<close> a_b_in_Field_\<alpha> this(2)]
 
     from IH show ?thesis
-      unfolding Suc.prems(5) ufa_unions_eq rep_of_eq by metis
+      unfolding Suc.prems(5) uf_unions_eq rep_of_eq by metis
   qed
 qed
 
@@ -651,8 +647,8 @@ lemma rep_of_au:
   assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   shows "uf_rep_of uf j = uf_rep_of uf k"
 proof -
-  note eq_ufa_unions
-  then have "l = ufa_unions [0..<length l] (take (length unions) unions)"
+  note eq_uf_unions
+  then have "l = uf_unions [0..<length l] (take (length unions) unions)"
     by simp
   note rep_of_after_au[OF assms _  this]
   with assms valid_au show ?thesis
@@ -662,8 +658,8 @@ qed
 lemma rep_of_before_au':
   assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
   assumes "i' \<le> i"
-  assumes "before = ufa_unions [0..<length l] (take i' unions)"
-  shows "rep_of before j \<noteq> rep_of before k"
+  assumes "before = uf_unions uf_init (take i' unions)"
+  shows "uf_rep_of before j \<noteq> uf_rep_of before k"
   using assms
 proof -
   from \<open>i' \<le> i\<close> obtain i'' where take_i''_i:
@@ -671,7 +667,7 @@ proof -
     by (metis min.orderE take_take)
   
   note rep_of_before_au[OF assms(1,2,3) HOL.refl]
-  note rep_of_ufa_unions_take_neq_if_rep_of_ufa_unions_neq[OF _ _ _ _ this]
+  note rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq[OF _ _ _ _ this]
   note this[where ?i=i'', unfolded take_i''_i]
   with assms(1,2,3,5) show ?thesis
     using ufa_init_invar valid_au valid_unions
@@ -682,8 +678,8 @@ qed
 lemma ufe_invars_union:
   assumes "x < length l" "y < length l"
   assumes "uf_rep_of uf x \<noteq> uf_rep_of uf y"
-  defines "l' \<equiv> uf_union uf x y"
-  shows "ufe_invars l' (unions @ [(x, y)]) (au[uf_rep_of uf x := length unions])"
+  defines "uf' \<equiv> uf_union uf x y"
+  shows "ufe_invars uf' (unions @ [(x, y)]) (au[uf_rep_of uf x := length unions])"
 proof -
   from distinct_au valid_au have distinct_au_upd:
     "distinct (au[i := length unions])" for i
@@ -714,7 +710,7 @@ locale ufe_tree = ufe_invars l unions au for l unions au +
 begin
 
 sublocale ufa_tree l x
-  using ufa_invar by unfold_locales simp_all
+  using uf_invar by unfold_locales simp_all
 
 definition "newest_on_walk newest y p z \<equiv>
   awalk y p z \<and> newest = (MAX i \<in> set (tl (awalk_verts y p)). au ! i)"
