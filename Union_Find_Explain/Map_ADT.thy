@@ -2,12 +2,12 @@ theory Map_ADT
   imports "HOL-Statespace.StateSpaceSyntax"
 begin
 
-statespace ('m, 'a, 'b) map_mono_adt =
+statespace ('m, 'dom, 'ran) map_mono_adt =
   empty :: 'm
-  update :: "'m \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'm"
-  lookup :: "'m \<Rightarrow> 'a \<Rightarrow> 'b option"
+  update :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran \<Rightarrow> 'm"
+  lookup :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran option"
   invar :: "'m \<Rightarrow> bool"
-  \<alpha> :: "'m \<Rightarrow> ('a \<rightharpoonup> 'b)"
+  \<alpha> :: "'m \<Rightarrow> ('dom \<rightharpoonup> 'ran)"
 
 context map_mono_adt
 begin
@@ -20,7 +20,17 @@ abbreviation mm_\<alpha>_1 ("mm'_\<alpha>\<index>") where "mm_\<alpha>_1 mm_adt 
 
 end
 
-locale map_mono = map_mono_adt +
+locale map_mono_adt' = map_mono_adt where
+  project_'ran_Option_option_'dom_fun_'m_fun =
+  project_'ran_Option_option_'dom_fun_'m_fun
+  for project_'ran_Option_option_'dom_fun_'m_fun :: "_ \<Rightarrow> 'm \<Rightarrow> 'dom \<Rightarrow> 'ran option" +
+
+fixes m_ty :: "'m itself"
+fixes dom_ty :: "'dom itself"
+fixes ran_ty :: "'ran itself"
+
+
+locale map_mono = map_mono_adt' +
   fixes mm_adt (structure)
   assumes \<alpha>_empty:
     "mm_\<alpha> mm_empty = Map.empty"
@@ -65,7 +75,6 @@ lemma mm_lookup_transfer[transfer_rule]:
 end
 
 end
-
 
 locale map_mono_invar = map_mono +
   fixes m

@@ -1,6 +1,7 @@
 theory UFA_Tree
   imports
     UF_ADT
+    Map_ADT
     "Separation_Logic_Imperative_HOL.Union_Find"
     "Tree_Theory.LCA_Directed_Tree"
 begin
@@ -487,12 +488,16 @@ proof(induction us arbitrary: uf)
     by (cases u) (auto simp: valid_unions_def)
 qed simp
 
-lemma valid_union_union[simp, intro]:
-  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+lemma valid_unions_uf_unions[simp]:
   assumes "valid_unions uf us"
-  shows "valid_unions (uf_union uf x y) us"
-  using assms
-  by (induction us rule: rev_induct) auto
+  shows "valid_unions (uf_unions uf us) ous = valid_unions uf ous"
+  using Field_\<alpha>_unions[OF assms] unfolding valid_unions_def by simp
+
+lemma valid_union_union[simp]:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  shows "valid_unions (uf_union uf x y) us \<longleftrightarrow> valid_unions uf us"
+  using assms valid_unions_uf_unions[where ?us="[(x, y)]"]
+  by simp
 
 lemma valid_unions_nthD[simp, dest]:
   assumes "valid_unions uf us" "i < length us"
@@ -556,30 +561,40 @@ qed simp
 end
 
 locale union_find_explain_invars =
-  union_find_parent_invar where uf = uf for uf +
-  fixes unions
-  fixes au
+  union_find_parent_invar where uf = uf and dom_ty = dom_ty +
+  map_mono_invar where
+    mm_adt = au_adt and invar = invar_au and \<alpha> = \<alpha>_au and m = au and
+    dom_ty = dom_ty and ran_ty = ran_ty 
+  for uf au_adt invar_au \<alpha>_au au and
+    dom_ty :: "'dom itself" and ran_ty :: "nat itself" +
 
-  assumes valid_unions: "valid_unions uf unions"
+  fixes unions
+
+  assumes valid_unions: "valid_unions uf_init unions"
   assumes eq_uf_unions:
     "uf = uf_unions uf_init unions"
   assumes valid_au:
-    "\<And>i. i \<in> set au \<Longrightarrow> i \<ge> 0 \<Longrightarrow> i < length unions"
-  assumes length_au:
-    "length au = length l"
-  assumes distinct_au:
-    "distinct au"
+    "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i \<Longrightarrow> i < length unions"
+  assumes inj_on_dom_au:
+    "inj_on (mm_\<alpha>_1 au_adt au) (dom (mm_\<alpha>_1 au_adt au))"
   assumes nth_au_nonneg_if_not_rep:
-    "\<And>y. y < length l \<Longrightarrow> uf_parent_of uf y \<noteq> y \<Longrightarrow> au ! y \<ge> 0"
+    "y \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_rep_of uf y \<noteq> y \<Longrightarrow> mm_lookup\<^bsub>au_adt\<^esub> au y = Some i"
   assumes rep_of_before_au:
-    "\<And>i j k.
-      \<lbrakk> i \<in> set au; i \<ge> 0; unions ! i = (j, k)
-      ; before = uf_unions uf_init (take i unions) \<rbrakk>
-      \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k"
+    "\<lbrakk> mm_lookup\<^bsub>au_adt\<^esub> au x = Some i; unions ! i = (j, k)
+     ; before = uf_unions uf_init (take i unions) \<rbrakk>
+     \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k"
 begin
 
+sublocale union_find_invar_init: union_find_invar where uf = uf_init
+  using invar_init by unfold_locales assumption+
+
+lemma valid_unions_uf:
+  "valid_unions uf unions"
+  using valid_unions unfolding eq_uf_unions
+  by simp
+
 lemma rep_of_after_au:
-  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
+  assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
   assumes "i' > i"
   assumes "after = uf_unions uf_init (take i' unions)"
   shows "uf_rep_of after j = uf_rep_of after k"
@@ -592,16 +607,27 @@ proof(induction "i' - Suc i" arbitrary: i' after)
     "take i' unions = take (i' - 1) unions @ [(j, k)]"
     by (metis diff_Suc_1 take_Suc_conv_app_nth)
 
-  from assms valid_unions valid_au have j_k_lt_length:
-    "j < length (uf_unions uf_init (take (i' - 1) unions))"
-    "k < length (uf_unions uf_init (take (i' - 1) unions))"
-    by force+
+  from assms valid_unions valid_au have j_k_in_Field_uf_\<alpha>:
+    "j \<in> Field (uf_\<alpha> (uf_unions uf_init (take (i' - 1) unions)))"
+    "k \<in> Field (uf_\<alpha> (uf_unions uf_init (take (i' - 1) unions)))"
+    by fastforce+
   from ufa_init_invar have "uf_invar (uf_unions uf_init (take (i' - 1) unions))"
     using valid_unions by fastforce
-  note Union_Find.ufa_union_aux[OF this j_k_lt_length]
-  note ufa_union = this[OF j_k_lt_length(1)] this[OF j_k_lt_length(2)]
-  with 0 show ?case
-    unfolding take_i'_unions_eq by simp
+  then interpret after_minus_1: union_find_invar where
+    uf = "uf_unions uf_init (take (i' - 1) unions)"
+    by unfold_locales simp
+
+  from valid_unions have valid_unions_after:
+    "valid_unions uf_init (take i' unions)"
+    by blast
+  with 0 interpret after: union_find_invar where uf = after
+    by unfold_locales blast
+
+  note after_minus_1.\<alpha>_union in_per_unionI[OF after_minus_1.part_equiv_\<alpha>]
+  note this[OF j_k_in_Field_uf_\<alpha>]
+  with 0 valid_au valid_unions show ?case
+    unfolding take_i'_unions_eq
+    by (subst after.\<alpha>_rep_of) force+
 next
   case (Suc i'')
   then have "i'' = (i' - 1) - Suc i" "i < i' - 1"
