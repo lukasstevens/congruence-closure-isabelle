@@ -10,7 +10,7 @@ context union_find_parent
 begin
 
 context
-  fixes uf :: 'c
+  fixes uf :: 'uf
 begin
 
 definition "ufa_tree_of x \<equiv>
@@ -560,14 +560,18 @@ qed simp
 
 end
 
-locale union_find_explain_invars =
-  union_find_parent_invar where uf = uf and dom_ty = dom_ty +
-  map_mono_invar where
-    mm_adt = au_adt and invar = invar_au and \<alpha> = \<alpha>_au and m = au and
-    dom_ty = dom_ty and ran_ty = ran_ty 
-  for uf au_adt invar_au \<alpha>_au au and
-    dom_ty :: "'dom itself" and ran_ty :: "nat itself" +
+locale union_find_explain =
+  union_find_parent where uf_ty = uf_ty and dom_ty = dom_ty +
+  map_mono where
+    mm_adt = au_adt and invar = invar_au and \<alpha> = \<alpha>_au and
+    m_ty = au_ty and dom_ty = dom_ty and ran_ty = ran_ty 
+  for au_adt invar_au \<alpha>_au and
+    uf_ty :: "'uf itself" and
+    au_ty :: "'au itself" and dom_ty :: "'dom itself" and ran_ty :: "nat itself"
 
+
+
+locale union_find_explain_invars = union_find_explain +
   fixes unions
 
   assumes valid_unions: "valid_unions uf_init unions"
@@ -577,7 +581,7 @@ locale union_find_explain_invars =
     "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i \<Longrightarrow> i < length unions"
   assumes inj_on_dom_au:
     "inj_on (mm_\<alpha>_1 au_adt au) (dom (mm_\<alpha>_1 au_adt au))"
-  assumes nth_au_nonneg_if_not_rep:
+  assumes lookup_au_if_not_rep:
     "y \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_rep_of uf y \<noteq> y \<Longrightarrow> mm_lookup\<^bsub>au_adt\<^esub> au y = Some i"
   assumes rep_of_before_au:
     "\<lbrakk> mm_lookup\<^bsub>au_adt\<^esub> au x = Some i; unions ! i = (j, k)
@@ -613,7 +617,7 @@ proof(induction "i' - Suc i" arbitrary: i' after)
     by fastforce+
   from ufa_init_invar have "uf_invar (uf_unions uf_init (take (i' - 1) unions))"
     using valid_unions by fastforce
-  then interpret after_minus_1: union_find_invar where
+  then interpret before: union_find_invar where
     uf = "uf_unions uf_init (take (i' - 1) unions)"
     by unfold_locales simp
 
@@ -623,7 +627,7 @@ proof(induction "i' - Suc i" arbitrary: i' after)
   with 0 interpret after: union_find_invar where uf = after
     by unfold_locales blast
 
-  note after_minus_1.\<alpha>_union in_per_unionI[OF after_minus_1.part_equiv_\<alpha>]
+  note before.\<alpha>_union in_per_unionI[OF before.part_equiv_\<alpha>]
   note this[OF j_k_in_Field_uf_\<alpha>]
   with 0 valid_au valid_unions show ?case
     unfolding take_i'_unions_eq
@@ -632,7 +636,7 @@ next
   case (Suc i'')
   then have "i'' = (i' - 1) - Suc i" "i < i' - 1"
     by simp_all
-  note IH = "Suc.hyps"(1)[OF this(1) Suc.prems(1,2,3) this(2) HOL.refl]
+  note IH = "Suc.hyps"(1)[OF this(1) Suc.prems(1,2) this(2) HOL.refl]
   then show ?case
   proof(cases "i' < Suc (length unions)")
     case False
@@ -641,7 +645,7 @@ next
     moreover from False have "take (i' - 1) unions = unions"
       by simp
     ultimately show ?thesis
-      using IH Suc.prems(5) by simp
+      using IH Suc.prems(4) by simp
   next
     case True
     with Suc have "i' - 1 < length unions" "Suc (i' - 1) = i'"
@@ -649,32 +653,32 @@ next
     note take_Suc_conv_app_nth[OF this(1), unfolded this(2)]
     then have uf_unions_eq: "uf_unions uf_init (take i' unions) =
       uf_union (uf_unions uf_init (take (i' - 1) unions))
-        (fst (unions ! (i' - 1))) (snd (unions ! (i' - 1)))" (is "_ = uf_union ?l' ?a ?b")
+        (fst (unions ! (i' - 1))) (snd (unions ! (i' - 1)))" (is "_ = uf_union ?uf' ?a ?b")
       by (simp split: prod.split)
 
-    have "uf_invar ?l'"
+    have "uf_invar ?uf'"
       using ufa_init_invar uf_invar_uf_unions valid_unions by force
-    from valid_unions have "valid_unions (length ?l') unions"
-      by simp
-    then have a_b_in_Field_\<alpha>: "?a < length ?l'" "?b < length ?l'"
-      using \<open>i' - 1 < length unions\<close> by blast+
-    have "j < length ?l'" "k < length ?l'"
+    with valid_unions interpret before: union_find_invar where
+      uf = ?uf'
+      by unfold_locales simp
+    have a_b_in_Field_\<alpha>: "?a \<in> Field (uf_\<alpha> ?uf')" "?b \<in> Field (uf_\<alpha> ?uf')"
+      using \<open>i' - 1 < length unions\<close>
+      using union_find_invar_init.Field_\<alpha>_unions valid_unions by blast+
+    have "j \<in> Field (uf_\<alpha> ?uf')" "k \<in> Field (uf_\<alpha> ?uf')"
       using assms valid_au valid_unions by force+
-    note rep_of_eq =
-      Union_Find.ufa_union_aux[OF \<open>uf_invar ?l'\<close> a_b_in_Field_\<alpha> this(1)]
-      Union_Find.ufa_union_aux[OF \<open>uf_invar ?l'\<close> a_b_in_Field_\<alpha> this(2)]
 
-    from IH show ?thesis
-      unfolding Suc.prems(5) uf_unions_eq rep_of_eq by metis
+    with IH a_b_in_Field_\<alpha> show ?thesis
+      unfolding Suc.prems(4) uf_unions_eq
+      using before.rep_of_neq_if_rep_of_ufa_union_neq by blast
   qed
 qed
 
 lemma rep_of_au:
-  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
+  assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
   shows "uf_rep_of uf j = uf_rep_of uf k"
 proof -
   note eq_uf_unions
-  then have "l = uf_unions [0..<length l] (take (length unions) unions)"
+  then have "uf = uf_unions uf_init (take (length unions) unions)"
     by simp
   note rep_of_after_au[OF assms _  this]
   with assms valid_au show ?thesis
@@ -682,7 +686,7 @@ proof -
 qed
 
 lemma rep_of_before_au':
-  assumes "i \<in> set au" "i \<ge> 0" "unions ! i = (j, k)"
+  assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
   assumes "i' \<le> i"
   assumes "before = uf_unions uf_init (take i' unions)"
   shows "uf_rep_of before j \<noteq> uf_rep_of before k"
@@ -691,18 +695,18 @@ proof -
   from \<open>i' \<le> i\<close> obtain i'' where take_i''_i:
     "take i'' (take i unions) = take i' unions"
     by (metis min.orderE take_take)
-  
-  note rep_of_before_au[OF assms(1,2,3) HOL.refl]
-  note rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq[OF _ _ _ _ this]
+        
+  note rep_of_before_au[OF assms(1,2) HOL.refl]
+  note union_find_invar_init.rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq[OF _ _ _ this]
   note this[where ?i=i'', unfolded take_i''_i]
-  with assms(1,2,3,5) show ?thesis
+  with assms(1,2,4) show ?thesis
     using ufa_init_invar valid_au valid_unions
     by fastforce
 qed
   
-
+(*
 lemma ufe_invars_union:
-  assumes "x < length l" "y < length l"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of uf x \<noteq> uf_rep_of uf y"
   defines "uf' \<equiv> uf_union uf x y"
   shows "ufe_invars uf' (unions @ [(x, y)]) (au[uf_rep_of uf x := length unions])"
@@ -726,43 +730,76 @@ proof -
   with assms distinct_au_upd nth_au_nonneg show ?thesis
     by (unfold_locales)
       (fastforce simp: less_Suc_eq elim!: in_set_upd_cases)+
-qed
+qed *)
     
 end
 
-locale ufe_tree = ufe_invars l unions au for l unions au +
+locale ufe_tree = union_find_explain_invars
+  where uf = uf and unions = unions and au = au for uf unions au +
   fixes x
-  assumes lt_length[simp, intro]: "x < length l"
+  assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (uf_\<alpha> uf)"
+      and finite_eq_class: "\<And>y. finite (uf_\<alpha> uf `` {y})"
 begin
 
-sublocale ufa_tree l x
-  using uf_invar by unfold_locales simp_all
+sublocale ufa_tree where uf = uf and x = x
+  using invar_uf finite_eq_class
+  by unfold_locales simp_all
+
+term "Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set (tl (awalk_verts y p))))"
 
 definition "newest_on_walk newest y p z \<equiv>
-  awalk y p z \<and> newest = (MAX i \<in> set (tl (awalk_verts y p)). au ! i)"
+  awalk y p z \<and> newest = Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set (tl (awalk_verts y p))))"
 
 lemma newest_on_walk_awalkD[simp]:
   assumes "newest_on_walk newest y p z"
   shows "awalk y p z"
   using assms unfolding newest_on_walk_def by simp
 
+lemma Not_is_none_lookup_if_in_tl_awalk_verts:
+  assumes "awalk y p z"
+  assumes "y \<noteq> z"
+  assumes "i \<in> set (tl (awalk_verts y p))"
+  shows "\<not> Option.is_none (mm_lookup\<^bsub>au_adt\<^esub> au i)"
+  using assms
+proof -
+  from assms have "i \<in> verts (ufa_tree_of uf x)"
+    using awalk_verts_in_verts
+    by (meson awalkE' list.set_sel(2) pre_digraph.awalk_verts_non_Nil)
+  then have "i \<in> Field (uf_\<alpha> uf)"
+    using verts_ufa_tree_of by blast
+  moreover from assms \<open>i \<in> Field (uf_\<alpha> uf)\<close> have "uf_rep_of uf i \<noteq> i"
+    using not_rep_if_in_tl_awalk_verts parent_of_refl_iff_rep_of_refl by blast
+  ultimately show ?thesis
+    using lookup_au_if_not_rep
+    by (simp add: Option.is_none_def)
+qed
+
 lemma newest_on_walkE:
   assumes "newest_on_walk newest y p z"
   assumes "y \<noteq> z"
   obtains i where
     "awalk y p z" "i \<in> set (tl (awalk_verts y p))"
-    "newest = au ! i" "\<forall>i' \<in> set (tl (awalk_verts y p)). au ! i' \<le> au ! i"
+    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
+    "\<forall>i' \<in> set (tl (awalk_verts y p)).
+      the (mm_lookup\<^bsub>au_adt\<^esub> au i') \<le> the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
 proof -
   from assms have "set (tl (awalk_verts y p)) \<noteq> {}"
     unfolding newest_on_walk_def
     by (cases p) auto
-  moreover have "finite (set (tl (awalk_verts y p)))"
-    by simp
-  ultimately obtain i where i: "i \<in> set (tl (awalk_verts y p))" "newest = au ! i"
+  then obtain i where i:
+    "i \<in> set (tl (awalk_verts y p))"
+    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
+    "\<forall>i' \<in> set (tl (awalk_verts y p)).
+      the (mm_lookup\<^bsub>au_adt\<^esub> au i') \<le> the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
     using assms unfolding newest_on_walk_def
-    by (meson Max_in finite_imageI imageE image_is_empty)
-  with assms have "\<forall>i' \<in> set (tl (awalk_verts y p)). au ! i' \<le> au ! i"
-    unfolding newest_on_walk_def by force
+    by (metis (mono_tags, opaque_lifting) awalkE'
+        awalk_and_parent_of_reflD(1)
+        in_Field_\<alpha>_if_in_verts
+        in_hd_or_tl_conv
+        lookup_au_if_not_rep option.sel
+        parent_of_refl_iff_rep_of_refl
+        order.refl list.set(1)
+        )
   with i that show ?thesis
     using assms unfolding newest_on_walk_def by blast
 qed
@@ -770,34 +807,29 @@ qed
 lemma newest_on_walk_in_bounds:
   assumes "newest_on_walk newest y p z"
   assumes "y \<noteq> z"
-  shows "0 \<le> newest" "newest < length unions"
+  shows "newest < length unions"
 proof -
-  from newest_on_walkE[OF assms] obtain i where
-    "awalk y p z" and i: "i \<in> set (tl (awalk_verts y p))" "newest = au ! i"
+  from newest_on_walkE[OF assms] obtain i where i:
+    "awalk y p z"
+    "i \<in> set (tl (awalk_verts y p))"
+    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
     by blast
   then have "i \<in> verts (ufa_tree_of uf x)"
     by (meson awalk_decomp awalk_hd_in_verts in_set_tlD)
-  with length_au have "i < length au"
-    using in_verts_ufa_tree_ofD(1) by simp
-  with nth_au_nonneg_if_not_rep length_au \<open>awalk y p z\<close> i
-  show "0 \<le> newest"
-    by (metis not_rep_if_in_tl_awalk_verts)
 
-  from i \<open>i < length au\<close> have "newest \<in> set au"
-    by auto
-  with valid_au \<open>0 \<le> newest\<close> show "newest < length unions"
-    by (metis bot_nat_0.extremum int_nat_eq nat_less_iff)
+  with i valid_au show "newest < length unions"
+    using lookup_au_if_not_rep in_Field_\<alpha>_if_in_verts
+    by (meson not_rep_if_in_tl_awalk_verts parent_of_refl_iff_rep_of_refl)
 qed
 
 lemma newest_on_walk_valid_union:
   assumes "newest_on_walk newest y p z"
   assumes "y \<noteq> z"
-  assumes "unions ! nat newest = (a, b)"
-  shows "a < length l" "b < length l"
-  using newest_on_walk_in_bounds[OF assms(1,2)]
-  using valid_unions_nthD[OF valid_unions]
-  using assms(3)
-  by (metis fst_conv snd_conv nat_less_iff)+
+  assumes "unions ! newest = (a, b)"
+  shows "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
+  using newest_on_walk_in_bounds[OF assms(1,2)] assms(3)
+  using valid_unions_nth_eq_pairD[OF valid_unions_uf]
+  by blast+
 
 end
 

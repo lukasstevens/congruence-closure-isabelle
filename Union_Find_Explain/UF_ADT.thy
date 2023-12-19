@@ -74,18 +74,18 @@ abbreviation (in union_find_parent_adt) uf_parent_of_1 ("uf'_parent'_of\<index>"
 abbreviation (in union_find_explain_adt) uf_explain_1 ("uf'_explain\<index>") where
   "uf_explain_1 uf_adt \<equiv> uf_adt \<cdot> explain"
   
-locale union_find_adt' = union_find_adt where
-  project_'dom_'dom_fun_'uf_fun =
-  project_'dom_'dom_fun_'uf_fun
-for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
+locale union_find_adt' =
+  union_find_adt where
+    project_'dom_'dom_fun_'uf_fun = project_'dom_'dom_fun_'uf_fun
+  for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
 
 fixes uf_ty :: "'uf itself"
 fixes dom_ty :: "'dom itself"
 
-locale union_find_parent_adt' = union_find_parent_adt where
-  project_'dom_'dom_fun_'uf_fun =
-  project_'dom_'dom_fun_'uf_fun
-for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
+locale union_find_parent_adt' =
+  union_find_parent_adt
+  where project_'dom_'dom_fun_'uf_fun = project_'dom_'dom_fun_'uf_fun
+  for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
  
 fixes uf_ty :: "'uf itself"
 fixes dom_ty :: "'dom itself"
@@ -95,9 +95,11 @@ sublocale union_find_adt' where uf_ty = uf_ty and dom_ty = dom_ty
   by unfold_locales
 end
 
+locale union_find =
+  union_find_adt' where
+    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
+  for uf_ty dom_ty +
 
-
-locale union_find = union_find_adt' +
   fixes uf_adt (structure)
   assumes part_equiv_\<alpha>:
         "uf_invar uf \<Longrightarrow> part_equiv (uf_\<alpha> uf)"
@@ -113,7 +115,11 @@ locale union_find = union_find_adt' +
         "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
         \<Longrightarrow> uf_\<alpha> (uf_union uf x y) = per_union (uf_\<alpha> uf) x y"
 
-locale union_find_parent = union_find_parent_adt' + union_find +
+locale union_find_parent =
+  union_find_parent_adt' where
+    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself" +
+  union_find +
+
   assumes wf_parent_of:
     "uf_invar uf \<Longrightarrow> wf {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf)}"
   assumes parent_of_in_\<alpha>:
@@ -125,14 +131,19 @@ locale union_find_parent = union_find_parent_adt' + union_find +
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk>
     \<Longrightarrow> uf_rep_of uf (uf_parent_of uf x) = uf_rep_of uf x"
 
+(*
 locale union_find_explain = union_find_explain_adt + union_find +
   assumes \<alpha>_explain:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf); (x, y) \<in> uf_\<alpha> uf \<rbrakk>
     \<Longrightarrow> (x, y) \<in> (uf_explain uf x y)\<^sup>*"
+*)
 
+locale union_find_invar =
+  union_find where
+    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
+  for uf_ty dom_ty +
 
-locale union_find_invar = union_find +
-  fixes uf
+  fixes uf :: 'uf
   assumes invar_uf: "uf_invar uf"
 begin
 
@@ -149,11 +160,15 @@ lemma Field_\<alpha>_union[simp]:
 
 end
 
-locale union_find_parent_invar = union_find_parent +
-  fixes uf
+locale union_find_parent_invar =
+  union_find_parent where
+    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
+  for uf_ty dom_ty +
+
+  fixes uf :: 'uf
   assumes invar_uf: "uf_invar uf"
 begin
-
+                     
 sublocale union_find_invar where uf = uf
   using invar_uf by unfold_locales
 

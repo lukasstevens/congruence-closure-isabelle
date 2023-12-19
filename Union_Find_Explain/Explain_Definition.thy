@@ -6,42 +6,7 @@ theory Explain_Definition
     "HOL-Library.Option_ord"
     "UFA_Tree"
 begin
-
-locale union_find =
-  fixes init :: 'c
-    and rep_of :: "'c \<Rightarrow> 'a \<Rightarrow> 'a"
-    and union :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'c"
-    and invar :: "'c \<Rightarrow> bool"
-    and \<alpha> :: "'c \<Rightarrow> 'a rel"
-  assumes invar_init: "invar init"
-      and \<alpha>_init: "\<alpha> init \<subseteq> Id" 
-      and \<alpha>_rep_of:
-        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
-        \<Longrightarrow> rep_of l x = rep_of l y \<longleftrightarrow> (x, y) \<in> \<alpha> l"
-      and invar_union:
-        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
-        \<Longrightarrow> invar (union l x y)"
-      and \<alpha>_union:
-        "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l) \<rbrakk>
-        \<Longrightarrow> \<alpha> (union l x y) = per_union (\<alpha> l) x y"
-
-lemma union_find_ufa:
-  "union_find [0..<n] rep_of ufa_union ufa_invar ufa_\<alpha>"
-proof -
-  note [simp] = ufa_init_invar ufa_init_correct
-    ufa_find_correct ufa_union_invar ufa_union_correct
-  show ?thesis
-    by unfold_locales (auto simp: Field_iff ufa_\<alpha>_lenD)
-qed
-
-locale union_find_explain =
-  union_find init rep_of union invar "\<alpha> :: 'c \<Rightarrow> 'a rel" for init rep_of union invar \<alpha> +
-
-  fixes explain :: "'c \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> ('a \<times> 'a) set"
-  assumes \<alpha>_explain:
-    "\<lbrakk> invar l; x \<in> Field (\<alpha> l); y \<in> Field (\<alpha> l); (x, y) \<in> \<alpha> l \<rbrakk>
-    \<Longrightarrow> (x, y) \<in> (explain l x y)\<^sup>*"
-    
+ 
 
 no_notation Ref.update ("_ := _" 62)
 
@@ -134,9 +99,12 @@ paragraph \<open>Explain\<close>
 
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
-definition ufa_lca :: "nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
-  "ufa_lca l x y \<equiv>
-    last (longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y))"
+context union_find_parent
+begin
+
+definition ufa_lca :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'dom" where
+  "ufa_lca uf x y \<equiv>
+    last (longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y))"
 
 lemma ufa_lca_symmetric:
   "ufa_lca l x y = ufa_lca l y x"
@@ -151,62 +119,67 @@ proof -
     by auto
 qed
 
+end
+
 text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
-context
-  fixes l :: "nat list"
-  fixes au :: "int list"
+context union_find_explain
 begin
 
-function (domintros) find_newest_on_walk :: "nat \<Rightarrow> nat \<Rightarrow> int" where
+context
+  fixes uf :: 'uf
+  fixes au :: 'au
+begin
+
+function (domintros) find_newest_on_walk :: "'dom \<Rightarrow> 'dom \<Rightarrow> nat option" where
   "find_newest_on_walk y x =
-    (if y = x then -1 else max (au ! x) (find_newest_on_walk y (l ! x)))"
+    (if y = x then None else max (mm_lookup\<^bsub>au_adt\<^esub> au x) (find_newest_on_walk y (uf_parent_of uf x)))"
   by pat_completeness auto
 
 context
-  fixes unions :: "(nat \<times> nat) list"
+  fixes unions :: "('dom \<times> 'dom) list"
 begin
 
 text \<open>Explain operation, as described in the paper.\<close>
-function (domintros) explain :: "nat \<Rightarrow> nat \<Rightarrow> (nat * nat) set" where
+function (domintros) explain :: "'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
   "explain x y = 
-    (if x = y \<or> rep_of l x \<noteq> rep_of l y then {}
+    (if x = y \<or> uf_rep_of uf x \<noteq> uf_rep_of uf y then {}
     else 
       let
-        lca = ufa_lca l x y;
+        lca = ufa_lca uf x y;
         newest_x = find_newest_on_walk lca x;
         newest_y = find_newest_on_walk lca y
       in
         if newest_x \<ge> newest_y then
-          let (ax, bx) = unions ! nat newest_x
+          let (ax, bx) = unions ! the newest_x
           in {(ax, bx)} \<union> explain x ax \<union> explain bx y
         else
-          let (ay, by) = unions ! nat newest_y
+          let (ay, by) = unions ! the newest_y
           in {(ay, by)} \<union> explain x by \<union> explain ay y)"
   by pat_completeness auto
 
 lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
   assumes "explain_dom (x, y)"
   assumes "\<And>x y. x = y \<Longrightarrow> P x y"
-  assumes "\<And>x y. rep_of l x \<noteq> rep_of l y \<Longrightarrow> P x y"
+  assumes "\<And>x y. uf_rep_of uf x \<noteq> uf_rep_of uf y \<Longrightarrow> P x y"
   assumes "\<And>x y ulca newest_x newest_y ax bx.
      \<lbrakk> explain_dom (x, y)
-     ; x \<noteq> y; rep_of l x = rep_of l y
+     ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
      ; ulca = ufa_lca l x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x \<ge> newest_y
-     ; unions ! nat newest_x = (ax, bx)
+     ; unions ! the newest_x = (ax, bx)
      ; P x ax; P bx y
      \<rbrakk> \<Longrightarrow> P x y"
   assumes "\<And>x y ulca newest_x newest_y ay by.
      \<lbrakk> explain_dom (x, y)
-     ; x \<noteq> y; rep_of l x = rep_of l y
+     ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
      ; ulca = ufa_lca l x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x < newest_y
-     ; unions ! nat newest_y = (ay, by)
+     ; unions ! the newest_y = (ay, by)
      ; P x by; P ay y
      \<rbrakk> \<Longrightarrow> P x y"
   shows "P x y"
@@ -215,12 +188,12 @@ lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
 
 lemma explain_base_domintros[simp, intro]:
   shows "x = y \<Longrightarrow> explain_dom (x, y)"
-    and "rep_of l x \<noteq> rep_of l y \<Longrightarrow> explain_dom (x, y)"
+    and "uf_rep_of uf x \<noteq> uf_rep_of uf y \<Longrightarrow> explain_dom (x, y)"
   using explain.domintros[where ?x=x and ?y=y]
   by simp_all
 
 lemma explain_newest_x_domintro:
-  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
   assumes "ulca = ufa_lca l x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
@@ -232,7 +205,7 @@ lemma explain_newest_x_domintro:
   using assms by simp_all
 
 lemma explain_newest_y_domintro:
-  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
   assumes "ulca = ufa_lca l x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
@@ -245,7 +218,7 @@ lemma explain_newest_y_domintro:
 
 lemma explain_dom_newest_xD:
   assumes "explain_dom (x, y)"
-  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
   assumes "ulca = ufa_lca l x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
@@ -257,7 +230,7 @@ lemma explain_dom_newest_xD:
 
 lemma explain_dom_newest_yD:
   assumes "explain_dom (x, y)"
-  assumes "x \<noteq> y" "rep_of l x = rep_of l y"
+  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
   assumes "ulca = ufa_lca l x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
