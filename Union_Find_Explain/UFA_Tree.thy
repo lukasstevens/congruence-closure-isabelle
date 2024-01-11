@@ -569,10 +569,10 @@ locale union_find_explain =
     uf_ty :: "'uf itself" and
     au_ty :: "'au itself" and dom_ty :: "'dom itself" and ran_ty :: "nat itself"
 
-
-
 locale union_find_explain_invars = union_find_explain +
+  fixes uf
   fixes unions
+  fixes au
 
   assumes valid_unions: "valid_unions uf_init unions"
   assumes eq_uf_unions:
@@ -580,22 +580,25 @@ locale union_find_explain_invars = union_find_explain +
   assumes valid_au:
     "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i \<Longrightarrow> i < length unions"
   assumes inj_on_dom_au:
-    "inj_on (mm_\<alpha>_1 au_adt au) (dom (mm_\<alpha>_1 au_adt au))"
+    "inj_on (mm_lookup\<^bsub>au_adt\<^esub> au) (dom (mm_lookup\<^bsub>au_adt\<^esub> au))"
   assumes lookup_au_if_not_rep:
-    "y \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_rep_of uf y \<noteq> y \<Longrightarrow> mm_lookup\<^bsub>au_adt\<^esub> au y = Some i"
+    "y \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_rep_of uf y \<noteq> y \<Longrightarrow> mm_lookup\<^bsub>au_adt\<^esub> au y \<noteq> None"
   assumes rep_of_before_au:
     "\<lbrakk> mm_lookup\<^bsub>au_adt\<^esub> au x = Some i; unions ! i = (j, k)
      ; before = uf_unions uf_init (take i unions) \<rbrakk>
      \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k"
 begin
 
-sublocale union_find_invar_init: union_find_invar where uf = uf_init
+sublocale uf_invar_init: union_find_invar where uf = uf_init
   using invar_init by unfold_locales assumption+
 
 lemma valid_unions_uf:
   "valid_unions uf unions"
-  using valid_unions unfolding eq_uf_unions
-  by simp
+  using valid_unions by (simp add: eq_uf_unions)
+
+sublocale union_find_invar where uf = uf
+  using eq_uf_unions valid_unions by unfold_locales blast
+
 
 lemma rep_of_after_au:
   assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
@@ -657,13 +660,14 @@ next
       by (simp split: prod.split)
 
     have "uf_invar ?uf'"
-      using ufa_init_invar uf_invar_uf_unions valid_unions by force
+      using ufa_init_invar uf_invar_init.uf_invar_uf_unions valid_unions
+      by force
     with valid_unions interpret before: union_find_invar where
       uf = ?uf'
       by unfold_locales simp
     have a_b_in_Field_\<alpha>: "?a \<in> Field (uf_\<alpha> ?uf')" "?b \<in> Field (uf_\<alpha> ?uf')"
       using \<open>i' - 1 < length unions\<close>
-      using union_find_invar_init.Field_\<alpha>_unions valid_unions by blast+
+      using uf_invar_init.Field_\<alpha>_unions valid_unions by blast+
     have "j \<in> Field (uf_\<alpha> ?uf')" "k \<in> Field (uf_\<alpha> ?uf')"
       using assms valid_au valid_unions by force+
 
@@ -697,7 +701,7 @@ proof -
     by (metis min.orderE take_take)
         
   note rep_of_before_au[OF assms(1,2) HOL.refl]
-  note union_find_invar_init.rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq[OF _ _ _ this]
+  note uf_invar_init.rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq[OF _ _ _ this]
   note this[where ?i=i'', unfolded take_i''_i]
   with assms(1,2,4) show ?thesis
     using ufa_init_invar valid_au valid_unions
@@ -734,8 +738,7 @@ qed *)
     
 end
 
-locale ufe_tree = union_find_explain_invars
-  where uf = uf and unions = unions and au = au for uf unions au +
+locale ufe_tree = union_find_explain_invars +
   fixes x
   assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (uf_\<alpha> uf)"
       and finite_eq_class: "\<And>y. finite (uf_\<alpha> uf `` {y})"
@@ -743,9 +746,7 @@ begin
 
 sublocale ufa_tree where uf = uf and x = x
   using invar_uf finite_eq_class
-  by unfold_locales simp_all
-
-term "Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set (tl (awalk_verts y p))))"
+  by unfold_locales blast+
 
 definition "newest_on_walk newest y p z \<equiv>
   awalk y p z \<and> newest = Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set (tl (awalk_verts y p))))"

@@ -107,11 +107,11 @@ definition ufa_lca :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> '
     last (longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y))"
 
 lemma ufa_lca_symmetric:
-  "ufa_lca l x y = ufa_lca l y x"
+  "ufa_lca uf x y = ufa_lca uf y x"
 proof -
   have
-    "longest_common_prefix (awalk_verts_from_rep l x) (awalk_verts_from_rep l y)
-    = longest_common_prefix (awalk_verts_from_rep l y) (awalk_verts_from_rep l x)"
+    "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y)
+    = longest_common_prefix (awalk_verts_from_rep uf y) (awalk_verts_from_rep uf x)"
     by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
           longest_common_prefix_prefix2 prefix_order.eq_iff)
   then show ?thesis
@@ -131,10 +131,15 @@ context
   fixes au :: 'au
 begin
 
+term combine_options
 function (domintros) find_newest_on_walk :: "'dom \<Rightarrow> 'dom \<Rightarrow> nat option" where
   "find_newest_on_walk y x =
-    (if y = x then None else max (mm_lookup\<^bsub>au_adt\<^esub> au x) (find_newest_on_walk y (uf_parent_of uf x)))"
+    (if y = x then None else combine_options max (mm_lookup\<^bsub>au_adt\<^esub> au x) (find_newest_on_walk y (uf_parent_of uf x)))"
   by pat_completeness auto
+
+lemma find_newest_on_walk_if_eq[simp]:
+  "find_newest_on_walk x x = None"
+  by (meson find_newest_on_walk.domintros find_newest_on_walk.psimps)
 
 context
   fixes unions :: "('dom \<times> 'dom) list"
@@ -165,7 +170,7 @@ lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
   assumes "\<And>x y ulca newest_x newest_y ax bx.
      \<lbrakk> explain_dom (x, y)
      ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
-     ; ulca = ufa_lca l x y
+     ; ulca = ufa_lca uf x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x \<ge> newest_y
@@ -175,7 +180,7 @@ lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
   assumes "\<And>x y ulca newest_x newest_y ay by.
      \<lbrakk> explain_dom (x, y)
      ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
-     ; ulca = ufa_lca l x y
+     ; ulca = ufa_lca uf x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x < newest_y
@@ -183,8 +188,13 @@ lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
      ; P x by; P ay y
      \<rbrakk> \<Longrightarrow> P x y"
   shows "P x y"
-  using explain.pinduct[OF assms(1)] assms(2-)
-  by (metis linorder_le_less_linear surj_pair)
+  using assms(1)
+proof(induction rule: explain.pinduct)
+  case (1 x y)
+  note assms(2,3) assms(4,5)[OF this(1)]
+  with "1"(2-)[OF _ HOL.refl HOL.refl HOL.refl _ HOL.refl] show ?case
+    by (smt (z3) find_newest_on_walk.cases linorder_not_le)
+qed
 
 lemma explain_base_domintros[simp, intro]:
   shows "x = y \<Longrightarrow> explain_dom (x, y)"
@@ -194,11 +204,11 @@ lemma explain_base_domintros[simp, intro]:
 
 lemma explain_newest_x_domintro:
   assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca l x y"
+  assumes "ulca = ufa_lca uf x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
   assumes "newest_x \<ge> newest_y"
-  assumes "unions ! nat newest_x = (ax, bx)"
+  assumes "unions ! the newest_x = (ax, bx)"
   assumes "explain_dom (x, ax)" "explain_dom (bx, y)"
   shows "explain_dom (x, y)"
   apply(rule explain.domintros)
@@ -206,11 +216,11 @@ lemma explain_newest_x_domintro:
 
 lemma explain_newest_y_domintro:
   assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca l x y"
+  assumes "ulca = ufa_lca uf x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
   assumes "newest_x < newest_y"
-  assumes "unions ! nat newest_y = (ay, by)"
+  assumes "unions ! the newest_y = (ay, by)"
   assumes "explain_dom (x, by)" "explain_dom (ay, y)"
   shows "explain_dom (x, y)"
   apply(rule explain.domintros)
@@ -219,10 +229,10 @@ lemma explain_newest_y_domintro:
 lemma explain_dom_newest_xD:
   assumes "explain_dom (x, y)"
   assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca l x y"
+  assumes "ulca = ufa_lca uf x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
-  assumes "unions ! nat newest_x = (ax, bx)"
+  assumes "unions ! the newest_x = (ax, bx)"
   assumes "newest_x \<ge> newest_y"
   shows "explain_dom (x, ax)" "explain_dom (bx, y)"
   using assms
@@ -231,10 +241,10 @@ lemma explain_dom_newest_xD:
 lemma explain_dom_newest_yD:
   assumes "explain_dom (x, y)"
   assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca l x y"
+  assumes "ulca = ufa_lca uf x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
-  assumes "unions ! nat newest_y = (ay, by)"
+  assumes "unions ! the newest_y = (ay, by)"
   assumes "newest_x < newest_y"
   shows "explain_dom (x, by)" "explain_dom (ay, y)"
   using assms
@@ -248,7 +258,7 @@ lemma explain_dom_cases:
   | (neq_rep_of) "rep_of l x \<noteq> rep_of l y"
   | (step) ulca newest_x newest_y ax bx where
       "x \<noteq> y" "rep_of l x = rep_of l y"
-      "ulca = ufa_lca l x y"
+      "ulca = ufa_lca uf x y"
       "newest_x = find_newest_on_walk ulca x"
       "newest_y = find_newest_on_walk ulca y"
       "newest_x \<ge> newest_y"
@@ -256,7 +266,7 @@ lemma explain_dom_cases:
       "explain_dom (x, ax)" "explain_dom (bx, y)"
   | (sym) ulca newest_x newest_y ay "by" where
       "x \<noteq> y" "rep_of l x = rep_of l y"
-      "ulca = ufa_lca l x y"
+      "ulca = ufa_lca uf x y"
       "newest_x = find_newest_on_walk ulca x"
       "newest_y = find_newest_on_walk ulca y"
       "newest_x < newest_y"
@@ -279,7 +289,7 @@ lemma explain_cases:
     and "x = y \<or> rep_of l x \<noteq> rep_of l y"
   | (case_x) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = ufa_lca l x y"
+    and "lca = ufa_lca uf x y"
     and "newest_index_x = find_newest_on_walk l a x lca"
     and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
@@ -288,7 +298,7 @@ lemma explain_cases:
     and "newest_index_x \<ge> newest_index_y"
   | (case_y) ufe lca newest_index_x newest_index_y ax bx ay "by"
   where "ufe = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-    and "lca = ufa_lca l x y"
+    and "lca = ufa_lca uf x y"
     and "newest_index_x = find_newest_on_walk l a x lca"
     and "newest_index_y = find_newest_on_walk l a y lca"
     and "(ax, bx) = u ! the (newest_index_x)" 
@@ -310,7 +320,7 @@ lemma explain_case_x_domain:
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, ax)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, bx, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = ufa_lca l x y
+  \<Longrightarrow> lca = ufa_lca uf x y
   \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
@@ -324,7 +334,7 @@ lemma explain_case_y_domain:
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, by)
   \<Longrightarrow> explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, ay, y)
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = ufa_lca l x y
+  \<Longrightarrow> lca = ufa_lca uf x y
   \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
@@ -343,7 +353,7 @@ lemma explain_empty[simp]:
 lemma explain_case_x[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = ufa_lca l x y
+  \<Longrightarrow> lca = ufa_lca uf x y
   \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ax, bx) = u ! the (newest_index_x)
@@ -356,7 +366,7 @@ lemma explain_case_x[simp]:
 lemma explain_case_y[simp]:
   "explain_dom (\<lparr>uf_list = l, unions = u, au = a\<rparr>, x, y) 
   \<Longrightarrow> \<not>(x = y \<or> rep_of l x \<noteq> rep_of l y)   
-  \<Longrightarrow> lca = ufa_lca l x y
+  \<Longrightarrow> lca = ufa_lca uf x y
   \<Longrightarrow> newest_index_x = find_newest_on_walk l a x lca
   \<Longrightarrow> newest_index_y = find_newest_on_walk l a y lca
   \<Longrightarrow> (ay, by) = u !  the (newest_index_y)
@@ -367,6 +377,7 @@ lemma explain_case_y[simp]:
   by (auto simp add: explain.psimps Let_def)  
 *)
 
+(*
 subsection \<open>Lemmas about \<open>rep_of\<close>\<close>
 
 lemma rep_of_domain: "rep_of_dom (l, i) \<Longrightarrow> l ! i \<noteq> i \<Longrightarrow> rep_of_dom (l, l ! i)"
@@ -380,10 +391,10 @@ lemma rep_of_idx2:
 lemma ufe_union_uf_list:
   assumes "ufa_invar (uf_list ufe)" "x < length (uf_list ufe)"
     shows "uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
-proof (cases "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y")
+proof (cases "uf_rep_of (uf_list ufe) x = uf_rep_of (uf_list ufe) y")
   case True
   with assms rep_of_min have
-    "(uf_list ufe) ! rep_of (uf_list ufe) x = rep_of (uf_list ufe) y" 
+    "(uf_list ufe) ! uf_rep_of (uf_list ufe) x = uf_rep_of (uf_list ufe) y" 
     by metis
   with True have "ufa_union (uf_list ufe) x y = uf_list ufe" 
     by (metis list_update_id)
@@ -394,11 +405,8 @@ next
   then show ?thesis
     by (cases ufe) simp_all
 qed
+*)
 
-lemma ufa_union_root: 
-  assumes "ufa_union l a b ! i = i" "ufa_invar l" 
-      and "a < length l" "b < length l"
-  shows "l ! i = i"
-  using assms by (metis nth_list_update_neq rep_of_min)
+end
 
 end

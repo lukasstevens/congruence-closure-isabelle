@@ -72,7 +72,35 @@ lemma mm_lookup_transfer[transfer_rule]:
   using \<alpha>_lookup unfolding mm_rel_defs rel_fun_def
   by auto
 
+definition "bla_on x y \<equiv> mm_\<alpha> x = mm_\<alpha> y"
+
+lemma [transfer_rule]:
+  shows "(mm_rel ===> mm_rel ===> (=)) (=) (bla_on)"
+  unfolding bla_on_def mm_rel_def BNF_Def.Grp_def by auto
+  
 end
+
+find_consts "('b \<Rightarrow> 'c) \<Rightarrow> 'b \<Rightarrow> 'b \<Rightarrow> bool"
+
+declare [[goals_limit=20]]
+
+lemma
+  includes lifting_syntax
+  assumes "mm_invar m"
+  assumes "a \<noteq> c"
+  shows "mm_\<alpha> (mm_update (mm_update m a b) c d)
+    = mm_\<alpha> (mm_update (mm_update m c d) a b)"
+proof -
+  have [transfer_rule]: "mm_rel (mm_\<alpha> m) m"
+    using assms mm_relI by blast
+  show ?thesis
+    using \<open>a \<noteq> c\<close>
+
+    unfolding bla_on_def[symmetric]
+    apply transfer
+    by auto
+qed
+
 
 end
 
