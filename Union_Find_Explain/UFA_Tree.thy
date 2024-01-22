@@ -748,79 +748,63 @@ sublocale ufa_tree where uf = uf and x = x
   using invar_uf finite_eq_class
   by unfold_locales blast+
 
-definition "newest_on_walk newest y p z \<equiv>
-  awalk y p z \<and> newest = Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set (tl (awalk_verts y p))))"
+definition "au_of a \<equiv> the (mm_lookup\<^bsub>au_adt\<^esub> au (head (ufa_tree_of uf x) a))"
+
+lemma head_in_dom_lookup_if_in_arcs:
+  assumes "a \<in> arcs (ufa_tree_of uf x)"
+  shows "head (ufa_tree_of uf x) a \<in> dom (mm_lookup\<^bsub>au_adt\<^esub> au)"
+  using assms
+proof -
+  let ?y = "head (ufa_tree_of uf x) a"
+  from assms have "?y \<in> Field (uf_\<alpha> uf)"
+    using head_in_verts by blast
+  from assms parent_of_refl_iff_rep_of_refl[OF this] have "uf_rep_of uf ?y \<noteq> ?y"
+    by (metis arc_implies_awalk awalk_and_parent_of_reflD(1) loopfree.no_loops)
+  note lookup_au_if_not_rep[OF \<open>?y \<in> Field (uf_\<alpha> uf)\<close> this]
+  then show ?thesis
+    unfolding domIff by blast
+qed
+
+lemma au_of_lt_length_unions:
+  assumes "a \<in> arcs (ufa_tree_of uf x)"
+  shows "au_of a < length unions"
+  using head_in_dom_lookup_if_in_arcs[OF assms] valid_au
+  unfolding au_of_def dom_def by simp
+
+definition "newest_on_walk newest y p z \<equiv> awalk y p z \<and> newest = Max (au_of ` set p)"
 
 lemma newest_on_walk_awalkD[simp]:
   assumes "newest_on_walk newest y p z"
   shows "awalk y p z"
   using assms unfolding newest_on_walk_def by simp
 
-lemma Not_is_none_lookup_if_in_tl_awalk_verts:
-  assumes "awalk y p z"
-  assumes "y \<noteq> z"
-  assumes "i \<in> set (tl (awalk_verts y p))"
-  shows "\<not> Option.is_none (mm_lookup\<^bsub>au_adt\<^esub> au i)"
-  using assms
-proof -
-  from assms have "i \<in> verts (ufa_tree_of uf x)"
-    using awalk_verts_in_verts
-    by (meson awalkE' list.set_sel(2) pre_digraph.awalk_verts_non_Nil)
-  then have "i \<in> Field (uf_\<alpha> uf)"
-    using verts_ufa_tree_of by blast
-  moreover from assms \<open>i \<in> Field (uf_\<alpha> uf)\<close> have "uf_rep_of uf i \<noteq> i"
-    using not_rep_if_in_tl_awalk_verts parent_of_refl_iff_rep_of_refl by blast
-  ultimately show ?thesis
-    using lookup_au_if_not_rep
-    by (simp add: Option.is_none_def)
-qed
-
 lemma newest_on_walkE:
   assumes "newest_on_walk newest y p z"
-  assumes "y \<noteq> z"
+  assumes "y \<noteq> z" 
   obtains i where
-    "awalk y p z" "i \<in> set (tl (awalk_verts y p))"
-    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
-    "\<forall>i' \<in> set (tl (awalk_verts y p)).
-      the (mm_lookup\<^bsub>au_adt\<^esub> au i') \<le> the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
+    "i \<in> set p"
+    "awalk y p z" "newest = au_of i"
+    "\<forall>i' \<in> set p. au_of i' \<le> au_of i"
 proof -
-  from assms have "set (tl (awalk_verts y p)) \<noteq> {}"
+  from assms have "au_of ` set p \<noteq> {}"
+    unfolding newest_on_walk_def by auto
+  from Max_in[OF _ this] obtain i where "i \<in> set p" "Max (au_of ` set p) = au_of i"
+    by blast
+  with assms that show ?thesis
     unfolding newest_on_walk_def
-    by (cases p) auto
-  then obtain i where i:
-    "i \<in> set (tl (awalk_verts y p))"
-    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
-    "\<forall>i' \<in> set (tl (awalk_verts y p)).
-      the (mm_lookup\<^bsub>au_adt\<^esub> au i') \<le> the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
-    using assms unfolding newest_on_walk_def
-    by (metis (mono_tags, opaque_lifting) awalkE'
-        awalk_and_parent_of_reflD(1)
-        in_Field_\<alpha>_if_in_verts
-        in_hd_or_tl_conv
-        lookup_au_if_not_rep option.sel
-        parent_of_refl_iff_rep_of_refl
-        order.refl list.set(1)
-        )
-  with i that show ?thesis
-    using assms unfolding newest_on_walk_def by blast
+    by (metis List.finite_set Max_ge finite_imageI image_eqI)
 qed
 
-lemma newest_on_walk_in_bounds:
+lemma newest_on_walk_lt_length_unions:
   assumes "newest_on_walk newest y p z"
   assumes "y \<noteq> z"
   shows "newest < length unions"
 proof -
   from newest_on_walkE[OF assms] obtain i where i:
-    "awalk y p z"
-    "i \<in> set (tl (awalk_verts y p))"
-    "newest = the (mm_lookup\<^bsub>au_adt\<^esub> au i)"
+    "awalk y p z" "i \<in> set p" "newest = au_of i"
     by blast
-  then have "i \<in> verts (ufa_tree_of uf x)"
-    by (meson awalk_decomp awalk_hd_in_verts in_set_tlD)
-
-  with i valid_au show "newest < length unions"
-    using lookup_au_if_not_rep in_Field_\<alpha>_if_in_verts
-    by (meson not_rep_if_in_tl_awalk_verts parent_of_refl_iff_rep_of_refl)
+  then show ?thesis
+    using au_of_lt_length_unions by blast
 qed
 
 lemma newest_on_walk_valid_union:
@@ -828,7 +812,7 @@ lemma newest_on_walk_valid_union:
   assumes "y \<noteq> z"
   assumes "unions ! newest = (a, b)"
   shows "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
-  using newest_on_walk_in_bounds[OF assms(1,2)] assms(3)
+  using newest_on_walk_lt_length_unions[OF assms(1,2)] assms(3)
   using valid_unions_nth_eq_pairD[OF valid_unions_uf]
   by blast+
 

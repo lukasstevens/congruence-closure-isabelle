@@ -75,20 +75,24 @@ proof -
     by blast
   note find_newest_on_walk_domain[OF assms(1)]
   then show ?thesis 
-    using assms \<open>mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z\<close>
+    using assms
   proof(induction arbitrary: p au_z rule: find_newest_on_walk.pinduct)
     case (1 y z)
     then show ?case
     proof(cases "y = uf_parent_of uf z")
       case True
-      with 1 have p_eq: "p = [(uf_parent_of uf z, z)]"
+      with 1 have p_eq: "p = [(uf_parent_of uf z, z)]" (is "_ = [?a]")
         using awalk_parent_of unique_awalk_All by blast
-      with "1.prems" have "find_newest_on_walk uf au y z = Some au_z"
-        using find_newest_on_walk.psimps[OF "1.hyps"]
-        by auto     
-      with 1 p_eq show ?thesis
-        unfolding newest_on_walk_def
-        by simp
+      moreover
+      from True 1 obtain au_z where au_z: "mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z"
+        using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
+        by (meson in_Field_\<alpha>_if_in_verts awalk_last_in_verts option.exhaust_sel)
+      from au_z True "1.prems" have "find_newest_on_walk uf au y z = Some (au_of ?a)"
+        unfolding au_of_def find_newest_on_walk.psimps[OF "1.hyps"]
+        by (auto simp: combine_options_def split: option.splits)
+      ultimately
+      show ?thesis
+        using 1 unfolding newest_on_walk_def by simp
     next
       case False
       from 1 have "p \<noteq> []"
@@ -103,12 +107,20 @@ proof -
         "awalk_verts y p = awalk_verts y (butlast p) @ [z]"
         using \<open>awalk y p z\<close> \<open>p \<noteq> []\<close> by auto
       moreover
+      
+      from False obtain au_p_z where
+        "mm_lookup\<^bsub>au_adt\<^esub> au (uf_parent_of uf z) = Some au_p_z"
+        using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
+        using awalk_and_parent_of_reflD(1) awalk_butlast awalk_last_in_verts domD domIff in_Field_\<alpha>_if_in_verts lookup_au_if_not_rep 
+        by (metis awalk_and_parent_of_reflD(1) awalk_butlast awalk_last_in_verts domD domIff in_Field_\<alpha>_if_in_verts lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl)
+      
       note "1.IH"[OF \<open>y \<noteq> z\<close> \<open>awalk y (butlast p) (uf_parent_of uf z)\<close> \<open>y \<noteq> uf_parent_of uf z\<close>]
       moreover from \<open>p \<noteq> []\<close> have "p = butlast p @ [last p]"
         by simp
       moreover
       let ?vs = "tl (awalk_verts y (butlast p))"
-      have "Max (insert au_z (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)))
+      have Max_insert:
+        "Max (insert au_z (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)))
         = max au_z (Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)))"
       proof(rule Max.insert_not_elem)
         from False obtain au_parent_z where
@@ -130,12 +142,13 @@ proof -
           using inj_on_dom_au unfolding Option.these_def
           by auto (metis domI inj_onD)
       qed (simp add: Option.these_def)
-      ultimately show ?thesis
+      show ?thesis
+        
         unfolding newest_on_walk_def
         unfolding awalk_verts_p
-        using "1.prems" "1.hyps" \<open>mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z\<close>
-        apply (auto simp add: find_newest_on_walk.psimps)
-        thm False
+        using "1.prems" "1.hyps"
+        apply (auto simp add: find_newest_on_walk.psimps split: option.splits)
+        
       qed
   qed
 qed
