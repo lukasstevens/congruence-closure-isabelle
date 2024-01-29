@@ -796,15 +796,13 @@ lemma newest_on_walkE:
   obtains i where
     "i \<in> set p"
     "awalk y p z" "newest = au_of i"
-    "\<forall>i' \<in> set p. au_of i' \<le> au_of i"
 proof -
   from assms have "au_of ` set p \<noteq> {}"
     unfolding newest_on_walk_def by auto
   from Max_in[OF _ this] obtain i where "i \<in> set p" "Max (au_of ` set p) = au_of i"
     by blast
   with assms that show ?thesis
-    unfolding newest_on_walk_def
-    by (metis List.finite_set Max_ge finite_imageI image_eqI)
+    unfolding newest_on_walk_def by simp
 qed
 
 lemma newest_on_walk_lt_length_unions:

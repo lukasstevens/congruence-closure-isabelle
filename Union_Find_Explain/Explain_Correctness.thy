@@ -14,7 +14,7 @@ proof -
     by (meson lca_reachableD reachable_awalk)
   note find_newest_on_walk_dom = this[THEN find_newest_on_walk_dom]
   note find_newest_on_walk_psimps = this[THEN find_newest_on_walk.psimps]
-  consider (lca_x) "x = ulca" | (lca_y) "y = ulca" | (not_lca) "x \<noteq> ulca \<and> y \<noteq> ulca"
+  consider (lca_x) "x = ulca" | (lca_y) "y = ulca" | (not_lca) "ulca \<noteq> x" "ulca \<noteq> y"
     using \<open>x \<noteq> y\<close> by auto
   then show ?thesis
   proof cases
@@ -43,18 +43,17 @@ proof -
     from not_lca px py obtain ix iy where
       ix: "ix \<in> set px" "find_newest_on_walk uf au ulca x = Some (au_of ix)" and
       iy: "iy \<in> set py" "find_newest_on_walk uf au ulca y = Some (au_of iy)"
-      sorry
+      using newest_on_walkE[unfolded newest_on_walk_def]
+      by (simp add: find_newest_on_walk_eq_Max_au_of) metis
     moreover note ps[unfolded ulca_eq] = px py
-    note disjoint_tl_awalk_verts_if_awalk_lca[OF lca_ulca \<open>x \<noteq> y\<close> this]
-    with ix iy ulca_eq have "ix \<noteq> iy"
+    note disjoint_awalk_if_awalk_lca[OF lca_ulca \<open>x \<noteq> y\<close> this]
+    with ix iy have "ix \<noteq> iy"
       by blast
     moreover from px py ix iy have
-      "ix \<in> verts (ufa_tree_of uf x)" "iy \<in> verts (ufa_tree_of uf x)"
-      by (meson awalk_decomp awalk_last_in_verts in_set_tlD)+
-    then have "ix < length au" "iy < length au"
-      using in_verts_ufa_tree_ofD(1) length_au by simp_all
+      "ix \<in> arcs (ufa_tree_of uf x)" "iy \<in> arcs (ufa_tree_of uf x)"
+      by blast+
     ultimately show ?thesis
-      using distinct_au[unfolded distinct_conv_nth] by simp
+      using inj_on_au_of_arcs ix iy by (fastforce dest: inj_onD)
   qed
 qed
 
@@ -62,46 +61,46 @@ lemma (in ufe_tree) newest_on_walk_newest_x:
   assumes "y \<in> verts (ufa_tree_of uf x)"
   assumes "x \<noteq> y"
   assumes ulca_eq: "ulca = ufa_lca uf x y"
-  assumes "newest_x = find_newest_on_walk uf au ulca x"
-  assumes "newest_y = find_newest_on_walk uf au ulca y"
+  assumes "find_newest_on_walk uf au ulca x = newest_x"
+  assumes "find_newest_on_walk uf au ulca y = newest_y"
   assumes "newest_x > newest_y"
-  obtains px where "newest_on_walk newest_x ulca px x" "ulca \<noteq> x"
+  obtains px where "newest_on_walk (the newest_x) ulca px x" "ulca \<noteq> x"
 proof -
   note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of uf x)\<close>]
   with ulca_eq obtain px py where
     px: "awalk ulca px x" and py: "awalk ulca py y"
     by (meson lca_reachableD reachable_awalk)
-  with assms have "newest_on_walk newest_x ulca px x" if "ulca \<noteq> x"
-    using that newest_on_walk_find_newest_on_walk by blast
+  with assms have "newest_on_walk (the newest_x) ulca px x" if "ulca \<noteq> x"
+    using that newest_on_walk_find_newest_on_walk by metis
 
   moreover note px py
-  note find_newest_on_walk_dom = this[THEN find_newest_on_walk_domain]
+  note find_newest_on_walk_dom = this[THEN find_newest_on_walk_dom]
   note find_newest_on_walk_psimps = this[THEN find_newest_on_walk.psimps]
   have "ulca \<noteq> x"
   proof
     assume "ulca = x"
-    with \<open>x \<noteq> y\<close> py have "l ! y \<noteq> y"
-      using awalk_idx_sameD(1) by blast
+    with \<open>x \<noteq> y\<close> py have "uf_parent_of uf y \<noteq> y"
+      using awalk_and_parent_of_reflD(1) by blast
     with \<open>ulca = x\<close> assms show False
-      unfolding find_newest_on_walk_psimps
-      using in_verts_ufa_tree_ofD(1) nth_au_nonneg_if_not_rep by fastforce
+      by simp
   qed
 
   ultimately show ?thesis
     using that by blast
 qed
 
-lemma (in ufe_invars) explain_dom_symmetric:
-  assumes "explain_dom l au unions (x, y)"
-  assumes "x < length l" "y < length l"
-  shows "explain_dom l au unions (y, x)"
+lemma (in union_find_explain_invars) explain_dom_symmetric:
+  assumes "explain_dom uf au unions (x, y)"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "\<And>y. finite (uf_\<alpha> uf `` {y})"
+  shows "explain_dom uf au unions (y, x)"
   using assms
 proof(induction rule: explain_pinduct)
   case (newest_x x y ulca newest_x newest_y ax bx)
-  then interpret ufe_tree l unions au x
+  then interpret ufe_tree where uf = uf and unions = unions and au = au and x = x
     by (unfold_locales) blast
   from newest_x neq_find_newest_on_path have "newest_x \<noteq> newest_y"
-    using in_vertsI by metis
+    using in_vertsI using \<alpha>_rep_of by metis
   with newest_x.hyps have "newest_y < newest_x"
     using newest_x.hyps(7) by fastforce
   from newest_x.hyps(4) have ulca_eq: "ulca = ufa_lca uf y x"
@@ -111,14 +110,15 @@ proof(induction rule: explain_pinduct)
   note domintro = explain_newest_y_domintro[OF hyps]
 
   with newest_x \<open>newest_y < newest_x\<close> obtain px where
-    "newest_on_walk newest_x ulca px x" "ulca \<noteq> x"
-    using newest_on_walk_newest_x[OF in_vertsI] by metis
-  note newest_on_walk_valid_union[OF this \<open>unions ! nat newest_x = (ax, bx)\<close>]
+    "newest_on_walk (the newest_x) ulca px x" "ulca \<noteq> x"
+    using newest_on_walk_newest_x[OF in_vertsI] \<alpha>_rep_of by blast
+    
+  note newest_on_walk_valid_union[OF this \<open>unions ! the newest_x = (ax, bx)\<close>]
   with newest_x.prems show ?case
     by (intro domintro newest_x.IH) assumption+
 next
   case (newest_y x y ulca newest_x newest_y ay "by")
-  then interpret ufe_tree l unions au y
+  then interpret ufe_tree where uf = uf and unions = unions and au = au and x = y
     by (unfold_locales) blast
   from newest_y.hyps(4) have ulca_eq: "ulca = ufa_lca uf y x"
     using ufa_lca_symmetric by simp
@@ -129,55 +129,71 @@ next
   note domintro = explain_newest_x_domintro[OF hyps]
 
   with newest_y \<open>newest_y > newest_x\<close> obtain py where
-    "newest_on_walk newest_y ulca py y" "ulca \<noteq> y"
-    using newest_on_walk_newest_x[OF in_vertsI] ulca_eq by blast
-  note newest_on_walk_valid_union[OF this \<open>unions ! nat newest_y = (ay, by)\<close>]
+    "newest_on_walk (the newest_y) ulca py y" "ulca \<noteq> y"
+    using newest_on_walk_newest_x[OF in_vertsI] ulca_eq \<alpha>_rep_of by metis
+  note newest_on_walk_valid_union[OF this \<open>unions ! the newest_y = (ay, by)\<close>]
   with newest_y.prems show ?case
     by (intro domintro newest_y.IH) assumption+
 qed simp_all
 
-lemma (in ufe_invars) explain_symmetric:
-  assumes "explain_dom l au unions (x, y)"
-  assumes "x < length l" "y < length l"
-  shows "explain l au unions x y = explain l au unions y x"
+lemma (in union_find_explain_invars) explain_symmetric:
+  assumes "explain_dom uf au unions (x, y)"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "\<And>y. finite (uf_\<alpha> uf `` {y})"
+  shows "explain uf au unions x y = explain uf au unions y x"
   using assms
 proof(induction rule: explain_pinduct)
   case (newest_x x y ulca newest_x newest_y ax bx)
   note explain_dom = this(1) explain_dom_symmetric[OF this(1) newest_x.prems]
   note explain_psimps = this[THEN explain.psimps]
 
-  from newest_x interpret ufe_tree l unions au x
+  from newest_x interpret ufe_tree where uf = uf and unions = unions and au = au and x = x
     by (unfold_locales) blast
 
   from newest_x neq_find_newest_on_path have "newest_x \<noteq> newest_y"
-    using in_vertsI by metis
+    using in_vertsI \<alpha>_rep_of by metis
   with newest_x have "newest_x > newest_y"
     by simp
 
   with newest_x newest_on_walk_newest_x[OF in_vertsI] obtain px where
-    "newest_on_walk newest_x ulca px x" "ulca \<noteq> x"
-    by (metis \<open>newest_y < newest_x\<close>)
+    "newest_on_walk (the newest_x) ulca px x" "ulca \<noteq> x"
+    using \<alpha>_rep_of by (metis \<open>newest_y < newest_x\<close>)
   note valid_union = newest_on_walk_valid_union[OF this]
 
   from newest_x \<open>newest_x \<noteq> newest_y\<close> show ?case
-    unfolding explain_psimps using ufa_lca_symmetric[of l x y]
+    unfolding explain_psimps using ufa_lca_symmetric[of uf x y]
     by (auto simp: valid_union)
 next
   case (newest_y x y ulca newest_x newest_y ay "by")
   note explain_dom = this(1) explain_dom_symmetric[OF this(1) newest_y.prems]
   note explain_psimps = this[THEN explain.psimps]
+  from newest_y have explain_psimps:
+    "explain uf au unions x y
+      = {(ay, by)} \<union> explain uf au unions x by \<union> explain uf au unions ay y"
+    "explain uf au unions y x
+      = {(ay, by)} \<union> explain uf au unions y ay \<union> explain uf au unions by x"
+    by (auto simp: explain_psimps ufa_lca_symmetric[of uf y x] Let_def split: prod.splits)
 
-  from newest_y interpret ufe_tree l unions au y
+  from newest_y interpret ufe_tree where uf = uf and unions = unions and au = au and x = y
     by (unfold_locales) blast
 
   from newest_y newest_on_walk_newest_x[OF in_vertsI] obtain py where
-    "newest_on_walk newest_y ulca py y" "ulca \<noteq> y"
-    using ufa_lca_symmetric[of l x y] by blast
+    "newest_on_walk (the newest_y) ulca py y" "ulca \<noteq> y"
+    using ufa_lca_symmetric[of uf x y] \<alpha>_rep_of by metis
   note valid_union = newest_on_walk_valid_union[OF this]
-
-  from newest_y show ?case
-    unfolding explain_psimps using ufa_lca_symmetric[of l x y]
-    by (auto simp: valid_union)
+  then have "ay \<in> Field (uf_\<alpha> uf)" "by \<in> Field (uf_\<alpha> uf)"
+    using newest_y by blast+
+  with newest_y have
+    "explain uf au unions x by = explain uf au unions by x"
+    "explain uf au unions ay y = explain uf au unions y ay"
+    by blast+
+  then show ?case
+    unfolding explain_psimps by blast
 qed (simp_all add: explain.psimps)
 
+context
+union_find_explain_invars
+begin
+
+find_theorems "explain_dom"
 end
