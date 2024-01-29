@@ -4,51 +4,52 @@ theory Explain_Correctness
 begin
 
 lemma (in ufe_tree) neq_find_newest_on_path:
-  assumes "y \<in> verts (ufa_tree_of l x)" "x \<noteq> y"
-  assumes ulca_eq: "ulca = ufa_lca l x y"
-  shows "find_newest_on_walk l au ulca x \<noteq> find_newest_on_walk l au ulca y"
+  assumes "y \<in> verts (ufa_tree_of uf x)" "x \<noteq> y"
+  assumes ulca_eq: "ulca = ufa_lca uf x y"
+  shows "find_newest_on_walk uf au ulca x \<noteq> find_newest_on_walk uf au ulca y"
 proof -
-  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of l x)\<close>]
+  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of uf x)\<close>]
   with ulca_eq obtain px py where
     px: "awalk ulca px x" and py: "awalk ulca py y"
     by (meson lca_reachableD reachable_awalk)
-  note find_newest_on_walk_dom = this[THEN find_newest_on_walk_domain]
+  note find_newest_on_walk_dom = this[THEN find_newest_on_walk_dom]
   note find_newest_on_walk_psimps = this[THEN find_newest_on_walk.psimps]
-  consider (lca_x) "x = ulca" | (lca_y) "y = ulca" | (neq_lca) "x \<noteq> ulca \<and> y \<noteq> ulca"
+  consider (lca_x) "x = ulca" | (lca_y) "y = ulca" | (not_lca) "x \<noteq> ulca \<and> y \<noteq> ulca"
     using \<open>x \<noteq> y\<close> by auto
   then show ?thesis
   proof cases
     case lca_x
-    then have "find_newest_on_walk l au ulca x = -1"
+    then have "find_newest_on_walk uf au ulca x = None"
       using find_newest_on_walk_psimps(1) by auto
-    moreover from lca_x have "find_newest_on_walk l au ulca y \<ge> 0"
-      using \<open>x \<noteq> y\<close> newest_on_walk_in_bounds
-      using newest_on_walk_find_newest_on_walk[OF \<open>awalk ulca py y\<close>]
-      by blast
+    moreover
+    from \<open>x \<noteq> y\<close> lca_x have "find_newest_on_walk uf au ulca y \<noteq> None"
+      using find_newest_on_walk_eq_Max_au_of[OF py] by blast      
     ultimately show ?thesis
-      by simp
+      by force
   next
     case lca_y
-    then have "find_newest_on_walk l au ulca y = -1"
-      using find_newest_on_walk_psimps(2) by auto
-    moreover from lca_y have "find_newest_on_walk l au ulca x \<ge> 0"
-      using \<open>x \<noteq> y\<close> newest_on_walk_in_bounds
-      using newest_on_walk_find_newest_on_walk[OF \<open>awalk ulca px x\<close>]
-      by blast
+    then have "find_newest_on_walk uf au ulca y = None"
+      using find_newest_on_walk_psimps(1) by auto
+    moreover
+    from \<open>x \<noteq> y\<close> lca_y have "find_newest_on_walk uf au ulca x \<noteq> None"
+      using find_newest_on_walk_eq_Max_au_of[OF px] by blast      
     ultimately show ?thesis
-      by simp
+      by force
   next
-    case neq_lca
-    moreover from neq_lca px py obtain ix iy where
-      ix: "ix \<in> set (tl (awalk_verts ulca px))" "find_newest_on_walk l au ulca x = au ! ix" and
-      iy: "iy \<in> set (tl (awalk_verts ulca py))" "find_newest_on_walk l au ulca y = au ! iy"
-      by (metis newest_on_walkE newest_on_walk_find_newest_on_walk) 
+    case not_lca
+    moreover
+    from not_lca px py have "px \<noteq> []" "py \<noteq> []"
+      using awalk_empty_ends px by blast+
+    from not_lca px py obtain ix iy where
+      ix: "ix \<in> set px" "find_newest_on_walk uf au ulca x = Some (au_of ix)" and
+      iy: "iy \<in> set py" "find_newest_on_walk uf au ulca y = Some (au_of iy)"
+      sorry
     moreover note ps[unfolded ulca_eq] = px py
     note disjoint_tl_awalk_verts_if_awalk_lca[OF lca_ulca \<open>x \<noteq> y\<close> this]
     with ix iy ulca_eq have "ix \<noteq> iy"
       by blast
     moreover from px py ix iy have
-      "ix \<in> verts (ufa_tree_of l x)" "iy \<in> verts (ufa_tree_of l x)"
+      "ix \<in> verts (ufa_tree_of uf x)" "iy \<in> verts (ufa_tree_of uf x)"
       by (meson awalk_decomp awalk_last_in_verts in_set_tlD)+
     then have "ix < length au" "iy < length au"
       using in_verts_ufa_tree_ofD(1) length_au by simp_all
@@ -58,15 +59,15 @@ proof -
 qed
 
 lemma (in ufe_tree) newest_on_walk_newest_x:
-  assumes "y \<in> verts (ufa_tree_of l x)"
+  assumes "y \<in> verts (ufa_tree_of uf x)"
   assumes "x \<noteq> y"
-  assumes ulca_eq: "ulca = ufa_lca l x y"
-  assumes "newest_x = find_newest_on_walk l au ulca x"
-  assumes "newest_y = find_newest_on_walk l au ulca y"
+  assumes ulca_eq: "ulca = ufa_lca uf x y"
+  assumes "newest_x = find_newest_on_walk uf au ulca x"
+  assumes "newest_y = find_newest_on_walk uf au ulca y"
   assumes "newest_x > newest_y"
   obtains px where "newest_on_walk newest_x ulca px x" "ulca \<noteq> x"
 proof -
-  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of l x)\<close>]
+  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of uf x)\<close>]
   with ulca_eq obtain px py where
     px: "awalk ulca px x" and py: "awalk ulca py y"
     by (meson lca_reachableD reachable_awalk)
@@ -103,7 +104,7 @@ proof(induction rule: explain_pinduct)
     using in_vertsI by metis
   with newest_x.hyps have "newest_y < newest_x"
     using newest_x.hyps(7) by fastforce
-  from newest_x.hyps(4) have ulca_eq: "ulca = ufa_lca l y x"
+  from newest_x.hyps(4) have ulca_eq: "ulca = ufa_lca uf y x"
     using ufa_lca_symmetric by simp
   note hyps = newest_x.hyps(2,3)[symmetric] ulca_eq newest_x.hyps(6,5)
     \<open>newest_y < newest_x\<close> newest_x.hyps(8)
@@ -119,7 +120,7 @@ next
   case (newest_y x y ulca newest_x newest_y ay "by")
   then interpret ufe_tree l unions au y
     by (unfold_locales) blast
-  from newest_y.hyps(4) have ulca_eq: "ulca = ufa_lca l y x"
+  from newest_y.hyps(4) have ulca_eq: "ulca = ufa_lca uf y x"
     using ufa_lca_symmetric by simp
   from newest_y have "newest_x \<le> newest_y"
     by simp

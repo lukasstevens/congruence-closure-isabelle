@@ -771,6 +771,18 @@ lemma au_of_lt_length_unions:
   using head_in_dom_lookup_if_in_arcs[OF assms] valid_au
   unfolding au_of_def dom_def by simp
 
+lemma inj_on_au_of_arcs:
+  "inj_on au_of (arcs (ufa_tree_of uf x))"
+  using head_in_dom_lookup_if_in_arcs inj_on_dom_au
+  unfolding au_of_def inj_on_def
+  by (metis two_in_arcs_contr domIff option.collapse)
+
+lemma inj_on_au_of_awalk:
+  assumes "awalk y p z"
+  shows "inj_on au_of (set p)"
+  using assms inj_on_au_of_arcs
+  by (meson awalkE' inj_on_subset)
+
 definition "newest_on_walk newest y p z \<equiv> awalk y p z \<and> newest = Max (au_of ` set p)"
 
 lemma newest_on_walk_awalkD[simp]:

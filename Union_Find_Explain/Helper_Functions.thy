@@ -23,19 +23,22 @@ qed
 
 subsection \<open>Correctness of \<open>find_newest_on_walk\<close>.\<close>
 
-lemma (in ufe_tree) find_newest_on_walk_dom_idx:
+context ufe_tree
+begin
+
+lemma find_newest_on_walk_dom_parent_of:
   assumes "find_newest_on_walk_dom uf (y, x)" "x \<noteq> y"
   shows "find_newest_on_walk_dom uf (y, uf_parent_of uf x)"
   using assms find_newest_on_walk.domintros
   by (induction rule: find_newest_on_walk.pinduct) blast
 
-lemma (in ufe_tree) find_newest_on_walk_eq_if_eq[simp]:
+lemma find_newest_on_walk_eq_if_eq[simp]:
   assumes "y = x"
   shows "find_newest_on_walk uf au y x = None"
   using assms
   by (metis find_newest_on_walk.domintros find_newest_on_walk.pelims)
 
-lemma (in ufe_tree) find_newest_on_walk_domain:
+lemma find_newest_on_walk_dom:
   assumes "awalk y p z"
   shows "find_newest_on_walk_dom uf (y, z)"
 proof -
@@ -63,38 +66,29 @@ proof -
   qed
 qed
 
-theorem (in ufe_tree) newest_on_walk_find_newest_on_walk:
+lemma find_newest_on_walk_eq_Max_au_of:
   assumes "awalk y p z"
       and "y \<noteq> z"
-    shows "newest_on_walk (the (find_newest_on_walk uf au y z)) y p z"
+    shows "find_newest_on_walk uf au y z = Some (Max (au_of ` set p))"
 proof -
-  from assms have "uf_parent_of uf z \<noteq> z"
-    using awalk_and_parent_of_reflD(1) by blast
-  with assms obtain au_z where "mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z"
-    using awalk_last_in_verts lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
-    by blast
-  note find_newest_on_walk_domain[OF assms(1)]
-  then show ?thesis 
-    using assms
-  proof(induction arbitrary: p au_z rule: find_newest_on_walk.pinduct)
+  from find_newest_on_walk_dom[OF assms(1)] assms show ?thesis
+  proof(induction arbitrary: p rule: find_newest_on_walk.pinduct)
     case (1 y z)
+    then have "z \<in> Field (uf_\<alpha> uf)"
+      using in_Field_\<alpha>_if_in_verts awalk_last_in_verts by blast
+    with "1.prems" obtain au_z where au_z: "mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z"
+      using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
+      by (metis awalk_Nil_iff awalk_and_parent_of_reflD(2) option.exhaust)
     then show ?case
     proof(cases "y = uf_parent_of uf z")
       case True
-      with 1 have p_eq: "p = [(uf_parent_of uf z, z)]" (is "_ = [?a]")
+      with "1.prems" have p_eq: "p = [(uf_parent_of uf z, z)]" (is "_ = [?a]")
         using awalk_parent_of unique_awalk_All by blast
-      moreover
-      from True 1 obtain au_z where au_z: "mm_lookup\<^bsub>au_adt\<^esub> au z = Some au_z"
-        using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
-        by (meson in_Field_\<alpha>_if_in_verts awalk_last_in_verts option.exhaust_sel)
-      from au_z True "1.prems" have "find_newest_on_walk uf au y z = Some (au_of ?a)"
+      with "1.prems" au_z show ?thesis
         unfolding au_of_def find_newest_on_walk.psimps[OF "1.hyps"]
         by (auto simp: combine_options_def split: option.splits)
-      ultimately
-      show ?thesis
-        using 1 unfolding newest_on_walk_def by simp
     next
-      case False
+      case False 
       from 1 have "p \<noteq> []"
         by auto
       with 1 have
@@ -106,51 +100,64 @@ proof -
       have awalk_verts_p:
         "awalk_verts y p = awalk_verts y (butlast p) @ [z]"
         using \<open>awalk y p z\<close> \<open>p \<noteq> []\<close> by auto
-      moreover
-      
-      from False obtain au_p_z where
+
+      from \<open>z \<in> Field (uf_\<alpha> uf)\<close> have "uf_parent_of uf z \<in> Field (uf_\<alpha> uf)"
+        by blast
+      with False obtain au_p_z where au_p_z:
         "mm_lookup\<^bsub>au_adt\<^esub> au (uf_parent_of uf z) = Some au_p_z"
         using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
-        using awalk_and_parent_of_reflD(1) awalk_butlast awalk_last_in_verts domD domIff in_Field_\<alpha>_if_in_verts lookup_au_if_not_rep 
-        by (metis awalk_and_parent_of_reflD(1) awalk_butlast awalk_last_in_verts domD domIff in_Field_\<alpha>_if_in_verts lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl)
+        by (metis awalk_and_parent_of_reflD(1) awalk_butlast domD domIff)
       
-      note "1.IH"[OF \<open>y \<noteq> z\<close> \<open>awalk y (butlast p) (uf_parent_of uf z)\<close> \<open>y \<noteq> uf_parent_of uf z\<close>]
-      moreover from \<open>p \<noteq> []\<close> have "p = butlast p @ [last p]"
-        by simp
-      moreover
-      let ?vs = "tl (awalk_verts y (butlast p))"
-      have Max_insert:
-        "Max (insert au_z (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)))
-        = max au_z (Max (Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)))"
-      proof(rule Max.insert_not_elem)
-        from False obtain au_parent_z where
-          "mm_lookup\<^bsub>au_adt\<^esub> au (uf_parent_of uf z) = Some au_parent_z"
-          using lookup_au_if_not_rep parent_of_refl_iff_rep_of_refl
-          using awalk_butlast awalk_and_parent_of_reflD(1) by blast
-        moreover from False have "uf_parent_of uf z \<in> set ?vs"
-          using awalk_butlast
-          by (simp add: last_in_awalk_verts(1) not_hd_in_tl)
-        ultimately show "Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs) \<noteq> {}"
-          unfolding Option.these_def by auto
-
-        from \<open>awalk y p z\<close> awalk_butlast awalk_verts_p
-        have "z \<notin> set (awalk_verts y (butlast p))"
-          by (metis distinct_awalk_verts not_distinct_conv_prefix)
-        then have "z \<notin> set ?vs"
-          by (meson in_set_tlD)
-        with "1" show "au_z \<notin> Option.these (mm_lookup\<^bsub>au_adt\<^esub> au ` set ?vs)"
-          using inj_on_dom_au unfolding Option.these_def
-          by auto (metis domI inj_onD)
-      qed (simp add: Option.these_def)
-      show ?thesis
-        
-        unfolding newest_on_walk_def
-        unfolding awalk_verts_p
-        using "1.prems" "1.hyps"
-        apply (auto simp add: find_newest_on_walk.psimps split: option.splits)
-        
+      from \<open>y \<noteq> z\<close> au_z au_p_z have "find_newest_on_walk uf au y z
+        = combine_options max (Some au_z) (find_newest_on_walk uf au y (uf_parent_of uf z))"
+      proof -
+        have "find_newest_on_walk_dom uf (y, uf_parent_of uf z)"
+          using awalk_butlast find_newest_on_walk_dom by blast
+        with False au_p_z have "find_newest_on_walk uf au y (uf_parent_of uf z) \<noteq> None"
+          by (auto simp: find_newest_on_walk.psimps combine_options_def split: option.splits)
+        with "1.prems" au_z show ?thesis 
+          unfolding find_newest_on_walk.psimps[OF "1.hyps"(1)] by fastforce
       qed
+      also have "\<dots> = Some (max au_z (Max (au_of ` set (butlast p))))"
+      proof -
+        note "1.IH"[OF \<open>y \<noteq> z\<close> \<open>awalk y (butlast p) (uf_parent_of uf z)\<close> \<open>y \<noteq> uf_parent_of uf z\<close>]
+        then show ?thesis
+          unfolding newest_on_walk_def by simp
+      qed
+      also have "\<dots> = Some (Max (au_of ` set p))"
+      proof -
+        from \<open>p \<noteq> []\<close> have "p = butlast p @ [last p]"
+          by simp
+        from 1 have "distinct p"
+          using distinct_awalk_verts distinct_verts_imp_distinct by blast
+        then have "distinct (map au_of (butlast p @ [last p]))"
+          using \<open>p = butlast p @ [last p]\<close> 
+          using distinct_map inj_on_au_of_awalk[OF \<open>awalk y p z\<close>] by metis
+        then have "au_of (last p) \<notin> au_of ` set (butlast p)"
+          by fastforce
+        from Max.insert_not_elem[OF _ this] False
+        have "Max (insert (au_of (last p)) (au_of ` set (butlast p)))
+          = max (au_of (last p)) (Max (au_of ` set (butlast p)))"
+          using awalk_butlast awalk_ends by blast
+        then have "\<dots> = Max (au_of ` set p)"
+          using \<open>au_of (last p) \<notin> au_of ` set (butlast p)\<close>
+          by (subst (3) \<open>p = butlast p @ [last p]\<close>) simp
+        with au_z show ?thesis
+          by (metis au_of_def awalk_Cons_iff awalk_ends awalk_last option.sel)
+      qed
+      finally show ?thesis .
+    qed
   qed
 qed
+
+theorem newest_on_walk_find_newest_on_walk:
+  assumes "awalk y p z"
+      and "y \<noteq> z"
+    shows "newest_on_walk (the (find_newest_on_walk uf au y z)) y p z"
+  using find_newest_on_walk_eq_Max_au_of[OF assms] \<open>awalk y p z\<close>
+  unfolding newest_on_walk_def
+  by simp
+
+end
 
 end
