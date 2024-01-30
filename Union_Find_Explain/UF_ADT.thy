@@ -42,83 +42,48 @@ lemma in_per_unionI:
   unfolding per_union_def Field_def
   by blast
 
-statespace ('uf, 'dom) union_find_adt =
-  init :: 'uf
-  rep_of :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom"
-  union :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'uf"
-  invar :: "'uf \<Rightarrow> bool"
-  \<alpha> :: "'uf \<Rightarrow> 'dom rel"
+record ('uf, 'dom) union_find_adt =
+  init :: 'uf ("uf'_init\<index>")
+  rep_of :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom" ("uf'_rep'_of\<index>")
+  union :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'uf" ("uf'_union\<index>")
+  invar :: "'uf \<Rightarrow> bool" ("uf'_invar\<index>")
+  \<alpha> :: "'uf \<Rightarrow> 'dom rel" ("uf'_\<alpha>\<index>")
 
-statespace ('uf, 'dom) union_find_parent_adt =
-  ('uf, 'dom) union_find_adt +
-  parent_of :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom"
+record ('uf, 'dom) union_find_parent_adt =
+  "('uf, 'dom) union_find_adt" +
+  parent_of :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom" ("uf'_parent'_of\<index>")
   
-statespace ('uf, 'dom) union_find_explain_adt =
-  ('uf, 'dom) union_find_adt +
-  explain :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'dom rel"
+record ('uf, 'dom) union_find_explain_adt =
+  "('uf, 'dom) union_find_adt" +
+  explain :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'dom rel" ("uf'_explain\<index>")
 
-context union_find_adt
-begin
+term "init (x :: ('uf, 'dom, 'more) union_find_parent_adt_scheme)"
 
-abbreviation uf_init_1 ("uf'_init\<index>") where "uf_init_1 uf_adt \<equiv> uf_adt \<cdot> init" 
-abbreviation uf_rep_of_1 ("uf'_rep'_of\<index>") where "uf_rep_of_1 uf_adt \<equiv> uf_adt \<cdot> rep_of" 
-abbreviation uf_union_1 ("uf'_union\<index>") where "uf_union_1 uf_adt \<equiv> uf_adt \<cdot> union" 
-abbreviation uf_invar_1 ("uf'_invar\<index>") where "uf_invar_1 uf_adt \<equiv> uf_adt \<cdot> invar" 
-abbreviation uf_\<alpha>_1 ("uf'_\<alpha>\<index>") where "uf_\<alpha>_1 uf_adt \<equiv> uf_adt \<cdot> \<alpha>"
+locale union_find_adt =
+  fixes uf_adt :: "('uf, 'dom, 'more) union_find_adt_scheme" (structure)
 
-end
-
-abbreviation (in union_find_parent_adt) uf_parent_of_1 ("uf'_parent'_of\<index>") where
-  "uf_parent_of_1 uf_adt \<equiv> uf_adt \<cdot> parent_of"
-
-abbreviation (in union_find_explain_adt) uf_explain_1 ("uf'_explain\<index>") where
-  "uf_explain_1 uf_adt \<equiv> uf_adt \<cdot> explain"
-  
-locale union_find_adt' =
-  union_find_adt where
-    project_'dom_'dom_fun_'uf_fun = project_'dom_'dom_fun_'uf_fun
-  for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
-
-fixes uf_ty :: "'uf itself"
-fixes dom_ty :: "'dom itself"
-
-locale union_find_parent_adt' =
-  union_find_parent_adt
-  where project_'dom_'dom_fun_'uf_fun = project_'dom_'dom_fun_'uf_fun
-  for project_'dom_'dom_fun_'uf_fun :: "_ \<Rightarrow> 'uf \<Rightarrow> 'dom \<Rightarrow> _" +
- 
-fixes uf_ty :: "'uf itself"
-fixes dom_ty :: "'dom itself"
-
-begin
-sublocale union_find_adt' where uf_ty = uf_ty and dom_ty = dom_ty
-  by unfold_locales
-end
-
-locale union_find =
-  union_find_adt' where
-    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
-  for uf_ty dom_ty +
-
-  fixes uf_adt (structure)
+locale union_find = union_find_adt +
   assumes part_equiv_\<alpha>:
-        "uf_invar uf \<Longrightarrow> part_equiv (uf_\<alpha> uf)"
-      and invar_init: "uf_invar uf_init"
-      and \<alpha>_init: "uf_\<alpha> uf_init \<subseteq> Id" 
-      and \<alpha>_rep_of:
-        "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
-        \<Longrightarrow> uf_rep_of uf x = uf_rep_of uf y \<longleftrightarrow> (x, y) \<in> uf_\<alpha> uf"
-      and invar_union:
-        "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
-        \<Longrightarrow> uf_invar (uf_union uf x y)"
-      and \<alpha>_union:
-        "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
-        \<Longrightarrow> uf_\<alpha> (uf_union uf x y) = per_union (uf_\<alpha> uf) x y"
+    "uf_invar uf \<Longrightarrow> part_equiv (uf_\<alpha> uf)"
+  assumes invar_init: "uf_invar uf_init"
+  assumes \<alpha>_init: "uf_\<alpha> uf_init \<subseteq> Id" 
+  assumes \<alpha>_rep_of:
+    "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
+    \<Longrightarrow> uf_rep_of uf x = uf_rep_of uf y \<longleftrightarrow> (x, y) \<in> uf_\<alpha> uf"
+  assumes invar_union:
+    "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
+    \<Longrightarrow> uf_invar (uf_union uf x y)"
+  assumes \<alpha>_union:
+    "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf) \<rbrakk>
+    \<Longrightarrow> uf_\<alpha> (uf_union uf x y) = per_union (uf_\<alpha> uf) x y"
+
+locale union_find_parent_adt =
+  union_find_adt where uf_adt = uf_adt for uf_adt ::
+    "('uf, 'dom, 'more) union_find_parent_adt_scheme" (structure)
 
 locale union_find_parent =
-  union_find_parent_adt' where
-    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself" +
-  union_find +
+  union_find where uf_adt = uf_adt +
+  union_find_parent_adt where uf_adt = uf_adt for uf_adt (structure) +
 
   assumes wf_parent_of:
     "uf_invar uf \<Longrightarrow> wf {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf)}"
@@ -138,11 +103,7 @@ locale union_find_explain = union_find_explain_adt + union_find +
     \<Longrightarrow> (x, y) \<in> (uf_explain uf x y)\<^sup>*"
 *)
 
-locale union_find_invar =
-  union_find where
-    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
-  for uf_ty dom_ty +
-
+locale union_find_invar = union_find +
   fixes uf :: 'uf
   assumes invar_uf: "uf_invar uf"
 begin
@@ -158,13 +119,31 @@ lemma Field_\<alpha>_union[simp]:
   shows "Field (uf_\<alpha> (uf_union uf x y)) = Field (uf_\<alpha> uf)"
   using assms by auto
 
+lemma Pair_rep_of_in_\<alpha>_if_in_Field_\<alpha>:
+  assumes "x \<in> Field (uf_\<alpha> uf)"
+  shows "(x, uf_rep_of uf x) \<in> uf_\<alpha> uf"
+  sorry
+
+lemma rep_of_Pair_in_\<alpha>_if_in_Field_\<alpha>:
+  assumes "x \<in> Field (uf_\<alpha> uf)"
+  shows "(uf_rep_of uf x, x) \<in> uf_\<alpha> uf"
+  using Pair_rep_of_in_\<alpha>_if_in_Field_\<alpha>[OF assms] part_equiv_\<alpha>
+  by (meson part_equiv_sym)
+
+lemma rep_of_in_Field_\<alpha>_if_in_Field_\<alpha>[simp, intro]:
+  assumes "x \<in> Field (uf_\<alpha> uf)"
+  shows "uf_rep_of uf x \<in> Field (uf_\<alpha> uf)"
+  using assms Pair_rep_of_in_\<alpha>_if_in_Field_\<alpha> by (fastforce simp: Field_iff)
+
+lemma rep_of_rep_of[simp]:
+  assumes "x \<in> Field (uf_\<alpha> uf)"
+  shows "uf_rep_of uf (uf_rep_of uf x) = uf_rep_of uf x"
+  using assms rep_of_Pair_in_\<alpha>_if_in_Field_\<alpha>
+  by (subst \<alpha>_rep_of) auto
+
 end
 
-locale union_find_parent_invar =
-  union_find_parent where
-    uf_ty = "uf_ty :: 'uf itself" and dom_ty = "dom_ty :: 'dom itself"
-  for uf_ty dom_ty +
-
+locale union_find_parent_invar = union_find_parent +
   fixes uf :: 'uf
   assumes invar_uf: "uf_invar uf"
 begin
@@ -183,7 +162,7 @@ lemma parent_of_in_Field_\<alpha>I[intro]:
   using parent_of_in_\<alpha> by (meson FieldI1)
 
 lemma parent_of_in_\<alpha>_sym:
-  "\<lbrakk> x \<in> Field (uf_\<alpha> uf) \<rbrakk> \<Longrightarrow> (x, uf_parent_of uf x) \<in> uf_\<alpha> uf"
+  "x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> (x, uf_parent_of uf x) \<in> uf_\<alpha> uf"
   using part_equiv_\<alpha> parent_of_in_\<alpha> part_equiv_sym by metis
 
 end

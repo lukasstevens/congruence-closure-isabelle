@@ -150,6 +150,16 @@ proof -
   qed
 qed
 
+lemma find_newest_on_walk_eq_None_iff:
+  assumes "awalk y p z"
+  shows "find_newest_on_walk uf au y z = None \<longleftrightarrow> y = z"
+  using find_newest_on_walk_dom[OF assms] assms
+proof(induction rule: find_newest_on_walk.pinduct)
+  case (1 y z)
+  then show ?case
+    using find_newest_on_walk_eq_Max_au_of by (cases "y = z") simp_all
+qed
+  
 theorem newest_on_walk_find_newest_on_walk:
   assumes "awalk y p z"
       and "y \<noteq> z"

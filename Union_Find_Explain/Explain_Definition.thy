@@ -99,10 +99,10 @@ paragraph \<open>Explain\<close>
 
 text \<open>Finds the lowest common ancestor of x and y in the
       tree represented by the array l.\<close>
-context union_find_parent
+context union_find_parent_adt
 begin
 
-definition ufa_lca :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'dom" where
+definition ufa_lca where
   "ufa_lca uf x y \<equiv>
     last (longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y))"
 
@@ -123,7 +123,7 @@ end
 
 text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
-context union_find_explain
+context union_find_explain_adts
 begin
 
 context

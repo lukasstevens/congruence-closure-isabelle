@@ -2,36 +2,17 @@ theory Map_ADT
   imports "HOL-Statespace.StateSpaceSyntax"
 begin
 
-statespace ('m, 'dom, 'ran) map_mono_adt =
-  empty :: 'm
-  update :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran \<Rightarrow> 'm"
-  lookup :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran option"
-  invar :: "'m \<Rightarrow> bool"
-  \<alpha> :: "'m \<Rightarrow> ('dom \<rightharpoonup> 'ran)"
+record ('m, 'dom, 'ran) map_mono_adt =
+  empty :: 'm ("mm'_empty\<index>")
+  update :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran \<Rightarrow> 'm" ("mm'_update\<index>")
+  lookup :: "'m \<Rightarrow> 'dom \<Rightarrow> 'ran option" ("mm'_lookup\<index>")
+  invar :: "'m \<Rightarrow> bool" ("mm'_invar\<index>")
+  \<alpha> :: "'m \<Rightarrow> ('dom \<rightharpoonup> 'ran)" ("mm'_\<alpha>\<index>")
 
-context map_mono_adt
-begin
-
-abbreviation mm_empty_1 ("mm'_empty\<index>") where "mm_empty_1 mm_adt \<equiv> mm_adt \<cdot> empty"
-abbreviation mm_update_1 ("mm'_update\<index>") where "mm_update_1 mm_adt \<equiv> mm_adt \<cdot> update"
-abbreviation mm_lookup_1 ("mm'_lookup\<index>") where "mm_lookup_1 mm_adt \<equiv> mm_adt \<cdot> lookup"
-abbreviation mm_invar_1 ("mm'_invar\<index>") where "mm_invar_1 mm_adt \<equiv> mm_adt \<cdot> invar"
-abbreviation mm_\<alpha>_1 ("mm'_\<alpha>\<index>") where "mm_\<alpha>_1 mm_adt \<equiv> mm_adt \<cdot> \<alpha>"
-
-end
-
-locale map_mono_adt' = map_mono_adt where
-  project_'ran_Option_option_'dom_fun_'m_fun =
-  project_'ran_Option_option_'dom_fun_'m_fun
-  for project_'ran_Option_option_'dom_fun_'m_fun :: "_ \<Rightarrow> 'm \<Rightarrow> 'dom \<Rightarrow> 'ran option" +
-
-fixes m_ty :: "'m itself"
-fixes dom_ty :: "'dom itself"
-fixes ran_ty :: "'ran itself"
-
-
-locale map_mono = map_mono_adt' +
+locale map_mono_adt =
   fixes mm_adt (structure)
+
+locale map_mono = map_mono_adt +
   assumes \<alpha>_empty:
     "mm_\<alpha> mm_empty = Map.empty"
   assumes \<alpha>_update:
@@ -72,11 +53,11 @@ lemma mm_lookup_transfer[transfer_rule]:
   using \<alpha>_lookup unfolding mm_rel_defs rel_fun_def
   by auto
 
-definition "bla_on x y \<equiv> mm_\<alpha> x = mm_\<alpha> y"
+definition "eq_mm_\<alpha> x y \<equiv> mm_\<alpha> x = mm_\<alpha> y"
 
-lemma [transfer_rule]:
-  shows "(mm_rel ===> mm_rel ===> (=)) (=) (bla_on)"
-  unfolding bla_on_def mm_rel_def BNF_Def.Grp_def by auto
+lemma eq_mm_\<alpha>_transfer[transfer_rule]:
+  shows "(mm_rel ===> mm_rel ===> (=)) (=) eq_mm_\<alpha>"
+  unfolding eq_mm_\<alpha>_def mm_rel_def BNF_Def.Grp_def by auto
   
 end
 
@@ -96,7 +77,7 @@ proof -
   show ?thesis
     using \<open>a \<noteq> c\<close>
 
-    unfolding bla_on_def[symmetric]
+    unfolding eq_mm_\<alpha>_def[symmetric]
     apply transfer
     by auto
 qed

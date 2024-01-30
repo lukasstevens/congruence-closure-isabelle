@@ -6,7 +6,7 @@ theory UFA_Tree
     "Tree_Theory.LCA_Directed_Tree"
 begin
 
-context union_find_parent
+context union_find_parent_adt
 begin
 
 context
@@ -145,9 +145,7 @@ lemma ufa_tree_of_parent_of[simp]:
 
 lemma ufa_tree_of_rep_of[simp]:
   "ufa_tree_of uf (uf_rep_of uf x) = ufa_tree_of uf x"
-  apply(rule ufa_tree_of_eq_if_in_verts)
-  sorry
-
+  by (intro ufa_tree_of_eq_if_in_verts in_vertsI Pair_rep_of_in_\<alpha>_if_in_Field_\<alpha>) blast
 
 lemma awalk_parent_of:
   assumes "y \<in> verts (ufa_tree_of uf x)"
@@ -160,17 +158,17 @@ lemma awalk_from_rep_rep_of:
   assumes "y \<in> verts (ufa_tree_of uf x)"
   shows "awalk_from_rep uf (uf_rep_of uf y) = []"
 proof -
+  from x_in_verts have rep_of_in_Field: "uf_rep_of uf x \<in> Field (uf_\<alpha> uf)"
+    by (metis Field_iff in_verts_ufa_tree_ofD ufa_tree_of_rep_of)
   from in_verts_ufa_tree_ofD[OF assms] have "uf_rep_of uf y = uf_rep_of uf x"
-    using x_in_Field_\<alpha> apply(auto simp: FieldI2)
-    by (metis FieldI2 \<alpha>_rep_of x_in_Field_\<alpha>)
+    using part_equiv_sym[OF part_equiv_\<alpha>]
+    by (subst \<alpha>_rep_of) (auto simp: Field_iff)
+  with assms have "awalk_from_rep_dom uf (uf_rep_of uf y)"
+    by (intro awalk_from_rep_domI) auto
   then show ?thesis
-    by (smt (verit, best) FieldI1 awalk_from_rep_domI in_verts_ufa_tree_ofD invar_uf
-        parent_of_refl_iff_rep_of_refl
-        ufa_tree_of_rep_of union_find.\<alpha>_rep_of
-        union_find_axioms
-        union_find_parent.awalk_from_rep.psimps
-        union_find_parent_axioms
-        x_in_verts)
+    using parent_of_refl_iff_rep_of_refl[OF rep_of_in_Field]
+    using \<open>uf_rep_of uf y = uf_rep_of uf x\<close>
+    by (simp add: awalk_from_rep.psimps Let_def)
 qed
 
 lemma rep_of_if_parent_of_refl:
@@ -560,16 +558,19 @@ qed simp
 
 end
 
-locale union_find_explain =
-  union_find_parent where uf_ty = uf_ty and dom_ty = dom_ty +
-  map_mono where
-    mm_adt = au_adt and invar = invar_au and \<alpha> = \<alpha>_au and
-    m_ty = au_ty and dom_ty = dom_ty and ran_ty = ran_ty 
-  for au_adt invar_au \<alpha>_au and
-    uf_ty :: "'uf itself" and
-    au_ty :: "'au itself" and dom_ty :: "'dom itself" and ran_ty :: "nat itself"
+locale union_find_explain_adts =
+  union_find_parent_adt where uf_adt = uf_adt +
+  map_mono_adt where mm_adt = au_adt
+  for
+    uf_adt :: "('uf, 'dom, _) union_find_parent_adt_scheme" (structure) and
+    au_adt :: "('au, 'dom, nat, _) map_mono_adt_scheme"
 
-locale union_find_explain_invars = union_find_explain +
+locale union_find_explain_invars =
+  union_find_explain_adts where uf_adt = uf_adt and au_adt = au_adt +
+  union_find_parent where uf_adt = uf_adt +
+  map_mono where mm_adt = au_adt
+  for uf_adt (structure) and au_adt +
+
   fixes uf
   fixes unions
   fixes au
@@ -577,6 +578,7 @@ locale union_find_explain_invars = union_find_explain +
   assumes valid_unions: "valid_unions uf_init unions"
   assumes eq_uf_unions:
     "uf = uf_unions uf_init unions"
+  assumes invar_au: "mm_invar\<^bsub>au_adt\<^esub> au"
   assumes valid_au:
     "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i \<Longrightarrow> i < length unions"
   assumes inj_on_dom_au:
@@ -598,7 +600,6 @@ lemma valid_unions_uf:
 
 sublocale union_find_invar where uf = uf
   using eq_uf_unions valid_unions by unfold_locales blast
-
 
 lemma rep_of_after_au:
   assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
@@ -707,14 +708,34 @@ proof -
     using ufa_init_invar valid_au valid_unions
     by fastforce
 qed
+
+definition (in union_find_explain_adts) "union_au uf unions au x y \<equiv>
+  let n = length unions
+  in mm_update\<^bsub>au_adt\<^esub> (mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf x) n) (uf_rep_of uf y) n"
   
-(*
 lemma ufe_invars_union:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of uf x \<noteq> uf_rep_of uf y"
   defines "uf' \<equiv> uf_union uf x y"
-  shows "ufe_invars uf' (unions @ [(x, y)]) (au[uf_rep_of uf x := length unions])"
-proof -
+  shows "union_find_explain_invars uf_adt au_adt uf'
+    (unions @ [(x, y)]) (union_au uf unions au x y)"
+proof(unfold_locales)
+  show "valid_unions uf_init (unions @ [(x, y)])"
+    using assms(1,2) eq_uf_unions valid_unions by force
+  show "uf' = uf_unions uf_init (unions @ [(x, y)])"
+    by (simp add: uf'_def eq_uf_unions)
+  
+  from invar_au show invar_union_au: "mm_invar\<^bsub>au_adt\<^esub> (union_au uf unions au x y)"
+    unfolding union_au_def Let_def by simp
+  (* TODO: use transfer here *)
+  with invar_au valid_au show "i < length (unions @ [(x, y)])"
+    if "mm_lookup\<^bsub>au_adt\<^esub> (union_au uf unions au x y) z = Some i" for z i
+    using that unfolding \<alpha>_lookup[OF invar_union_au] unfolding union_au_def Let_def
+    by (auto simp add: \<alpha>_update \<alpha>_lookup less_SucI split: if_splits)
+
+    
+
+proof(unfold_locales)
   from distinct_au valid_au have distinct_au_upd:
     "distinct (au[i := length unions])" for i
   proof(induction au arbitrary: i)
@@ -734,7 +755,9 @@ proof -
   with assms distinct_au_upd nth_au_nonneg show ?thesis
     by (unfold_locales)
       (fastforce simp: less_Suc_eq elim!: in_set_upd_cases)+
-qed *)
+qed
+*)
+
     
 end
 

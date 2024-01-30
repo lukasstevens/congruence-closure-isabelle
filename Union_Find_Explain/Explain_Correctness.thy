@@ -191,9 +191,9 @@ next
     unfolding explain_psimps by blast
 qed (simp_all add: explain.psimps)
 
-context
-union_find_explain_invars
-begin
+lemma (in union_find_explain_invars)
+  assumes "explain_dom uf au (x, y)"
+  assumes "uf_rep_of uf x = uf_rep_of uf y"
+  shows "explain_dom (uf_union uf u v) (mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf' ) (x, y)"
 
-find_theorems "explain_dom"
 end
