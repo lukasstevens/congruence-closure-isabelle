@@ -55,8 +55,9 @@ proof -
     next
       case False
       with less have
-        "(uf_parent_of uf x, x) \<in> {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf)}"
-        by auto
+        "(uf_parent_of uf x, x) \<in>
+          {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf) \<and> uf_parent_of uf x \<noteq> x}"
+        using awalk_and_parent_of_reflD(2) by auto
       from False less.IH[OF this] less.prems have
         "find_newest_on_walk_dom uf (y, uf_parent_of uf x)"
         using awalk_not_Nil_butlastD(1) awlast_butlast_eq_parent_of_if_awalk by auto

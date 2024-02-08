@@ -521,7 +521,7 @@ proof(induction us arbitrary: uf)
     by (cases u) (auto intro!: Cons.IH)
 qed simp
 
-lemma rep_of_neq_if_rep_of_ufa_union_neq:
+lemma rep_of_neq_if_rep_of_union_neq:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of (uf_union uf x y) j \<noteq> uf_rep_of (uf_union uf x y) k"
@@ -534,6 +534,7 @@ proof -
     by (auto simp: \<alpha>_rep_of uf_union.\<alpha>_rep_of)
 qed  
 
+(*
 lemma rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq:
   assumes "valid_unions uf us"
   assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
@@ -555,6 +556,7 @@ proof(induction us arbitrary: i rule: rev_induct)
   with snoc.prems(1) rep_of_ufa_union show ?case
     by (cases "i \<le> length us") (auto split: prod.splits)
 qed simp
+*)
 
 end
 
@@ -585,22 +587,23 @@ locale union_find_explain_invars =
     "inj_on (mm_lookup\<^bsub>au_adt\<^esub> au) (dom (mm_lookup\<^bsub>au_adt\<^esub> au))"
   assumes lookup_au_if_not_rep:
     "y \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_rep_of uf y \<noteq> y \<Longrightarrow> mm_lookup\<^bsub>au_adt\<^esub> au y \<noteq> None"
-  assumes rep_of_before_au:
+  (* assumes rep_of_before_au:
     "\<lbrakk> mm_lookup\<^bsub>au_adt\<^esub> au x = Some i; unions ! i = (j, k)
      ; before = uf_unions uf_init (take i unions) \<rbrakk>
-     \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k"
+     \<Longrightarrow> uf_rep_of before j \<noteq> uf_rep_of before k" *)
 begin
 
-sublocale uf_invar_init: union_find_invar where uf = uf_init
+sublocale ufp_invar_init: union_find_parent_invar where uf = uf_init
   using invar_init by unfold_locales assumption+
 
 lemma valid_unions_uf:
   "valid_unions uf unions"
   using valid_unions by (simp add: eq_uf_unions)
 
-sublocale union_find_invar where uf = uf
+sublocale union_find_parent_invar where uf = uf
   using eq_uf_unions valid_unions by unfold_locales blast
 
+(*
 lemma rep_of_after_au:
   assumes "mm_lookup\<^bsub>au_adt\<^esub> au x = Some i" "unions ! i = (j, k)"
   assumes "i' > i"
@@ -708,57 +711,38 @@ proof -
     using ufa_init_invar valid_au valid_unions
     by fastforce
 qed
-
-definition (in union_find_explain_adts) "union_au uf unions au x y \<equiv>
-  let n = length unions
-  in mm_update\<^bsub>au_adt\<^esub> (mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf x) n) (uf_rep_of uf y) n"
+*)
   
 lemma ufe_invars_union:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of uf x \<noteq> uf_rep_of uf y"
   defines "uf' \<equiv> uf_union uf x y"
-  shows "union_find_explain_invars uf_adt au_adt uf'
-    (unions @ [(x, y)]) (union_au uf unions au x y)"
+  defines "au' \<equiv> mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf x) (length unions)"
+  shows "union_find_explain_invars uf_adt au_adt uf' (unions @ [(x, y)]) au'"
 proof(unfold_locales)
   show "valid_unions uf_init (unions @ [(x, y)])"
     using assms(1,2) eq_uf_unions valid_unions by force
   show "uf' = uf_unions uf_init (unions @ [(x, y)])"
     by (simp add: uf'_def eq_uf_unions)
   
-  from invar_au show invar_union_au: "mm_invar\<^bsub>au_adt\<^esub> (union_au uf unions au x y)"
-    unfolding union_au_def Let_def by simp
-  (* TODO: use transfer here *)
-  with invar_au valid_au show "i < length (unions @ [(x, y)])"
-    if "mm_lookup\<^bsub>au_adt\<^esub> (union_au uf unions au x y) z = Some i" for z i
-    using that unfolding \<alpha>_lookup[OF invar_union_au] unfolding union_au_def Let_def
-    by (auto simp add: \<alpha>_update \<alpha>_lookup less_SucI split: if_splits)
+  from invar_au show invar_union_au: "mm_invar\<^bsub>au_adt\<^esub> au'"
+    unfolding au'_def by simp
 
-    
+  note mm_relI[OF invar_au, transfer_rule]
+  show "i < length (unions @ [(x, y)])"
+    if "mm_lookup\<^bsub>au_adt\<^esub> au' z = Some i" for z i
+    using that valid_au unfolding au'_def
+    by (transfer fixing: au) (auto simp: less_SucI split: if_splits)
 
-proof(unfold_locales)
-  from distinct_au valid_au have distinct_au_upd:
-    "distinct (au[i := length unions])" for i
-  proof(induction au arbitrary: i)
-    case (Cons a au)
-    then have "distinct (au[i := length unions])" for i
-      by simp
-    with "Cons.prems" show ?case
-      by (cases "a \<ge> 0")
-        (auto simp: comp_def elim!: in_set_upd_cases split: nat.splits)
-  qed simp
-  from nth_au_nonneg_if_not_rep length_au have nth_au_nonneg:
-    "au[uf_rep_of uf x := length unions] ! y \<ge> 0"
-    if "y < length l'" "l' ! y \<noteq> y" for y
-    using that unfolding l'_def
-    by (auto simp: nth_list_update')
-  note axioms = ufe_invars_axioms[unfolded ufe_invars_def ufe_invars_axioms_def]
-  with assms distinct_au_upd nth_au_nonneg show ?thesis
-    by (unfold_locales)
-      (fastforce simp: less_Suc_eq elim!: in_set_upd_cases)+
+  show "inj_on (mm_lookup\<^bsub>au_adt\<^esub> au') (dom (mm_lookup\<^bsub>au_adt\<^esub> au'))"
+    using valid_au inj_on_dom_au unfolding au'_def
+    by (transfer fixing: au) (force simp: inj_on_def)
+
+  show "mm_lookup\<^bsub>au_adt\<^esub> au' z \<noteq> None"
+    if "z \<in> Field (uf_\<alpha> uf')" "uf_rep_of uf' z \<noteq> z" for z
+    sorry
 qed
-*)
 
-    
 end
 
 locale ufe_tree = union_find_explain_invars +

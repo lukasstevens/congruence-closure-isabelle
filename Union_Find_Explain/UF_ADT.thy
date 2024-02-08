@@ -1,7 +1,6 @@
 theory UF_ADT
   imports
     "Separation_Logic_Imperative_HOL.Union_Find"
-    "HOL-Statespace.StateSpaceSyntax"
 begin
 
 lemma Field_per_union[simp]: "Field (per_union R a b) = Field R"
@@ -57,8 +56,6 @@ record ('uf, 'dom) union_find_explain_adt =
   "('uf, 'dom) union_find_adt" +
   explain :: "'uf \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> 'dom rel" ("uf'_explain\<index>")
 
-term "init (x :: ('uf, 'dom, 'more) union_find_parent_adt_scheme)"
-
 locale union_find_adt =
   fixes uf_adt :: "('uf, 'dom, 'more) union_find_adt_scheme" (structure)
 
@@ -86,7 +83,7 @@ locale union_find_parent =
   union_find_parent_adt where uf_adt = uf_adt for uf_adt (structure) +
 
   assumes wf_parent_of:
-    "uf_invar uf \<Longrightarrow> wf {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf)}"
+    "uf_invar uf \<Longrightarrow> wf {(uf_parent_of uf x, x) |x. x \<in> Field (uf_\<alpha> uf) \<and> uf_parent_of uf x \<noteq> x}"
   assumes parent_of_in_\<alpha>:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk> \<Longrightarrow> (uf_parent_of uf x, x) \<in> uf_\<alpha> uf"
   assumes parent_of_refl_iff_rep_of_refl:
@@ -95,6 +92,10 @@ locale union_find_parent =
   assumes rep_of_parent_of:
     "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf) \<rbrakk>
     \<Longrightarrow> uf_rep_of uf (uf_parent_of uf x) = uf_rep_of uf x"
+  assumes parent_of_union:
+    "\<lbrakk> uf_invar uf; x \<in> Field (uf_\<alpha> uf); y \<in> Field (uf_\<alpha> uf); z \<in> Field (uf_\<alpha> uf) \<rbrakk>
+    \<Longrightarrow> uf_parent_of (uf_union uf x y) z =
+          (if z = uf_rep_of uf x then uf_rep_of uf y else uf_parent_of uf z)"
 
 (*
 locale union_find_explain = union_find_explain_adt + union_find +
@@ -155,7 +156,8 @@ lemmas
   wf_parent_of = wf_parent_of[OF invar_uf] and
   parent_of_in_\<alpha>[intro] = parent_of_in_\<alpha>[OF invar_uf] and
   parent_of_refl_iff_rep_of_refl = parent_of_refl_iff_rep_of_refl[OF invar_uf] and
-  rep_of_parent_of[simp] = rep_of_parent_of[OF invar_uf]
+  rep_of_parent_of[simp] = rep_of_parent_of[OF invar_uf] and
+  parent_of_union[simp] = parent_of_union[OF invar_uf]
 
 lemma parent_of_in_Field_\<alpha>I[intro]:
   "x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_parent_of uf x \<in> Field (uf_\<alpha> uf)"

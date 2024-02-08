@@ -172,7 +172,8 @@ next
       = {(ay, by)} \<union> explain uf au unions x by \<union> explain uf au unions ay y"
     "explain uf au unions y x
       = {(ay, by)} \<union> explain uf au unions y ay \<union> explain uf au unions by x"
-    by (auto simp: explain_psimps ufa_lca_symmetric[of uf y x] Let_def split: prod.splits)
+    unfolding explain_psimps ufa_lca_symmetric[of uf y x]
+    by (simp_all add: Let_def less_le_not_le split: prod.splits)
 
   from newest_y interpret ufe_tree where uf = uf and unions = unions and au = au and x = y
     by (unfold_locales) blast
