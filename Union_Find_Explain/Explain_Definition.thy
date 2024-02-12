@@ -1,7 +1,6 @@
 chapter \<open>Union-Find Data-Structure with Explain Operation\<close>
 theory Explain_Definition
   imports 
-    "Separation_Logic_Imperative_HOL.Union_Find" 
     "HOL-Library.Sublist"
     "HOL-Library.Option_ord"
     "UFA_Tree"
@@ -10,39 +9,48 @@ begin
 
 no_notation Ref.update ("_ := _" 62)
 
-text \<open>
-  Formalization of an explain operation, based on the Union Find implementation
-  of \<open>Separation_Logic_Imperative_HOL.Union_Find\<close>. Path compression is omitted.
-  Reference paper: Proof-Producing Congruence Closure, Robert Nieuwenhuis and Albert Oliveras
-\<close>
-
 subsection \<open>Definitions\<close>
-text \<open>
-Data structure for the union, find and explain operations:
-  \<open>uf_list\<close>: parents of the tree data structure without path compression
-  \<open>unions\<close>: list of all the union operations made 
-  \<open>au\<close>: (associated union) contains which union corresponds to each edge
-\<close>
-record ufe_data_structure =
-  uf_list :: "nat list"
-  unions :: "(nat * nat) list"
-  au :: "int list"
 
-text \<open>For the initialisation of the union find algorithm.\<close>
-term upto
-abbreviation "initial_ufe n \<equiv> \<lparr> uf_list = [0..<n], unions = []
-                              , au = [-n .. -1] \<rparr>"
+record ('uf, 'au, 'dom) union_find_explain_ds =
+  uf_ds :: 'uf
+  au_ds :: 'au
+  unions :: "('dom \<times> 'dom) list"
 
-paragraph \<open>Union\<close>
-text \<open>Extension of the union operations to the \<open>ufe_data_structure\<close>.\<close>
-fun ufe_union :: "ufe_data_structure \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufe_data_structure" where
-  "ufe_union \<lparr> uf_list = l, unions = u, au = a \<rparr> x y =
-    (if rep_of l x \<noteq> rep_of l y then
-      \<lparr> uf_list = ufa_union l x y
+locale union_find_explain_adts =
+  union_find_parent_adt where uf_adt = uf_adt +
+  map_mono_adt where mm_adt = au_adt
+  for
+    uf_adt :: "('uf, 'dom, _) union_find_parent_adt_scheme" (structure) and
+    au_adt :: "('au, 'dom, nat, _) map_mono_adt_scheme"
+begin
+
+fun ufe_union where
+  "ufe_union \<lparr> uf_ds = uf, au_ds = au, unions = u \<rparr> x y =
+    (if uf_rep_of uf x \<noteq> uf_rep_of uf y then
+      \<lparr> uf_ds = uf_union uf x y
+      , au_ds = mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf x) (length u)
       , unions = u @ [(x, y)]
-      , au = a[rep_of l x := length u]
       \<rparr>
-    else \<lparr> uf_list = l, unions = u, au = a \<rparr>)"
+    else \<lparr> uf_ds = uf, au_ds = au, unions = u \<rparr>)"
+
+definition "ufe_init \<equiv>
+  \<lparr> uf_ds = uf_init, au_ds = mm_empty\<^bsub>au_adt\<^esub>, unions = ([] :: ('dom \<times> 'dom) list) \<rparr>"
+
+definition "ufe_unions \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union ufe_ds x y)"
+
+lemma ufe_unions_append[simp]:
+  "ufe_unions ufe_ds (us1 @ us2) = ufe_unions (ufe_unions ufe_ds us1) us2"
+  unfolding ufe_unions_def by simp
+
+lemma ufe_unions_Cons[simp]:
+  "ufe_unions ufe_ds (u # us) = ufe_unions (ufe_union ufe_ds (fst u) (snd u)) us"
+  unfolding ufe_unions_def by (simp add: case_prod_unfold)
+
+lemma ufe_unions_Nil[simp]:
+  "ufe_unions ufe_ds [] = ufe_ds"
+  unfolding ufe_unions_def by simp
+
+end
 
 text \<open>Helper lemmata for \<open>ufe_union\<close>.\<close>
 (*
@@ -86,19 +94,6 @@ lemma P_ufe_unionE[consumes 1, case_names rep_neq]:
   using assms by auto
 *)
 
-text \<open>For the application of a list of unions.\<close>
-fun apply_unions :: "(nat * nat) list \<Rightarrow> ufe_data_structure \<Rightarrow> ufe_data_structure" where
-  "apply_unions [] p = p"
-| "apply_unions ((x, y) # u) p = apply_unions u (ufe_union p x y)"
-
-lemma apply_unions_append:
-  "apply_unions u1 a = b \<Longrightarrow> apply_unions u2 b = c \<Longrightarrow> apply_unions (u1 @ u2) a = c"
-  by (induction u1 a rule: apply_unions.induct) simp_all
-
-paragraph \<open>Explain\<close>
-
-text \<open>Finds the lowest common ancestor of x and y in the
-      tree represented by the array l.\<close>
 context union_find_parent_adt
 begin
 
@@ -131,7 +126,6 @@ context
   fixes au :: 'au
 begin
 
-term combine_options
 function (domintros) find_newest_on_walk :: "'dom \<Rightarrow> 'dom \<Rightarrow> nat option" where
   "find_newest_on_walk y x =
     (if y = x then None else combine_options max (mm_lookup\<^bsub>au_adt\<^esub> au x) (find_newest_on_walk y (uf_parent_of uf x)))"

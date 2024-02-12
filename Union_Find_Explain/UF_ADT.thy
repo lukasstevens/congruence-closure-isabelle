@@ -142,6 +142,20 @@ lemma rep_of_rep_of[simp]:
   using assms rep_of_Pair_in_\<alpha>_if_in_Field_\<alpha>
   by (subst \<alpha>_rep_of) auto
 
+
+lemma rep_of_neq_if_rep_of_union_neq:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_union uf x y) j \<noteq> uf_rep_of (uf_union uf x y) k"
+  shows "uf_rep_of uf j \<noteq> uf_rep_of uf k"
+  using assms
+proof -
+  from assms interpret uf_union: union_find_invar where uf = "uf_union uf x y"
+    by unfold_locales auto
+  from assms show ?thesis
+    by (auto simp: \<alpha>_rep_of uf_union.\<alpha>_rep_of)
+qed  
+
 end
 
 locale union_find_parent_invar = union_find_parent +
@@ -166,6 +180,78 @@ lemma parent_of_in_Field_\<alpha>I[intro]:
 lemma parent_of_in_\<alpha>_sym:
   "x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> (x, uf_parent_of uf x) \<in> uf_\<alpha> uf"
   using part_equiv_\<alpha> parent_of_in_\<alpha> part_equiv_sym by metis
+
+end
+
+definition (in union_find_adt)
+  "valid_unions uf us \<equiv> \<forall>(x, y) \<in> set us. x \<in> Field (uf_\<alpha> uf) \<and> y \<in> Field (uf_\<alpha> uf)"
+
+context union_find
+begin
+
+lemma valid_unions_Nil[simp]:
+  "valid_unions uf []"
+  unfolding valid_unions_def by simp
+
+lemma valid_unions_Cons[simp]:
+  "valid_unions uf (x # xs) \<longleftrightarrow>
+  fst x \<in> Field (uf_\<alpha> uf) \<and> snd x \<in> Field (uf_\<alpha> uf) \<and> valid_unions uf xs"
+  unfolding valid_unions_def by (simp split: prod.splits)
+
+lemma valid_unions_append[simp]:
+  "valid_unions uf (xs @ ys) \<longleftrightarrow> valid_unions uf xs \<and> valid_unions uf ys"
+  unfolding valid_unions_def by auto
+
+lemma valid_unions_takeI[simp, intro]:
+  "valid_unions uf us \<Longrightarrow> valid_unions uf (take i us)"
+  unfolding valid_unions_def using in_set_takeD by fast
+
+end
+
+context union_find_invar
+begin
+
+lemma valid_union_union[simp]:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  shows "valid_unions (uf_union uf x y) us \<longleftrightarrow> valid_unions uf us"
+  using assms
+  by (induction us) auto
+
+lemma valid_unions_nthD[simp, dest]:
+  assumes "valid_unions uf us" "i < length us"
+  shows "fst (us ! i) \<in> Field (uf_\<alpha> uf)" "snd (us ! i) \<in> Field (uf_\<alpha> uf)"
+  using assms unfolding valid_unions_def
+  using nth_mem by fastforce+
+
+lemma valid_unions_nth_eq_pairD:
+  assumes "valid_unions uf us" "i < length us"
+  assumes "us ! i = (a, b)"
+  shows "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
+  using assms valid_unions_nthD by force+
+
+(*
+lemma rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq:
+  assumes "valid_unions uf us"
+  assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
+  shows "uf_rep_of (uf_unions uf (take i us)) j \<noteq> uf_rep_of (uf_unions uf (take i us)) k"
+  using assms
+proof(induction us arbitrary: i rule: rev_induct)
+  case (snoc u us)
+  from snoc interpret uf_unions: union_find_invar where uf = "uf_unions uf us"
+    by unfold_locales auto
+  from snoc have rep_of_ufa_union:
+    "uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) j
+    \<noteq> uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) k"
+    by (cases u) simp
+  note uf_unions.rep_of_neq_if_rep_of_ufa_union_neq[OF _ _ _  _ this]
+  with snoc.prems have "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
+    by auto
+  note snoc.IH[OF _ snoc.prems(2,3) this]
+  with snoc.prems(1) rep_of_ufa_union show ?case
+    by (cases "i \<le> length us") (auto split: prod.splits)
+qed simp
+*)
 
 end
 
