@@ -183,8 +183,18 @@ lemma parent_of_in_\<alpha>_sym:
 
 end
 
-definition (in union_find_adt)
+context union_find_adt
+begin
+
+definition
   "valid_unions uf us \<equiv> \<forall>(x, y) \<in> set us. x \<in> Field (uf_\<alpha> uf) \<and> y \<in> Field (uf_\<alpha> uf)"
+
+fun eff_unions where
+  "eff_unions uf [] \<longleftrightarrow> True"
+| "eff_unions uf ((x, y) # us) \<longleftrightarrow>
+    uf_rep_of uf x \<noteq> uf_rep_of uf y \<and> eff_unions (uf_union uf x y) us"
+
+end
 
 context union_find
 begin
@@ -195,7 +205,7 @@ lemma valid_unions_Nil[simp]:
 
 lemma valid_unions_Cons[simp]:
   "valid_unions uf (x # xs) \<longleftrightarrow>
-  fst x \<in> Field (uf_\<alpha> uf) \<and> snd x \<in> Field (uf_\<alpha> uf) \<and> valid_unions uf xs"
+    fst x \<in> Field (uf_\<alpha> uf) \<and> snd x \<in> Field (uf_\<alpha> uf) \<and> valid_unions uf xs"
   unfolding valid_unions_def by (simp split: prod.splits)
 
 lemma valid_unions_append[simp]:
@@ -252,7 +262,29 @@ proof(induction us arbitrary: i rule: rev_induct)
     by (cases "i \<le> length us") (auto split: prod.splits)
 qed simp
 *)
-
 end
+
+lemma (in union_find) eff_unions_append:
+  assumes "uf_invar uf"
+  assumes "valid_unions uf (us1 @ us2)"
+  shows "eff_unions uf (us1 @ us2)
+    \<longleftrightarrow> eff_unions uf us1 \<and> eff_unions (foldl (\<lambda>uf (x, y). uf_union uf x y) uf us1) us2"
+  using assms
+proof(induction us1 arbitrary: uf)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons u1 us1)
+  let ?uf' = "uf_union uf (fst u1) (snd u1)"
+  from Cons interpret union_find_invar where uf = uf
+    by unfold_locales
+  from Cons have "uf_invar ?uf'"
+    using invar_union by simp
+  from Cons have "valid_unions ?uf' (us1 @ us2)"
+    by simp
+  note IH = Cons.IH[OF \<open>uf_invar ?uf'\<close> this]
+  then show ?case
+    by (cases u1) simp
+qed
 
 end

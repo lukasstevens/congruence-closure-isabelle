@@ -38,6 +38,17 @@ definition "ufe_init \<equiv>
 
 definition "ufe_unions \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union ufe_ds x y)"
 
+lemma unions_ufe_union_if_rep_of_neq:
+  assumes "uf_rep_of (uf_ds ufe_ds) x \<noteq> uf_rep_of (uf_ds ufe_ds) y"
+  shows "unions (ufe_union ufe_ds x y) = unions ufe_ds @ [(x, y)]"
+  using assms by (cases ufe_ds) simp
+
+lemma ufe_init_sel[simp]:
+  "uf_ds ufe_init = uf_init"
+  "au_ds ufe_init = mm_empty\<^bsub>au_adt\<^esub>"
+  "unions ufe_init = []"
+  unfolding ufe_init_def by simp_all
+
 lemma ufe_unions_append[simp]:
   "ufe_unions ufe_ds (us1 @ us2) = ufe_unions (ufe_unions ufe_ds us1) us2"
   unfolding ufe_unions_def by simp
@@ -49,6 +60,8 @@ lemma ufe_unions_Cons[simp]:
 lemma ufe_unions_Nil[simp]:
   "ufe_unions ufe_ds [] = ufe_ds"
   unfolding ufe_unions_def by simp
+
+
 
 end
 
