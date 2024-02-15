@@ -2,7 +2,6 @@ theory UFA_Tree
   imports
     UF_ADT
     Map_ADT
-    "Separation_Logic_Imperative_HOL.Union_Find"
     "Tree_Theory.LCA_Directed_Tree"
 begin
 
@@ -41,7 +40,7 @@ end
 
 end
 
-context union_find_parent_invar
+context union_find_parent_unions
 begin
 
 lemma verts_ufa_tree_of:
@@ -81,7 +80,7 @@ lemma in_verts_ufa_tree_ofD:
 lemma parent_of_in_verts_ufa_tree_ofI[simp, intro]:
   assumes "y \<in> verts (ufa_tree_of uf x)"
   shows "uf_parent_of uf y \<in> verts (ufa_tree_of uf x)"
-  using assms \<alpha>_rep_of parent_of_in_\<alpha> rep_of_parent_of
+  using assms \<alpha>_rep_of parent_of_Pair_in_\<alpha> rep_of_parent_of
   by (safe intro!: in_vertsI dest!: in_verts_ufa_tree_ofD) (metis FieldI1 FieldI2)
 
 lemma rep_of_eq_if_in_verts_ufa_tree_of[simp]:
@@ -94,10 +93,11 @@ lemma rep_of_eq_if_in_verts_ufa_tree_of[simp]:
 lemma awalk_from_rep_domI[simp, intro]:
   assumes "x \<in> Field (uf_\<alpha> uf)"
   shows "awalk_from_rep_dom uf x"
-  using wf_parent_of assms
+  using wf_parent_of_rel assms
 proof(induction rule: wf_induct_rule)
   case (less x)
   then show ?case
+    unfolding uf_parent_of_rel_def
     by (intro awalk_from_rep.domintros[of uf x]) auto
 qed
 
@@ -113,7 +113,7 @@ qed
  
 end
 
-locale ufa_tree = union_find_parent_invar where uf = uf for uf + 
+locale ufa_tree = union_find_parent_unions where uf = uf for uf + 
   fixes x
   assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (uf_\<alpha> uf)"
       and finite_eq_class: "\<And>y. finite (uf_\<alpha> uf `` {y})"
@@ -129,7 +129,7 @@ proof(unfold_locales)
 
   show "tail (ufa_tree_of uf x) e \<in> verts (ufa_tree_of uf x)"
     if "e \<in> arcs (ufa_tree_of uf x)" for e
-    using that part_equiv_trans[OF part_equiv_\<alpha> _ parent_of_in_\<alpha>_sym]
+    using that part_equiv_trans[OF part_equiv_\<alpha> _ Pair_parent_of_in_\<alpha>]
     by (auto simp: FieldI2 ufa_tree_of_def)
 qed (auto simp: ufa_tree_of_def)
 
@@ -166,7 +166,7 @@ proof -
   with assms have "awalk_from_rep_dom uf (uf_rep_of uf y)"
     by (intro awalk_from_rep_domI) auto
   then show ?thesis
-    using parent_of_refl_iff_rep_of_refl[OF rep_of_in_Field]
+    using refl_parent_of_iff_refl_rep_of[OF rep_of_in_Field]
     using \<open>uf_rep_of uf y = uf_rep_of uf x\<close>
     by (simp add: awalk_from_rep.psimps Let_def)
 qed
@@ -176,7 +176,7 @@ lemma rep_of_if_parent_of_refl:
   assumes "uf_parent_of uf y = y"
   shows "uf_rep_of uf z = y"
   using assms
-  by (simp add: in_Field_\<alpha>_if_in_verts parent_of_refl_iff_rep_of_refl)
+  by (simp add: in_Field_\<alpha>_if_in_verts refl_parent_of_iff_refl_rep_of)
                         
 lemma awlast_awalk_from_rep:
   assumes "y \<in> verts (ufa_tree_of uf x)"
@@ -204,7 +204,7 @@ proof -
     proof(cases "uf_parent_of uf y = y")
       case True
       with 1 show ?thesis
-        using parent_of_refl_iff_rep_of_refl[OF in_Field_\<alpha>_if_in_verts]
+        using refl_parent_of_iff_refl_rep_of[OF in_Field_\<alpha>_if_in_verts]
         by (simp add: awalk_from_rep.psimps awalk_Nil_iff)
     next
       case False
@@ -403,11 +403,17 @@ context
   assumes a_b_in_Field_\<alpha>: "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
 begin
 
-interpretation ufa_tree_union: ufa_tree where uf = "uf_union uf a b" and x = x
+interpretation ufa_tree_union: ufa_tree where uf = "uf_union uf a b" and us = "us @ [(a, b)]" and x = x
 proof(unfold_locales)
   note finite_eq_class_per_union_if_finite_eq_class[OF part_equiv_\<alpha> finite_eq_class] 
   with a_b_in_Field_\<alpha> show "finite (uf_\<alpha> (uf_union uf a b) `` {y})" for y
     by simp
+  from a_b_in_Field_\<alpha> have "a \<in> Field (uf_\<alpha> uf_init)" "b \<in> Field (uf_\<alpha> uf_init)"
+    using uf_eq_unions_init ufp_invar_init.Field_\<alpha>_unions valid_unions by blast+
+  with valid_unions show "valid_unions uf_init (us @ [(a, b)])"
+    unfolding valid_unions_append by simp
+  then show "uf_union uf a b = uf_unions uf_init (us @ [(a, b)])"
+    unfolding uf_eq_unions_init by (simp add: unions_append)
 qed(use a_b_in_Field_\<alpha> in simp_all)
 
 lemma in_verts_ufa_tree_of_union_if_in_verts[simp, intro]:
@@ -421,8 +427,7 @@ lemma in_arcs_ufa_tree_of_union_if_in_arcs[simp, intro]:
   shows "e \<in> arcs (ufa_tree_of (uf_union uf a b) x)"
   using assms x_in_Field_\<alpha> a_b_in_Field_\<alpha>
   unfolding ufa_tree_of_def
-  apply(auto)
-  sorry
+  using FieldI2 parent_of_rep_of parent_of_union by force
 
 lemma awalk_ufa_union_if_awalk:
   assumes "awalk y p z"
