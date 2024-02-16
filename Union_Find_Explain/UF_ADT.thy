@@ -206,14 +206,94 @@ lemma rep_of_neq_if_rep_of_union_neq:
   assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of (uf_union uf x y) j \<noteq> uf_rep_of (uf_union uf x y) k"
   shows "uf_rep_of uf j \<noteq> uf_rep_of uf k"
-  using assms
 proof -
   from assms interpret uf_union: union_find_invar where uf = "uf_union uf x y"
     by unfold_locales auto
   from assms show ?thesis
     by (auto simp: \<alpha>_rep_of uf_union.\<alpha>_rep_of)
-qed  
+qed
 
+end
+
+locale union_find_parent_invar = union_find_parent +
+  fixes uf :: 'uf
+  assumes invar_uf: "uf_invar uf"
+begin
+                     
+sublocale union_find_invar where uf = uf
+  using invar_uf by unfold_locales
+
+lemmas
+  wf_parent_of = wf_parent_of[OF invar_uf] and
+  parent_of_in_\<alpha>[intro] = parent_of_in_\<alpha>[OF invar_uf] and
+  parent_of_refl_iff_rep_of_refl = parent_of_refl_iff_rep_of_refl[OF invar_uf] and
+  rep_of_parent_of[simp] = rep_of_parent_of[OF invar_uf] and
+  parent_of_union[simp] = parent_of_union[OF invar_uf]
+
+lemma parent_of_in_Field_\<alpha>I[intro]:
+  "x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> uf_parent_of uf x \<in> Field (uf_\<alpha> uf)"
+  using parent_of_in_\<alpha> by (meson FieldI1)
+
+lemma parent_of_in_\<alpha>_sym:
+  "x \<in> Field (uf_\<alpha> uf) \<Longrightarrow> (x, uf_parent_of uf x) \<in> uf_\<alpha> uf"
+  using part_equiv_\<alpha> parent_of_in_\<alpha> part_equiv_sym by metis
+
+lemma not_rep_if_not_rep_union:
+  assumes "z \<in> Field (uf_\<alpha> uf)"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_parent_of (uf_union uf x y) z \<noteq> z"
+  shows "uf_parent_of uf z \<noteq> z"
+proof -
+  from assms interpret uf_union:
+    union_find_parent_invar where uf = "uf_union uf x y"
+    by unfold_locales auto
+  from assms show ?thesis
+    apply(auto split: if_splits)
+    sledgehammer
+
+  oops  
+
+end
+
+context union_find_adt
+begin
+
+definition
+  "valid_unions uf us \<equiv> \<forall>(x, y) \<in> set us. x \<in> Field (uf_\<alpha> uf) \<and> y \<in> Field (uf_\<alpha> uf)"
+
+fun eff_unions where
+  "eff_unions uf [] \<longleftrightarrow> True"
+| "eff_unions uf ((x, y) # us) \<longleftrightarrow>
+    uf_rep_of uf x \<noteq> uf_rep_of uf y \<and> eff_unions (uf_union uf x y) us"
+
+end
+
+context union_find
+begin
+
+lemma valid_unions_Nil[simp]:
+  "valid_unions uf []"
+  unfolding valid_unions_def by simp
+
+lemma valid_unions_Cons[simp]:
+  "valid_unions uf (x # xs) \<longleftrightarrow>
+    fst x \<in> Field (uf_\<alpha> uf) \<and> snd x \<in> Field (uf_\<alpha> uf) \<and> valid_unions uf xs"
+  unfolding valid_unions_def by (simp split: prod.splits)
+
+lemma valid_unions_append[simp]:
+  "valid_unions uf (xs @ ys) \<longleftrightarrow> valid_unions uf xs \<and> valid_unions uf ys"
+  unfolding valid_unions_def by auto
+
+lemma valid_unions_takeI[simp, intro]:
+  "valid_unions uf us \<Longrightarrow> valid_unions uf (take i us)"
+  unfolding valid_unions_def using in_set_takeD by fast
+
+end
+
+context union_find_invar
+begin
+
+>>>>>>> 88d870c (Continue)
 lemma valid_union_union[simp]:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   shows "valid_unions (uf_union uf x y) us \<longleftrightarrow> valid_unions uf us"

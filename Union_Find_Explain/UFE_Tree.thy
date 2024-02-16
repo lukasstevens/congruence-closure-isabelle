@@ -15,14 +15,14 @@ lemma Field_\<alpha>_ufe_union:
   assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   shows "Field (uf_\<alpha> (uf_ds (ufe_union ufe_ds x y))) = Field (uf_\<alpha> (uf_ds ufe_ds))"
   using assms
-  by (cases ufe_ds) (auto simp: \<alpha>_union)
+  by (auto simp: uf_ds_ufe_union \<alpha>_union)
 
 lemma invar_ufe_union:
   assumes "uf_invar (uf_ds ufe_ds)"
   assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   shows "uf_invar (uf_ds (ufe_union ufe_ds x y))"
   using assms
-  by (cases ufe_ds) (auto simp: invar_union)
+  by (auto simp: uf_ds_ufe_union invar_union)
 
 lemma Field_\<alpha>_ufe_unions:
   assumes "uf_invar (uf_ds ufe_ds)"
@@ -39,10 +39,10 @@ proof(induction us arbitrary: ufe_ds)
     with Cons have "uf_invar (uf_union (uf_ds ufe_ds) u1 u2)"
       by simp
     with Cons have invar: "uf_invar (uf_ds (ufe_union ufe_ds u1 u2))"
-      by (cases ufe_ds) simp
+      by (simp add: uf_ds_ufe_union)
 
     from Cons Pair have valid: "valid_unions (uf_ds (ufe_union ufe_ds u1 u2)) us"
-      using valid_union_union by (cases ufe_ds) force
+      using valid_union_union by (force simp: uf_ds_ufe_union)
 
     with Cons.IH[OF invar valid] Cons.prems show ?thesis
       using Pair by (simp add: Field_\<alpha>_ufe_union ufe_unions_def)
@@ -66,7 +66,7 @@ proof(induction us arbitrary: ufe_ds)
     by unfold_locales
   from Cons show ?case
     using invar_union valid_union_union  unfolding ufe_unions_def
-    by (cases ufe_ds; cases u) force
+    by (cases u) (force simp: uf_ds_ufe_union)
 qed (simp add: ufe_unions_def)
 
 lemma uf_invar_ufe_init: "uf_invar (uf_ds ufe_init)"
@@ -91,20 +91,20 @@ proof -
     let ?ufe_ds' = "ufe_union ufe_ds x y"
     from 2 have eq_uf_ds':
       "uf_union (uf_ds ufe_ds) x y = uf_ds ?ufe_ds'"
-      by (cases ufe_ds) auto
+      by (auto simp: uf_ds_ufe_union)
     moreover from 2 eq_uf_ds' have "eff_unions (uf_ds ?ufe_ds') us"
-      by simp
+      by auto
     moreover from 2 have "valid_unions (uf_ds ?ufe_ds') us"
-      using valid_unions_ufe_unions_eq[where ?us="[(x, y)]"] by simp
+      using valid_unions_ufe_unions_eq[where ?us="[(x, y)]"] by force
     moreover from 2 have "uf_invar (uf_ds ?ufe_ds')"
-      using invar_ufe_union by simp
+      using invar_ufe_union by force
     ultimately have
       "unions (ufe_unions ?ufe_ds' us) = unions ?ufe_ds' @ us"
       "uf_ds (ufe_unions ?ufe_ds' us)
         = foldl (\<lambda>uf (x, y). uf_union uf x y) (uf_ds ?ufe_ds') us"
       using 2 by blast+
     with "2.prems" show ?case
-      by (cases ufe_ds) auto
+      by (auto simp: ufe_union_sel)
   qed simp
   then show ?P1 ?P2
     by blast+
@@ -267,7 +267,12 @@ proof -
     by fastforce
 qed
 *)
-  
+
+lemma in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init[simp]:
+  shows "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds)) \<longleftrightarrow> x \<in> Field (uf_\<alpha> (uf_ds ufe_init))"
+  using valid_unions eq_ufe_unions
+  by (metis Field_\<alpha>_ufe_unions uf_invar_ufe_init)
+
 lemma ufe_explain_ds_union:
   assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   defines "ufe_ds' \<equiv> ufe_union ufe_ds x y"
@@ -275,20 +280,19 @@ lemma ufe_explain_ds_union:
 proof unfold_locales
   from assms have x_y_in_Field:
     "x \<in> Field (uf_\<alpha> (uf_ds ufe_init))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_init))"
-    using valid_unions eq_ufe_unions
-    by (metis Field_\<alpha>_ufe_unions uf_invar_ufe_init)+
+    by simp_all
   with valid_unions show "valid_unions (uf_ds ufe_init) (unions ufe_ds')"
-    unfolding ufe_ds'_def by (cases ufe_ds) auto
+    unfolding ufe_ds'_def by (auto simp: ufe_union_sel)
 
   show "ufe_ds' = ufe_unions ufe_init (unions ufe_ds')"
     unfolding ufe_ds'_def using eq_ufe_unions
-    by (cases ufe_ds; cases "ufe_unions ufe_init (unions ufe_ds)") simp_all
+    by (simp add: ufe_union_sel)
 
   show "eff_unions (uf_ds ufe_init) (unions ufe_ds')"
   proof(cases "uf_rep_of (uf_ds ufe_ds) x = uf_rep_of (uf_ds ufe_ds) y")
     case True
     then have "unions ufe_ds' = unions ufe_ds"
-      by (cases ufe_ds) (simp add: ufe_ds'_def)
+      by (simp add: ufe_union_sel ufe_ds'_def)
     with eff_unions show ?thesis
       by simp
   next
@@ -300,7 +304,7 @@ proof unfold_locales
     note eff_unions_uf_ds_append[OF this \<open>uf_invar (uf_ds ufe_init)\<close>]
     with False eff_unions show ?thesis
       unfolding ufe_ds'_def
-      by (auto simp: unions_ufe_union_if_rep_of_neq eq_ufe_unions[symmetric])
+      by (auto simp: eq_ufe_unions[symmetric])
   qed
 qed
 
@@ -348,17 +352,13 @@ proof(induction "unions ufe_ds" arbitrary: ufe_ds rule: rev_induct)
   from snoc valid_unions_ufe_ds0 eff_unions_ufe_ds0 show ?case
     unfolding ufe_ds_eq
     by (intro assms(2)[OF ufe_ds_ufe_ds0 u_in_Field rep_of_neq] snoc.hyps)
-      (simp_all add: \<open>unions (ufe_unions ufe_init us) = us\<close>)
+      (simp_all add: \<open>unions (ufe_unions ufe_init us) = us\<close>)+
 qed (use assms(1) in simp)
 
 lemma mm_invar_au_ds: "mm_invar\<^bsub>au_adt\<^esub> (au_ds ufe_ds)"
-proof(induction rule: ufe_explain_ds_induct)
-  case (2 ufe_ds x y)
-  then show ?case
-    by (cases ufe_ds) auto
-qed simp
+  by (induction rule: ufe_explain_ds_induct) simp_all
 
-lemma valid_au:
+lemma lookup_au_ds_lt_length_unions:
   "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) x = Some i \<Longrightarrow> i < length (unions ufe_ds)"
 proof(induction rule: ufe_explain_ds_induct)
   case 1
@@ -368,11 +368,46 @@ next
   case (2 ufe_ds y z)
   then interpret union_find_explain_ds where ufe_ds = ufe_ds
     by simp
-
   note mm_relI[OF mm_invar_au_ds, transfer_rule]
   from 2 show ?case
-    apply(transfer fixing: ufe_ds)
+    unfolding ufe_union_sel_if_rep_of_neq[OF "2.hyps"(4)]
+    by (transfer fixing: ufe_ds) (auto simp: less_SucI split: if_splits)
+qed
+
+lemma
+  assumes "z \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "ufe_rep_of ufe_ds z \<noteq> z"
+  shows "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) z \<noteq> None"
+  using assms
+proof(induction rule: ufe_explain_ds_induct)
+  case 1
+  then show ?case
+    using \<alpha>_init ufp_invar_init.Pair_rep_of_in_\<alpha>_if_in_Field_\<alpha>
+    by force
+next
+  case (2 ufe_ds x y)
+  then interpret union_find_explain_ds where ufe_ds = ufe_ds
+    by simp
+  note mm_relI[OF mm_invar_au_ds, transfer_rule]
+
+  from 2 have "z \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+    by simp
+  from 2 have "ufe_rep_of ufe_ds z \<noteq> z"
+    using rep_of_neq_if_rep_of_union_neq
     sledgehammer
+    by (auto simp: ufe_union_sel not_rep_if_not_rep_union split: if_splits)
+  with 2 have "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) z \<noteq> None"
+    
+  with 2 have "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) z \<noteq> None"
+    unfolding ufe_union_sel_if_rep_of_neq[OF "2.hyps"(4)]
+    apply (transfer fixing: ufe_ds z)
+    apply(auto)
+    
+  from 2 show ?case
+    unfolding ufe_union_sel_if_rep_of_neq[OF "2.hyps"(4)]
+    apply (transfer fixing: ufe_ds z)
+    apply(auto)
+    
+    
     sorry
 qed
 

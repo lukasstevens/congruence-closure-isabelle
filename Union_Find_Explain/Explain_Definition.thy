@@ -38,10 +38,41 @@ definition "ufe_init \<equiv>
 
 definition "ufe_unions \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union ufe_ds x y)"
 
-lemma unions_ufe_union_if_rep_of_neq:
-  assumes "uf_rep_of (uf_ds ufe_ds) x \<noteq> uf_rep_of (uf_ds ufe_ds) y"
-  shows "unions (ufe_union ufe_ds x y) = unions ufe_ds @ [(x, y)]"
-  using assms by (cases ufe_ds) simp
+abbreviation "ufe_rep_of ufe_ds x \<equiv> uf_rep_of (uf_ds ufe_ds) x"
+abbreviation "ufe_parent_of ufe_ds x \<equiv> uf_parent_of (uf_ds ufe_ds) x"
+
+lemma uf_ds_ufe_union:
+  "uf_ds (ufe_union ufe_ds x y) =
+    (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+      then uf_ds ufe_ds
+      else uf_union (uf_ds ufe_ds) x y)"
+  by (cases ufe_ds) simp
+
+lemma au_ds_ufe_union:
+  "au_ds (ufe_union ufe_ds x y) =
+    (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+      then au_ds ufe_ds
+      else mm_update\<^bsub>au_adt\<^esub> (au_ds ufe_ds) (ufe_rep_of ufe_ds x) (length (unions ufe_ds)))"
+  by (cases ufe_ds) simp
+
+lemma unions_ufe_union:
+  "unions (ufe_union ufe_ds x y) =
+    (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+      then unions ufe_ds
+      else unions ufe_ds @ [(x, y)])"
+  by (cases ufe_ds) simp
+
+lemmas ufe_union_sel = uf_ds_ufe_union au_ds_ufe_union unions_ufe_union
+
+lemma ufe_union_sel_if_rep_of_neq[simp]:
+  assumes "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+  shows
+    "uf_ds (ufe_union ufe_ds x y) = uf_union (uf_ds ufe_ds) x y"
+    "au_ds (ufe_union ufe_ds x y) =
+      mm_update\<^bsub>au_adt\<^esub> (au_ds ufe_ds) (ufe_rep_of ufe_ds x) (length (unions ufe_ds))"
+    "unions (ufe_union ufe_ds x y) = unions ufe_ds @ [(x, y)]"
+  using assms
+  by (simp_all add: ufe_union_sel)
 
 lemma ufe_init_sel[simp]:
   "uf_ds ufe_init = uf_init"
@@ -64,48 +95,6 @@ lemma ufe_unions_Nil[simp]:
 
 
 end
-
-text \<open>Helper lemmata for \<open>ufe_union\<close>.\<close>
-(*
-lemma ufe_union1[simp]:
-  "rep_of l x = rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = l, unions = u, au = a\<rparr>"
-  by simp
-lemma ufe_union1_ufe[simp]:
-  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> ufe_union ufe x y = ufe"
-  by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_uf_list[simp]:
-  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = uf_list ufe"
-  by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_unions[simp]:
-  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe"
-  by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union1_au[simp]:
-  "rep_of (uf_list ufe) x = rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = au ufe"
-  by (metis (full_types) old.unit.exhaust ufe_data_structure.surjective ufe_union1)
-lemma ufe_union2[simp]:
-  "rep_of l x \<noteq> rep_of l y \<Longrightarrow> ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y = \<lparr>uf_list = ufa_union l x y,
-     unions = u @ [(x,y)],
-     au =  a[rep_of l x := Some (length u)]\<rparr>"
-  by simp
-lemma ufe_union2_uf_list[simp]:
-  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> uf_list (ufe_union ufe x y) = ufa_union (uf_list ufe) x y"
-  using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1))
-lemma ufe_union2_unions[simp]:
-  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> unions (ufe_union ufe x y) = unions ufe @ [(x,y)]"
-  using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1,2))
-lemma ufe_union2_au[simp]:
-  "rep_of (uf_list ufe) x \<noteq> rep_of (uf_list ufe) y \<Longrightarrow> au (ufe_union ufe x y) = (au ufe)[rep_of (uf_list ufe) x := Some (length (unions ufe))]"
-  using ufe_data_structure.cases ufe_union2 by (metis ufe_data_structure.select_convs(1,2,3))
-
-lemma P_ufe_unionE[consumes 1, case_names rep_neq]:
-  assumes "P l u a"
-  assumes "\<And> x y. rep_of l x \<noteq> rep_of l y \<Longrightarrow> 
-          P (ufa_union l x y) (u @ [(x,y)]) (a[rep_of l x := length u])"
-  shows "P (uf_list (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y)) 
-           (unions (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y)) 
-           (au (ufe_union \<lparr>uf_list = l, unions = u, au = a\<rparr> x y))"
-  using assms by auto
-*)
 
 context union_find_parent_adt
 begin
