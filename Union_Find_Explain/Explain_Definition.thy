@@ -92,8 +92,6 @@ lemma ufe_unions_Nil[simp]:
   "ufe_unions ufe_ds [] = ufe_ds"
   unfolding ufe_unions_def by simp
 
-
-
 end
 
 context union_find_parent_adt
@@ -124,63 +122,62 @@ context union_find_explain_adts
 begin
 
 context
-  fixes uf :: 'uf
-  fixes au :: 'au
+  fixes ufe_ds :: "('uf, 'au, 'dom) union_find_explain_ds"
 begin
 
 function (domintros) find_newest_on_walk :: "'dom \<Rightarrow> 'dom \<Rightarrow> nat option" where
   "find_newest_on_walk y x =
-    (if y = x then None else combine_options max (mm_lookup\<^bsub>au_adt\<^esub> au x) (find_newest_on_walk y (uf_parent_of uf x)))"
+    (if y = x then None
+    else 
+      combine_options max 
+        (mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) x)
+        (find_newest_on_walk y (uf_parent_of (uf_ds ufe_ds) x)))"
   by pat_completeness auto
 
 lemma find_newest_on_walk_if_eq[simp]:
   "find_newest_on_walk x x = None"
   by (meson find_newest_on_walk.domintros find_newest_on_walk.psimps)
 
-context
-  fixes unions :: "('dom \<times> 'dom) list"
-begin
-
 text \<open>Explain operation, as described in the paper.\<close>
 function (domintros) explain :: "'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
   "explain x y = 
-    (if x = y \<or> uf_rep_of uf x \<noteq> uf_rep_of uf y then {}
+    (if x = y \<or> ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y then {}
     else 
       let
-        lca = ufa_lca uf x y;
+        lca = ufa_lca (uf_ds ufe_ds) x y;
         newest_x = find_newest_on_walk lca x;
         newest_y = find_newest_on_walk lca y
       in
         if newest_x \<ge> newest_y then
-          let (ax, bx) = unions ! the newest_x
+          let (ax, bx) = unions ufe_ds ! the newest_x
           in {(ax, bx)} \<union> explain x ax \<union> explain bx y
         else
-          let (ay, by) = unions ! the newest_y
+          let (ay, by) = unions ufe_ds ! the newest_y
           in {(ay, by)} \<union> explain x by \<union> explain ay y)"
   by pat_completeness auto
 
 lemma explain_pinduct[consumes 1, case_names eq neq_rep_of newest_x newest_y]:
   assumes "explain_dom (x, y)"
   assumes "\<And>x y. x = y \<Longrightarrow> P x y"
-  assumes "\<And>x y. uf_rep_of uf x \<noteq> uf_rep_of uf y \<Longrightarrow> P x y"
+  assumes "\<And>x y. ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y \<Longrightarrow> P x y"
   assumes "\<And>x y ulca newest_x newest_y ax bx.
      \<lbrakk> explain_dom (x, y)
-     ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
-     ; ulca = ufa_lca uf x y
+     ; x \<noteq> y; ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+     ; ulca = ufa_lca (uf_ds ufe_ds) x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x \<ge> newest_y
-     ; unions ! the newest_x = (ax, bx)
+     ; unions ufe_ds ! the newest_x = (ax, bx)
      ; P x ax; P bx y
      \<rbrakk> \<Longrightarrow> P x y"
   assumes "\<And>x y ulca newest_x newest_y ay by.
      \<lbrakk> explain_dom (x, y)
-     ; x \<noteq> y; uf_rep_of uf x = uf_rep_of uf y
-     ; ulca = ufa_lca uf x y
+     ; x \<noteq> y; ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+     ; ulca = ufa_lca (uf_ds ufe_ds) x y
      ; newest_x = find_newest_on_walk ulca x
      ; newest_y = find_newest_on_walk ulca y
      ; newest_x < newest_y
-     ; unions ! the newest_y = (ay, by)
+     ; unions ufe_ds ! the newest_y = (ay, by)
      ; P x by; P ay y
      \<rbrakk> \<Longrightarrow> P x y"
   shows "P x y"
@@ -194,29 +191,29 @@ qed
 
 lemma explain_base_domintros[simp, intro]:
   shows "x = y \<Longrightarrow> explain_dom (x, y)"
-    and "uf_rep_of uf x \<noteq> uf_rep_of uf y \<Longrightarrow> explain_dom (x, y)"
+    and "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y \<Longrightarrow> explain_dom (x, y)"
   using explain.domintros[where ?x=x and ?y=y]
   by simp_all
 
 lemma explain_newest_x_domintro:
-  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca uf x y"
+  assumes "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  assumes "ulca = ufa_lca (uf_ds ufe_ds) x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
   assumes "newest_x \<ge> newest_y"
-  assumes "unions ! the newest_x = (ax, bx)"
+  assumes "unions ufe_ds ! the newest_x = (ax, bx)"
   assumes "explain_dom (x, ax)" "explain_dom (bx, y)"
   shows "explain_dom (x, y)"
   apply(rule explain.domintros)
   using assms by simp_all
 
 lemma explain_newest_y_domintro:
-  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca uf x y"
+  assumes "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  assumes "ulca = ufa_lca (uf_ds ufe_ds) x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
   assumes "newest_x < newest_y"
-  assumes "unions ! the newest_y = (ay, by)"
+  assumes "unions ufe_ds ! the newest_y = (ay, by)"
   assumes "explain_dom (x, by)" "explain_dom (ay, y)"
   shows "explain_dom (x, y)"
   apply(rule explain.domintros)
@@ -224,11 +221,11 @@ lemma explain_newest_y_domintro:
 
 lemma explain_dom_newest_xD:
   assumes "explain_dom (x, y)"
-  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca uf x y"
+  assumes "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  assumes "ulca = ufa_lca (uf_ds ufe_ds) x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
-  assumes "unions ! the newest_x = (ax, bx)"
+  assumes "unions ufe_ds ! the newest_x = (ax, bx)"
   assumes "newest_x \<ge> newest_y"
   shows "explain_dom (x, ax)" "explain_dom (bx, y)"
   using assms
@@ -236,11 +233,11 @@ lemma explain_dom_newest_xD:
 
 lemma explain_dom_newest_yD:
   assumes "explain_dom (x, y)"
-  assumes "x \<noteq> y" "uf_rep_of uf x = uf_rep_of uf y"
-  assumes "ulca = ufa_lca uf x y"
+  assumes "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  assumes "ulca = ufa_lca (uf_ds ufe_ds) x y"
   assumes "newest_x = find_newest_on_walk ulca x"
   assumes "newest_y = find_newest_on_walk ulca y"
-  assumes "unions ! the newest_y = (ay, by)"
+  assumes "unions ufe_ds ! the newest_y = (ay, by)"
   assumes "newest_x < newest_y"
   shows "explain_dom (x, by)" "explain_dom (ay, y)"
   using assms
@@ -402,7 +399,5 @@ next
     by (cases ufe) simp_all
 qed
 *)
-
-end
 
 end

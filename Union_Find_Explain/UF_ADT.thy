@@ -217,6 +217,7 @@ proof -
   from assms show ?thesis
     by (auto simp: \<alpha>_rep_of uf_union.\<alpha>_rep_of)
 qed
+  
 
 end
 
@@ -419,10 +420,81 @@ proof(induction arbitrary: x rule: uf_induct)
     by fastforce
 qed simp
 
+
+lemma rep_of_union_rep_of_y:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  shows "uf_rep_of (uf_union uf x y) (uf_rep_of uf y) = uf_rep_of uf y"
+proof -
+  interpret ufp_unions: union_find_parent_unions where
+    uf = "uf_union uf x y" and us = "us @ [(x, y)]"
+    using assms by (intro union_find_parent_unions_union)
+
+  from assms show ?thesis
+    by (subst ufp_unions.refl_parent_of_iff_refl_rep_of[symmetric]) auto
+qed
+
+lemma rep_of_union:
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)" "z \<in> Field (uf_\<alpha> uf)"
+  shows "uf_rep_of (uf_union uf x y) z =
+    (if uf_rep_of uf z = uf_rep_of uf x \<or> uf_rep_of uf z = uf_rep_of uf y
+      then uf_rep_of uf y
+      else uf_rep_of uf z)" (is "_ = ?rhs")
+proof -
+  interpret ufp_unions: union_find_parent_unions where
+    uf = "uf_union uf x y" and us = "us @ [(x, y)]"
+    using assms by (intro union_find_parent_unions_union)
+
+  from assms have rep_of_z_in_Field_\<alpha>_union:
+    "uf_rep_of uf z \<in> Field (uf_\<alpha> (uf_union uf x y))"
+    by simp
+
+  from assms have "uf_rep_of (uf_union uf x y) (uf_rep_of uf z) =
+    uf_rep_of (uf_union uf x y) z"
+    using rep_of_in_Field_\<alpha>_if_in_Field_\<alpha>
+    using rep_of_neq_if_rep_of_union_neq rep_of_rep_of
+    by metis
+  moreover
+  from assms have "uf_rep_of (uf_union uf x y) (uf_rep_of uf z) = ?rhs"
+  proof(cases "uf_rep_of uf z = uf_rep_of uf x")
+    case False
+    note ufp_unions.refl_parent_of_iff_refl_rep_of[
+        OF rep_of_z_in_Field_\<alpha>_union, THEN iffD1]
+    with assms False show ?thesis
+      by auto
+  next
+    case True
+    then have "uf_rep_of (uf_union uf x y) (uf_rep_of uf x) =
+      uf_rep_of (uf_union uf x y) (uf_parent_of (uf_union uf x y) (uf_rep_of uf x))"
+      using rep_of_z_in_Field_\<alpha>_union by auto
+    also have "\<dots> = uf_rep_of (uf_union uf x y) (uf_rep_of uf y)"
+      using assms True parent_of_union by simp
+    also have "\<dots> = uf_rep_of uf (uf_rep_of uf y)"
+      using assms rep_of_union_rep_of_y by simp
+    finally show ?thesis
+      using assms True by simp
+  qed
+  ultimately show ?thesis
+    by auto
+qed
+
 lemma wf_parent_of_rel:
   "wf (uf_parent_of_rel uf)"
   sorry
 
+lemma finite_eq_class_\<alpha>:
+  "finite (uf_\<alpha> uf `` {y})"
+proof(induction arbitrary: y rule: uf_induct)
+  case init
+  then show ?case
+    by (metis Image_Id \<alpha>_init finite.emptyI finite_Image_subset finite_insert)
+next
+  case (union uf us x y)
+  then interpret union_find_parent_unions where uf = uf and us = us
+    by blast
+  from union show ?case
+    unfolding \<alpha>_union[OF union.hyps(2,3)]
+    by (auto intro!: finite_eq_class_per_union_if_finite_eq_class)
+qed
 
 end
 

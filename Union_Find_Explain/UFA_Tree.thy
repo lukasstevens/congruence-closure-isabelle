@@ -110,18 +110,27 @@ proof(induction rule: awalk_from_rep.pinduct)
   then show ?case
     by (intro awalk_verts_from_rep.domintros[of uf x]) auto
 qed
- 
+
+lemma awalk_verts_from_rep_eq_map_fst_awalk_from_rep:
+  assumes "awalk_from_rep_dom uf x"
+  shows "awalk_verts_from_rep uf x = map fst (awalk_from_rep uf x) @ [x]"
+  using assms 
+proof(induction rule: awalk_from_rep.pinduct)
+  case (1 x)
+  then show ?case
+    by (auto simp: awalk_verts_from_rep.psimps awalk_from_rep.psimps Let_def)
+qed
+
 end
 
 locale ufa_tree = union_find_parent_unions where uf = uf for uf + 
   fixes x
   assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (uf_\<alpha> uf)"
-      and finite_eq_class: "\<And>y. finite (uf_\<alpha> uf `` {y})"
 begin
 
 sublocale fin_digraph "ufa_tree_of uf x"
 proof(unfold_locales)
-  from finite_eq_class show "finite (verts (ufa_tree_of uf x))"
+  from finite_eq_class_\<alpha> show "finite (verts (ufa_tree_of uf x))"
     unfolding verts_ufa_tree_of by blast
   then show "finite (arcs (ufa_tree_of uf x))"
     unfolding ufa_tree_of_def
@@ -225,7 +234,7 @@ lemma unique_awalk_ufa_tree_of_rep:
 proof
   note in_Field_\<alpha>_if_in_verts[OF assms]
   with assms interpret y: ufa_tree where uf = uf and x = y
-    using finite_eq_class
+    using finite_eq_class_\<alpha>
     by unfold_locales simp_all
   from assms have "uf_rep_of uf y = uf_rep_of uf x"
     by auto
@@ -306,6 +315,16 @@ proof -
     qed
   qed
 qed
+
+lemma hd_awalk_verts_from_rep:
+  assumes "y \<in> verts (ufa_tree_of uf x)"
+  shows "hd (awalk_verts_from_rep uf y) = uf_rep_of uf x"
+  using assms awalk_awalk_from_rep awalk_verts_from_rep_eq_awalk_verts by fastforce
+
+lemma awalk_verts_from_rep_neq_Nil:
+  assumes "y \<in> verts (ufa_tree_of uf x)"
+  shows "awalk_verts_from_rep uf y \<noteq> []"
+  using assms awalk_awalk_from_rep awalk_verts_from_rep_eq_awalk_verts by fastforce
 
 lemma awalk_and_parent_of_reflD:
   assumes "awalk z p y"
@@ -405,16 +424,13 @@ begin
 
 interpretation ufa_tree_union: ufa_tree where uf = "uf_union uf a b" and us = "us @ [(a, b)]" and x = x
 proof(unfold_locales)
-  note finite_eq_class_per_union_if_finite_eq_class[OF part_equiv_\<alpha> finite_eq_class] 
-  with a_b_in_Field_\<alpha> show "finite (uf_\<alpha> (uf_union uf a b) `` {y})" for y
-    by simp
   from a_b_in_Field_\<alpha> have "a \<in> Field (uf_\<alpha> uf_init)" "b \<in> Field (uf_\<alpha> uf_init)"
     using uf_eq_unions_init ufp_invar_init.Field_\<alpha>_unions valid_unions by blast+
   with valid_unions show "valid_unions uf_init (us @ [(a, b)])"
     unfolding valid_unions_append by simp
   then show "uf_union uf a b = uf_unions uf_init (us @ [(a, b)])"
     unfolding uf_eq_unions_init by (simp add: unions_append)
-qed(use a_b_in_Field_\<alpha> in simp_all)
+qed (use a_b_in_Field_\<alpha> in simp_all)
 
 lemma in_verts_ufa_tree_of_union_if_in_verts[simp, intro]:
   assumes "y \<in> verts (ufa_tree_of uf x)"
@@ -445,6 +461,57 @@ next
     using in_arcs_ufa_tree_of_union_if_in_arcs
     by auto
 qed
+
+lemma awalk_from_rep_union:
+  assumes "uf_rep_of uf a \<noteq> uf_rep_of uf b" "y \<in> Field (uf_\<alpha> uf)"
+  shows "awalk_from_rep (uf_union uf a b) y = 
+    (if uf_rep_of uf a = uf_rep_of uf y then [(uf_rep_of uf b, uf_rep_of uf y)] else [])
+    @ awalk_from_rep uf y"
+proof -
+  from a_b_in_Field_\<alpha> assms(2) have "awalk_from_rep_dom (uf_union uf a b) y"
+    by simp
+  then show ?thesis
+    using \<open>y \<in> Field (uf_\<alpha> uf)\<close>
+  proof(induction rule: awalk_from_rep.pinduct)
+    case (1 y)
+    then show ?case
+    proof(cases "uf_parent_of uf y = y")
+      case True
+      with 1 a_b_in_Field_\<alpha> assms(1) show ?thesis
+        by (auto simp: awalk_from_rep.psimps Let_def refl_parent_of_iff_refl_rep_of)
+    next
+      case False
+      let ?py = "uf_parent_of (uf_union uf a b) y"
+      from 1 False a_b_in_Field_\<alpha> have parent_of_union_y[simp]:
+        "uf_parent_of (uf_union uf a b) y = uf_parent_of uf y"
+        by force
+      from False "1.IH"[OF HOL.refl] have awalk_from_rep_py:
+        "awalk_from_rep (uf_union uf a b) ?py =
+          (if uf_rep_of uf a = uf_rep_of uf y then [(uf_rep_of uf b, uf_rep_of uf y)] else []) @
+          awalk_from_rep uf (uf_parent_of uf y)"
+        using "1.prems" by simp
+      from "1.prems" have "awalk_from_rep_dom uf y"
+        by blast
+      with False have "awalk_from_rep uf (uf_parent_of uf y) @ [(uf_parent_of uf y, y)] =
+        awalk_from_rep uf y"
+        by (simp add: awalk_from_rep.psimps Let_def)
+      with False show ?thesis
+        unfolding awalk_from_rep.psimps[OF "1.hyps", unfolded Let_def]
+        unfolding awalk_from_rep_py
+        by auto
+    qed
+  qed
+qed
+
+lemma awalk_verts_from_rep_union:
+  assumes "uf_rep_of uf a \<noteq> uf_rep_of uf b" "y \<in> Field (uf_\<alpha> uf)"
+  shows "awalk_verts_from_rep (uf_union uf a b) y = 
+    (if uf_rep_of uf a = uf_rep_of uf y then [uf_rep_of uf b] else [])
+    @ awalk_verts_from_rep uf y"
+  using awalk_from_rep_union[OF assms] assms(2) a_b_in_Field_\<alpha>
+  using awalk_verts_from_rep_eq_map_fst_awalk_from_rep
+  using ufa_tree_union.awalk_verts_from_rep_eq_map_fst_awalk_from_rep
+  by (simp add: in_Field_\<alpha>_if_in_verts)
 
 end
 

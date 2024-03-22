@@ -53,7 +53,6 @@ proof(induction uf us arbitrary: ufe_ds rule: eff_unions.induct)
     by simp
 qed simp
 
-
 (*
 lemma Field_\<alpha>_ufe_union:
   assumes "uf_invar (uf_ds ufe_ds)"
@@ -401,7 +400,7 @@ qed (use assms(1) in simp)
 
 lemma mm_invar_au_ds: "mm_invar\<^bsub>au_adt\<^esub> (au_ds ufe_ds)"
   by (induction rule: ufe_ds_induct) simp_all
-
+                   
 lemma lookup_au_ds_lt_length_unions:
   "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) x = Some i \<Longrightarrow> i < length (unions ufe_ds)"
 proof(induction rule: ufe_ds_induct)
@@ -418,8 +417,7 @@ next
     by (transfer fixing: ufe_ds) (auto simp: less_SucI split: if_splits)
 qed
 
-thm uf_induct
-lemma
+lemma lookup_au_ds_eq_None_iff:
   assumes "z \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   shows "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) z \<noteq> None \<longleftrightarrow> ufe_rep_of ufe_ds z \<noteq> z"
   using assms
@@ -432,18 +430,37 @@ next
   case (ufe_union ufe_ds x y)
   then interpret union_find_explain_ds where ufe_ds = ufe_ds
     by blast
-  from ufe_union have "z \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
-    by simp
-  with ufe_union have
-    "mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) z \<noteq> None \<longleftrightarrow> ufe_rep_of ufe_ds z \<noteq> z"
+  note mm_relI[OF mm_invar_au_ds, transfer_rule]
+  from ufe_union.hyps have
+    "mm_invar\<^bsub>au_adt\<^esub> (au_ds (ufe_union ufe_ds x y))"
+    using mm_invar_au_ds by fastforce
+  note mm_relI[OF this, transfer_rule]
+
+  from ufe_union show ?case
+    unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
+    by (transfer fixing: ufe_ds) (subst rep_of_union, auto)
+qed
+
+lemma inj_on_\<alpha>_au_ds:
+  shows "inj_on (mm_\<alpha>\<^bsub>au_adt\<^esub> (au_ds ufe_ds)) (dom (mm_\<alpha>\<^bsub>au_adt\<^esub> (au_ds ufe_ds)))"
+proof(induction rule: ufe_ds_induct)
+  case ufe_init
+  then show ?case
+    by (simp add: \<alpha>_empty)
+next
+  case (ufe_union ufe_ds x y)
+  then interpret union_find_explain_ds where ufe_ds = ufe_ds
     by blast
-  with ufe_union show ?case
-    apply simp
-    
-    apply(auto)
-    
-    
-    sorry
+  interpret map_mono_invar where mm_adt = au_adt and m = "au_ds ufe_ds"
+    using mm_invar_au_ds by unfold_locales
+  note mm_relI[OF mm_invar_au_ds, transfer_rule]
+  from ufe_union.hyps have "mm_invar\<^bsub>au_adt\<^esub> (au_ds (ufe_union ufe_ds x y))"
+    using mm_invar_au_ds by fastforce
+  note mm_relI[OF this, transfer_rule]
+
+  from ufe_union show ?case
+    using lookup_au_ds_lt_length_unions
+    by (force simp: \<alpha>_update \<alpha>_lookup dom_def inj_on_def)
 qed
 
 end
@@ -451,11 +468,10 @@ end
 locale ufe_tree = union_find_explain_ds  +
   fixes x
   assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
-      and finite_eq_class: "\<And>y. finite (uf_\<alpha> (uf_ds ufe_ds) `` {y})"
 begin
 
 sublocale ufa_tree where uf = "uf_ds ufe_ds" and us = "unions ufe_ds" and x = x
-  using x_in_Field_\<alpha> finite_eq_class valid_unions
+  using x_in_Field_\<alpha> valid_unions
   by unfold_locales
 
 definition "au_of a \<equiv>
@@ -473,22 +489,34 @@ proof -
     by (metis awalk_from_rep_rep_of awlast_awalk_from_rep
         head_in_verts in_arcs_imp_in_arcs_ends
         not_root_if_dominated root_in_verts x_in_verts)
-  (* note lookup_au_if_not_rep[OF \<open>?y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))\<close> this] *)
-  then show ?thesis
-    unfolding domIff sorry
+  with lookup_au_ds_eq_None_iff[OF \<open>?y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))\<close>]
+  show ?thesis
+    unfolding domIff by blast
 qed
 
 lemma au_of_lt_length_unions:
   assumes "a \<in> arcs (ufa_tree_of (uf_ds ufe_ds) x)"
   shows "au_of a < length (unions ufe_ds)"
   using head_in_dom_lookup_if_in_arcs[OF assms]
-  unfolding au_of_def dom_def sorry
+  using lookup_au_ds_lt_length_unions
+  unfolding au_of_def by force
 
 lemma inj_on_au_of_arcs:
   "inj_on au_of (arcs (ufa_tree_of (uf_ds ufe_ds) x))"
-  using head_in_dom_lookup_if_in_arcs 
-  unfolding au_of_def inj_on_def
-  sorry
+proof(intro inj_onI)
+  let ?T = "ufa_tree_of (uf_ds ufe_ds) x"
+  fix y z
+  assume
+    "y \<in> arcs ?T"
+    "z \<in> arcs ?T"
+    "au_of y = au_of z"
+  with this(1,2)[THEN head_in_dom_lookup_if_in_arcs]
+  have "head ?T y = head ?T z"
+    by (intro inj_on_\<alpha>_au_ds[THEN inj_onD])
+      (auto simp: au_of_def \<alpha>_lookup[OF mm_invar_au_ds])
+  with \<open>y \<in> arcs ?T\<close> \<open>z \<in> arcs ?T\<close> show "y = z"
+    using two_in_arcs_contr by blast
+qed
 
 lemma inj_on_au_of_awalk:
   assumes "awalk y p z"
@@ -536,7 +564,8 @@ lemma newest_on_walk_valid_union:
   assumes "unions ufe_ds ! newest = (a, b)"
   shows "a \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   using newest_on_walk_lt_length_unions[OF assms(1,2)] assms(3)
-  using valid_unions_nth_eq_pairD sorry
+  using valid_unions_nth_eq_pairD valid_unions
+  by auto
 
 end
 

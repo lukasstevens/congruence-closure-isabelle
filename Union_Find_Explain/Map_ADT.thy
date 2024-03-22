@@ -61,10 +61,6 @@ lemma eq_mm_\<alpha>_transfer[transfer_rule]:
   
 end
 
-find_consts "('b \<Rightarrow> 'c) \<Rightarrow> 'b \<Rightarrow> 'b \<Rightarrow> bool"
-
-declare [[goals_limit=20]]
-
 lemma
   includes lifting_syntax
   assumes "mm_invar m"
