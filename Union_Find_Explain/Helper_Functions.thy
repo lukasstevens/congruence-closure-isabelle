@@ -5,39 +5,43 @@ begin
 
 subsection \<open>Proofs about the domain of the helper functions\<close>
 
-theorem (in ufa_tree) lca_ufa_lca:    
+theorem (in ufa_tree) lca_ufa_lca:
   assumes "y \<in> verts (ufa_tree_of uf x)"
-    shows "lca (ufa_lca uf x y) x y"
+  assumes "z \<in> verts (ufa_tree_of uf x)"
+  shows "lca (ufa_lca uf y z) y z"
 proof -
-  from assms have "uf_rep_of uf x = uf_rep_of uf y"
+  from assms have "uf_rep_of uf y = uf_rep_of uf z"
     by simp
-  note awalk_awalk_from_rep[OF x_in_verts]
-   and awalk_awalk_from_rep[OF assms, folded this]
+  note assms[THEN awalk_awalk_from_rep, folded this]
   note lca_last_longest_common_prefix_awalk_verts[OF this]
-  with \<open>uf_rep_of uf x = uf_rep_of uf y\<close> show ?thesis
+  with \<open>uf_rep_of uf y = uf_rep_of uf z\<close> show ?thesis
     unfolding ufa_lca_def
-    unfolding awalk_verts_from_rep_eq_awalk_verts[OF x_in_verts]
-    unfolding awalk_verts_from_rep_eq_awalk_verts[OF assms]
+    unfolding assms[THEN awalk_verts_from_rep_eq_awalk_verts]
     by simp
 qed
 
-context ufa_tree
+context union_find_parent_unions
 begin
 
-lemma
+lemma ufa_lca_union:
   assumes "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of uf a \<noteq> uf_rep_of uf b"
-  assumes "y \<in> verts (ufa_tree_of (uf_union uf a b) x)"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_union uf a b) x = uf_rep_of (uf_union uf a b) y"
   shows "ufa_lca (uf_union uf a b) x y =
-    (if uf_rep_of uf x \<noteq> uf_rep_of uf y then b else ufa_lca uf x y)"
+    (if uf_rep_of uf x \<noteq> uf_rep_of uf y then uf_rep_of uf b else ufa_lca uf x y)"
 proof -
   interpret ufp_unions_union: union_find_parent_unions where
     uf = "uf_union uf a b" and us = "us @ [(a, b)]"
     using assms union_find_parent_unions_union by blast
-  from assms have "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
-    using Field_\<alpha>_union ufp_unions_union.in_Field_\<alpha>_if_in_verts by auto
 
-  note awalk_verts_from_rep_union = this[THEN awalk_verts_from_rep_union[OF assms(1-3)]]
+  interpret ufa_tree_x: ufa_tree where x = x
+    using assms by unfold_locales
+  interpret ufa_tree_y: ufa_tree where x = y
+    using assms by unfold_locales
+
+  note awalk_verts_from_rep_union_eq = 
+    assms(4,5)[THEN ufa_tree_x.awalk_verts_from_rep_union[OF assms(1-3)]]
   
   show ?thesis
   proof(cases "uf_rep_of uf x = uf_rep_of uf y")
@@ -45,24 +49,82 @@ proof -
     with \<open>x \<in> Field (uf_\<alpha> uf)\<close> \<open>y \<in> Field (uf_\<alpha> uf)\<close>
     have "x \<in> verts (ufa_tree_of uf x)" "y \<in> verts (ufa_tree_of uf x)"
       using \<alpha>_rep_of in_vertsI by blast+
-    from True this[THEN hd_awalk_verts_from_rep] this[THEN awalk_verts_from_rep_neq_Nil]
-    obtain px py where
+    note this[THEN ufa_tree_x.awalk_verts_from_rep_eq_Cons]
+    with True obtain px py where
       "awalk_verts_from_rep uf x = uf_rep_of uf y # px"
       "awalk_verts_from_rep uf y = uf_rep_of uf y # py"
-       by (metis list.exhaust_sel)
+      by metis
     then have
       "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y) \<noteq> []"
       by simp
   
     with True show ?thesis
-      unfolding ufa_lca_def awalk_verts_from_rep_union
+      unfolding ufa_lca_def awalk_verts_from_rep_union_eq
       by auto
   next
     case False
+    with assms consider
+      "uf_rep_of uf x = uf_rep_of uf a" "uf_rep_of uf y = uf_rep_of uf b" |
+      "uf_rep_of uf x = uf_rep_of uf b" "uf_rep_of uf y = uf_rep_of uf a"
+      by (metis rep_of_union ufa_tree_x.x_in_Field_\<alpha>)
     then show ?thesis
-      unfolding ufa_lca_def awalk_verts_from_rep_union
-      apply auto
-      sorry
+    proof(cases)
+      case 1
+      from 1 obtain px where awalk_verts_from_rep_x:
+        "awalk_verts_from_rep uf x = uf_rep_of uf a # px"
+        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
+        by metis
+      from 1 obtain py where awalk_verts_from_rep_y:
+        "awalk_verts_from_rep uf y = uf_rep_of uf b # py"
+        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
+        by metis
+
+      have "longest_common_prefix (awalk_verts_from_rep uf x) py = []"
+      proof(rule ccontr)
+        assume "longest_common_prefix (awalk_verts_from_rep uf x) py \<noteq> []"
+        then obtain py' where "py = uf_rep_of uf a # py'"
+          unfolding awalk_verts_from_rep_x by (cases py) force+
+        with assms(1) show "False"
+          using ufa_tree_y.awalk_awalk_from_rep
+              ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts
+              ufa_tree_y.not_rep_if_in_tl_awalk_verts
+              ufa_tree_y.x_in_verts
+          using awalk_verts_from_rep_y
+          by (metis list.sel(3) list.set_intros(1) parent_of_rep_of )
+      qed
+
+      with assms 1 show ?thesis
+        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_y
+        by auto
+    next
+      case 2
+      from 2 obtain px where awalk_verts_from_rep_x:
+        "awalk_verts_from_rep uf x = uf_rep_of uf b # px"
+        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
+        by metis
+      from 2 obtain py where awalk_verts_from_rep_y:
+        "awalk_verts_from_rep uf y = uf_rep_of uf a # py"
+        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
+        by metis
+
+      have "longest_common_prefix px (awalk_verts_from_rep uf y) = []"
+      proof(rule ccontr)
+        assume "longest_common_prefix px (awalk_verts_from_rep uf y) \<noteq> []"
+        then obtain px' where "px = uf_rep_of uf a # px'"
+          unfolding awalk_verts_from_rep_y by (cases px) force+
+        with assms(1) show "False"
+          using ufa_tree_x.awalk_awalk_from_rep
+              ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts
+              ufa_tree_x.not_rep_if_in_tl_awalk_verts
+              ufa_tree_x.x_in_verts
+          using awalk_verts_from_rep_x
+          by (metis list.sel(3) list.set_intros(1) parent_of_rep_of )
+      qed
+
+      with assms 2 show ?thesis
+        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_x
+        by auto
+    qed
   qed
 qed
 
@@ -226,6 +288,17 @@ theorem newest_on_walk_find_newest_on_walk:
   using find_newest_on_walk_eq_Max_au_of[OF assms] \<open>awalk y p z\<close>
   unfolding newest_on_walk_def
   by simp
+
+lemma find_newest_on_walk_ufe_union:
+  assumes "a \<in> Field (uf_\<alpha> uf)" "b \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of uf a \<noteq> uf_rep_of uf b"
+  assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of (uf_union uf a b) x = uf_rep_of (uf_union uf a b) y"
+  assumes "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x) y p z"
+  shows "find_newest_on_walk (ufe_union ufe_ds a b) y z = 
+    (if ufe_rep_of ufe_ds y \<noteq> ufe_rep_of ufe_ds z then Some (length (unions ufe_ds))
+    else find_newest_on_walk ufe_ds y z)"
+  sorry
 
 end
 

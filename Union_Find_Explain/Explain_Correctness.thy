@@ -9,7 +9,7 @@ lemma (in ufe_tree) neq_find_newest_on_path:
   shows "find_newest_on_walk ufe_ds ulca x \<noteq>
     find_newest_on_walk ufe_ds ulca y"
 proof -
-  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of (uf_ds ufe_ds) x)\<close>]
+  note lca_ulca = lca_ufa_lca[OF x_in_verts \<open>y \<in> verts (ufa_tree_of (uf_ds ufe_ds) x)\<close>]
   with ulca_eq obtain px py where
     px: "awalk ulca px x" and py: "awalk ulca py y"
     by (meson lca_reachableD reachable_awalk)
@@ -67,7 +67,7 @@ lemma (in ufe_tree) newest_on_walk_newest_x:
   assumes "newest_x > newest_y"
   obtains px where "newest_on_walk (the newest_x) ulca px x" "ulca \<noteq> x"
 proof -
-  note lca_ulca = lca_ufa_lca[OF \<open>y \<in> verts (ufa_tree_of (uf_ds ufe_ds) x)\<close>]
+  note lca_ulca = lca_ufa_lca[OF x_in_verts \<open>y \<in> verts (ufa_tree_of (uf_ds ufe_ds) x)\<close>]
   with ulca_eq obtain px py where
     px: "awalk ulca px x" and py: "awalk ulca py y"
     by (meson lca_reachableD reachable_awalk)
@@ -89,6 +89,36 @@ proof -
   ultimately show ?thesis
     using that by blast
 qed
+
+
+lemma (in ufe_tree)
+  assumes "explain_dom (ufe_union ufe_ds a b) (x, y)"
+  assumes "a \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b"
+  assumes "y \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)"
+  assumes "z \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)"
+  assumes "ufe_rep_of (ufe_union ufe_ds a b) y = ufe_rep_of (ufe_union ufe_ds a b) z"
+  shows "explain (ufe_union ufe_ds a b) y z =
+    (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain ufe_ds y z
+    else {(ufe_rep_of ufe_ds a, ufe_rep_of ufe_ds b)} \<union>
+      (if ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y
+        then explain ufe_ds a y \<union> explain ufe_ds b z
+       else explain ufe_ds a z \<union> explain ufe_ds b y))"
+  using assms(1,5,6)
+proof(induction rule: explain.pinduct)
+  case (1 y z)
+  note ufa_lca_union[OF assms(2,3,4)]
+  and find_newest_on_walk_ufe_union[OF assms(2-4)]
+  show ?case
+  proof(cases "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y")
+    case True
+    then show ?thesis sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+qed
+
 
 lemma (in union_find_explain_ds) explain_dom_symmetric:
   assumes "explain_dom ufe_ds (x, y)"
@@ -182,7 +212,6 @@ next
   with newest_y obtain py where
     "newest_on_walk (the newest_y) ulca py y" "ulca \<noteq> y"
     using ufa_lca_symmetric[of "uf_ds ufe_ds" x y] \<alpha>_rep_of
-    
     sorry
   note valid_union = newest_on_walk_valid_union[OF this]
   then have "ay \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "by \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"

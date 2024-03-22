@@ -316,15 +316,11 @@ proof -
   qed
 qed
 
-lemma hd_awalk_verts_from_rep:
+lemma awalk_verts_from_rep_eq_Cons:
   assumes "y \<in> verts (ufa_tree_of uf x)"
-  shows "hd (awalk_verts_from_rep uf y) = uf_rep_of uf x"
-  using assms awalk_awalk_from_rep awalk_verts_from_rep_eq_awalk_verts by fastforce
-
-lemma awalk_verts_from_rep_neq_Nil:
-  assumes "y \<in> verts (ufa_tree_of uf x)"
-  shows "awalk_verts_from_rep uf y \<noteq> []"
-  using assms awalk_awalk_from_rep awalk_verts_from_rep_eq_awalk_verts by fastforce
+  obtains py where "awalk_verts_from_rep uf y = uf_rep_of uf y # py"
+  using assms awalk_awalk_from_rep awalk_verts_from_rep_eq_awalk_verts 
+  by (metis awalk_verts_non_Nil awhd_of_awalk list.collapse)
 
 lemma awalk_and_parent_of_reflD:
   assumes "awalk z p y"
