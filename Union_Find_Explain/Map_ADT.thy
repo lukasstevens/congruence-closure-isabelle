@@ -1,5 +1,5 @@
 theory Map_ADT
-  imports "HOL-Statespace.StateSpaceSyntax"
+  imports Main
 begin
 
 record ('m, 'dom, 'ran) map_mono_adt =

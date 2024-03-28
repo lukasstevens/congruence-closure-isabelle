@@ -138,6 +138,59 @@ lemma find_newest_on_walk_if_eq[simp]:
   "find_newest_on_walk x x = None"
   by (meson find_newest_on_walk.domintros find_newest_on_walk.psimps)
 
+end
+
+function explain :: "('dom \<times> 'dom) list \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
+  "explain [] _ _ = {}"
+| "us \<noteq> [] \<Longrightarrow> explain us y z =
+    (let
+      ufe_ds = ufe_unions ufe_init (butlast us);
+      (a, b) = last us
+    in
+      (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain (butlast us) y z
+      else {(ufe_rep_of ufe_ds a, ufe_rep_of ufe_ds b)} \<union>
+        (if ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y
+          then explain (butlast us) y a \<union> explain (butlast us) b z
+         else explain (butlast us) z a \<union> explain (butlast us) b y))
+    )"
+  by force+
+termination by (relation "measure (\<lambda>(us, y, z). size us)") auto
+
+lemma explain_refl[simp]:
+  "explain us x x = {}"
+proof(induction "size us" arbitrary: us)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc l)
+  moreover from Suc have "us \<noteq> []"
+    by auto
+  moreover from Suc \<open>us \<noteq> []\<close> have "size (butlast us) = l"
+    by simp
+  ultimately show ?case
+    by simp
+qed
+
+lemma explain_symmetric:
+  "explain us x y = explain us y x"
+proof(induction "size us" arbitrary: us x y)
+  case 0
+  then show ?case
+    by simp
+next
+  case (Suc l)
+  moreover from Suc have "us \<noteq> []"
+    by auto
+  moreover from Suc \<open>us \<noteq> []\<close> have "l = size (butlast us)"
+    by simp
+  note Suc.hyps(1)[OF this]
+  ultimately show ?case
+    unfolding explain.simps(2)[OF \<open>us \<noteq> []\<close>]
+    sorry
+oops
+
+(*
 text \<open>Explain operation, as described in the paper.\<close>
 function (domintros) explain :: "'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
   "explain x y = 
@@ -242,6 +295,7 @@ lemma explain_dom_newest_yD:
   shows "explain_dom (x, by)" "explain_dom (ay, y)"
   using assms
   by (auto intro: accp_downward[OF assms(1)] simp: explain_rel.intros)
+*)
 
 (*
 lemma explain_dom_cases:
@@ -267,8 +321,6 @@ lemma explain_dom_cases:
       "explain_dom (x, by)" "explain_dom (ay, y)"
   using explain_pinduct[OF assms]  *)
 
-
-end
 
 end
 

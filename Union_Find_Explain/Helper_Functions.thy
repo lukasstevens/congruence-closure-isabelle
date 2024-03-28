@@ -20,6 +20,19 @@ proof -
     by simp
 qed
 
+theorem (in ufa_tree) rep_of_ufa_lca:
+  assumes "y \<in> verts (ufa_tree_of uf x)"
+  assumes "z \<in> verts (ufa_tree_of uf x)"
+  shows "uf_rep_of uf (ufa_lca uf y z) = uf_rep_of uf y"
+proof -
+  note lca_ufa_lca[OF assms]
+  then have "ufa_lca uf y z \<in> verts (ufa_tree_of uf x)"
+    using lca_reachableD(2) reachable_in_verts(1) by blast
+  with assms show ?thesis
+    by simp
+qed
+
+
 context union_find_parent_unions
 begin
 
@@ -29,7 +42,7 @@ lemma ufa_lca_union:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   assumes "uf_rep_of (uf_union uf a b) x = uf_rep_of (uf_union uf a b) y"
   shows "ufa_lca (uf_union uf a b) x y =
-    (if uf_rep_of uf x = uf_rep_of uf y then ufa_lca uf x y else uf_rep_of uf b )"
+    (if uf_rep_of uf x = uf_rep_of uf y then ufa_lca uf x y else uf_rep_of uf b)"
 proof -
   interpret ufp_unions_union: union_find_parent_unions where
     uf = "uf_union uf a b" and us = "us @ [(a, b)]"
