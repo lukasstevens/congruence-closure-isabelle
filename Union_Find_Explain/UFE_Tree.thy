@@ -486,7 +486,7 @@ proof -
   from assms have "?y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
     using head_in_verts by blast
   from assms have "uf_rep_of (uf_ds ufe_ds) ?y \<noteq> ?y"
-    by (metis awalk_from_rep_rep_of awlast_awalk_from_rep
+    by (metis awalk_from_rep_rep_of_if_in_verts awlast_awalk_from_rep
         head_in_verts in_arcs_imp_in_arcs_ends
         not_root_if_dominated root_in_verts x_in_verts)
   with lookup_au_ds_eq_None_iff[OF \<open>?y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))\<close>]

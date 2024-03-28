@@ -92,7 +92,7 @@ qed
 
 
 lemma (in ufe_tree)
-  assumes "explain_dom (ufe_union ufe_ds a b) (x, y)"
+  assumes "explain_dom (ufe_union ufe_ds a b) (y, z)"
   assumes "a \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   assumes "ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b"
   assumes "y \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)"
@@ -104,18 +104,82 @@ lemma (in ufe_tree)
       (if ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y
         then explain ufe_ds a y \<union> explain ufe_ds b z
        else explain ufe_ds a z \<union> explain ufe_ds b y))"
-  using assms(1,5,6)
+  using assms(1,5,6,7)
 proof(induction rule: explain.pinduct)
   case (1 y z)
-  note ufa_lca_union[OF assms(2,3,4)]
-  and find_newest_on_walk_ufe_union[OF assms(2-4)]
   show ?case
-  proof(cases "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y")
+  proof(cases "y = z")
     case True
-    then show ?thesis sorry
+    with "1.hyps" show ?thesis
+      by (simp add: explain.psimps)
   next
     case False
-    then show ?thesis sorry
+    from assms(2-4) interpret ufp_union: union_find_parent_unions where
+      uf = "uf_ds (ufe_union ufe_ds a b)" and us = "unions ufe_ds @ [(a, b)]"
+      using union_find_parent_unions_union by force
+    from assms(2-4) x_in_Field_\<alpha> interpret ufe_tree_union: ufe_tree
+      where ufe_ds = "ufe_union ufe_ds a b"
+      by (simp add: ufe_explain_ds_union ufe_tree.intro ufe_tree_axioms.intro)
+
+    from "1.prems"(1,2)[THEN ufp_union.in_Field_\<alpha>_if_in_verts] assms(2-4) have
+      y_in_Field_\<alpha>: "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" and
+      z_in_Field_\<alpha>: "z \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+      by simp_all
+
+    from "1.prems"(3) assms(4) have
+      "uf_rep_of (uf_union (uf_ds ufe_ds) a b) y = uf_rep_of (uf_union (uf_ds ufe_ds) a b) z"
+      by simp
+    note ufa_lca_union_y_z =
+      ufa_lca_union[OF assms(2,3,4) y_in_Field_\<alpha> z_in_Field_\<alpha> this]
+
+    let ?ufa_lca_union = "ufa_lca (uf_ds (ufe_union ufe_ds a b))"
+    from "1.prems" obtain py pz where
+      py: "ufe_tree_union.awalk (?ufa_lca_union y z) py y" and
+      pz: "ufe_tree_union.awalk (?ufa_lca_union y z) pz z"
+      using ufe_tree_union.lca_ufa_lca ufe_tree_union.reachable_awalk
+      by (metis ufe_tree_union.lca_reachableD)
+
+    note find_newest_on_walk_ufe_union =
+      this[THEN find_newest_on_walk_ufe_union[OF assms(2-4)]]
+
+    then show ?thesis
+    proof(cases "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z")
+      case True
+      with ufa_lca_union_y_z have ufa_lca_union_y_z:
+        "ufa_lca (uf_ds (ufe_union ufe_ds a b)) y z = ufa_lca (uf_ds ufe_ds) y z" (is "_ = ?lca")
+        unfolding uf_ds_ufe_union by simp
+
+      from True have
+        "ufe_rep_of ufe_ds z = ufe_rep_of ufe_ds (ufa_lca (uf_ds ufe_ds) y z)"
+        sorry
+      with True find_newest_on_walk_ufe_union have *:
+        "find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds ufe_ds) y z) y =
+          find_newest_on_walk ufe_ds (ufa_lca (uf_ds ufe_ds) y z) y" (is "_ = ?newest_y")
+        "find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds ufe_ds) y z) z =
+          find_newest_on_walk ufe_ds (ufa_lca (uf_ds ufe_ds) y z) z" (is "_ = ?newest_z")
+        using ufa_lca_union_y_z by force+
+
+      from py have "awalk (ufa_lca (uf_ds ufe_ds) y z) py y"
+        unfolding ufa_lca_union_y_z
+        
+      have "the ?newest_y < length (unions ufe_ds)"
+        
+      find_theorems "find_newest_on_walk"
+      from "1.hyps" have "explain_dom ufe_ds (y, z)"
+        sorry
+
+      from True \<open>y \<noteq> z\<close> "1.prems" show ?thesis
+        unfolding explain.psimps[OF "1.hyps", unfolded Let_def]
+        unfolding * ufa_lca_union_y_z
+        apply simp
+        unfolding explain.psimps[OF \<open>explain_dom ufe_ds (y, z)\<close>]
+        apply(simp add: *)
+        sorry
+    next
+      case False
+      with \<open>y \<noteq> z\<close> "1.hyps" show ?thesis
+        sorry
+    qed 
   qed
 qed
 
