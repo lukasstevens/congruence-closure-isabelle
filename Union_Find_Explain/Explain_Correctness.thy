@@ -341,53 +341,37 @@ next
     note ufe_ds.find_newest_on_walk_ufe_union[OF ufe_union_if_newest_x.hyps(5-7) this]
     with x_awalk_lca have find_newest_on_walk_union:
       "find_newest_on_walk (ufe_union ufe_ds a b) (?lca x y) x =
-      find_newest_on_walk ufe_ds (?lca x y) x"
+      find_newest_on_walk ufe_ds (?lca x y) x" (is "_ = ?newest_x")
       using ufe_tree_x.awalk_hd_in_verts by auto
 
     from False ufe_union_if_newest_x.hyps(8) have "?lca x y \<noteq> x"
       using x_awalk_lca[THEN ufe_tree_x.find_newest_on_walk_eq_None_iff]
-      sledgehammer
-      by (smt (verit, ccfv_SIG) find_newest_on_walk_union less_eq_option_None_is_None
- uf_ds_ufe_union ufa_lca_union
-ufe_ds.in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init
-ufe_ds.rep_of_neq_if_rep_of_union_neq ufe_ds.ufe_explain_ds_union
-ufe_tree_x.x_in_Field_\<alpha> ufe_union_if_newest_x.hyps(2) ufe_union_if_newest_x.hyps(3) ufe_union_if_newest_x.hyps(5)
-ufe_union_if_newest_x.hyps(6) union_find_explain_ds.in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init
-union_find_explain_ds.neq_find_newest_on_path_ufa_lca_if_neq)
+      sorry
+
       with x_awalk_lca have newest_on_walk_newest_x:
-        "ufe_tree_x.newest_on_walk (the (find_newest_on_walk ufe_ds ?lca x)) ?lca px x"
-        (is "ufe_tree_x.newest_on_walk ?newest_x _ _ _")
+        "ufe_tree_x.newest_on_walk (the ?newest_x) (?lca x y) px x"
         using ufe_tree_x.newest_on_walk_find_newest_on_walk by blast
-      with \<open>?lca \<noteq> x\<close> have
-        "the (find_newest_on_walk ufe_ds ?lca x) < length (unions ufe_ds)"
+      with \<open>?lca x y \<noteq> x\<close> have
+        "the ?newest_x < length (unions ufe_ds)"
         using ufe_tree_x.newest_on_walk_lt_length_unions by blast
       then have nth_unions_union:
-        "unions (ufe_union ufe_ds a b) ! the (find_newest_on_walk ufe_ds ?lca x) =
-        unions ufe_ds ! the (find_newest_on_walk ufe_ds ?lca x)"
+        "unions (ufe_union ufe_ds a b) ! the ?newest_x =
+        unions ufe_ds ! the ?newest_x"
         unfolding unions_ufe_union by simp
 
-      obtain u v where uv: "unions ufe_ds ! ?newest_x = (u, v)"
+      obtain u v where uv: "unions ufe_ds ! the ?newest_x = (u, v)"
         by force
-      then have
+      with \<open>?lca x y \<noteq> x\<close> newest_on_walk_newest_x have
         "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds u" "ufe_rep_of ufe_ds v = ufe_rep_of ufe_ds y"
-      proof -
-        have "ufe_rep_of ufe_ds (ufa_lca (uf_ds ufe_ds) x y) = ufe_rep_of ufe_ds x"
-          using ufe_tree_x.rep_of_ufa_lca x_awalk_lca(2) by blast
-        note ufe_tree_x.rep_of_eq_if_newest_on_walk[
-            OF newest_on_walk_newest_x \<open>?lca \<noteq> x\<close> uv, unfolded this]
-        with rep_of_eq show
-          "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds u" "ufe_rep_of ufe_ds v = ufe_rep_of ufe_ds y"
-          by metis+
-      qed
-      then have
-        "explain (unions (ufe_union ufe_ds a b)) x u = explain (unions ufe_ds) x u"
-        "explain (unions (ufe_union ufe_ds a b)) v y = explain (unions ufe_ds) v y"
-        by (simp_all add: explain_simp)
+        using ufe_tree_x.rep_of_eq_if_newest_on_walk  ufe_union_if_newest_x.hyps(3)
+        by force+
 
     from ufe_union_if_newest_x.hyps(8) show ?thesis
       unfolding explain_ufe_union ufa_lca_union
-      apply (simp add: find_newest_on_walk_union)
-      
+      apply (subst explain.simps(2)[unfolded Let_def])
+      defer
+      apply (simp add: find_newest_on_walk_union nth_unions_union)
+      sledgehammer
       apply (simp_all add: ufa_lca_union)
 
 
