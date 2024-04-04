@@ -668,8 +668,8 @@ lemma rep_of_eq_if_newest_on_walk:
   assumes "y \<noteq> z"
   assumes "unions ufe_ds ! newest = (a, b)"
   shows
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
 proof -
   from newest_on_walkE[OF assms(1,2)] obtain i where
     "i \<in> set p" "awalk y p z" "newest = au_of i"
@@ -678,8 +678,8 @@ proof -
   moreover have "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds x"
     using \<open>awalk y p z\<close> awalk_def by force
   ultimately show
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
     by (metis (no_types, lifting) awalkE' subsetD)+
 qed
 
