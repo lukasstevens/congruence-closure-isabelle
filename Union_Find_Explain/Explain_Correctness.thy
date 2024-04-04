@@ -90,8 +90,127 @@ proof -
     using that by blast
 qed
 
+context union_find_explain_ds
+begin
 
-lemma (in union_find_explain_ds)
+lemma explain_symmetric:
+  assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  shows "explain (unions ufe_ds) x y = explain (unions ufe_ds) y x"
+  using assms
+proof(induction arbitrary: x y rule: ufe_ds_induct)
+  case ufe_init
+  then show ?case by simp
+next
+  case (ufe_union ufe_ds a b)
+  then interpret ufe_ds: union_find_explain_ds where ufe_ds = ufe_ds
+    by blast
+
+  from ufe_union.prems(1,2) have
+    x_in_Field_\<alpha>: "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" and
+    y_in_Field_\<alpha>: "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+    using ufe_union.hyps(2-4) by force+
+
+  have unions_ufe_union:
+    "unions (ufe_union ufe_ds a b) \<noteq> []"
+    "butlast (unions (ufe_union ufe_ds a b)) = unions ufe_ds"
+    "last (unions (ufe_union ufe_ds a b)) = (a, b)"
+    by (simp_all add: ufe_union.hyps(4))
+  note explain_simp = explain.simps(2)[OF this(1)]
+
+  from ufe_union x_in_Field_\<alpha> y_in_Field_\<alpha> have
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b \<or> ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds b"
+    if "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+    using that by (metis uf_ds_ufe_union ufe_ds.rep_of_union)
+  with x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.hyps(2,3) ufe_union.prems(3) consider
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y" |
+    "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b" "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds a" |
+    "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds a" "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds b"
+    by (metis (mono_tags, lifting) uf_ds_ufe_union ufe_ds.rep_of_union)
+  then show ?case
+  proof cases
+    case 1
+    with ufe_union.IH[OF y_in_Field_\<alpha> x_in_Field_\<alpha> this[symmetric]] show ?thesis
+      unfolding explain_simp unions_ufe_union
+      unfolding ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
+      by simp
+  next
+    case 2
+    with ufe_union.IH ufe_union.hyps x_in_Field_\<alpha> y_in_Field_\<alpha> have
+      "explain (unions ufe_ds) y a = explain (unions ufe_ds) a y"
+      "explain (unions ufe_ds) b x = explain (unions ufe_ds) x b"
+      by blast+
+    with 2 show ?thesis
+      unfolding explain_simp unions_ufe_union
+      unfolding ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
+      by fastforce
+  next
+    case 3
+    with ufe_union.IH ufe_union.hyps x_in_Field_\<alpha> y_in_Field_\<alpha> have
+      "explain (unions ufe_ds) y b = explain (unions ufe_ds) b y"
+      "explain (unions ufe_ds) a x = explain (unions ufe_ds) x a"
+      by blast+
+   with 3 show ?thesis
+      unfolding explain_simp unions_ufe_union
+      unfolding ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
+      by fastforce
+  qed
+qed
+
+lemma explain_induct[consumes 3, case_names ufe_init symmetric ufe_union]:
+  assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  assumes "\<And>x y. P ufe_init x y"
+  assumes symmetric: "\<And>ufe_ds x y.
+    \<lbrakk> union_find_explain_ds uf_adt au_adt ufe_ds
+    ; x \<in> Field (uf_\<alpha> (uf_ds ufe_ds)); y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))
+    ; ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+    ; P ufe_ds y x
+    \<rbrakk> \<Longrightarrow> P ufe_ds x y"
+  assumes "\<And>ufe_ds a b x y.
+    \<lbrakk> union_find_explain_ds uf_adt au_adt ufe_ds
+    ; a \<in> Field (uf_\<alpha> (uf_ds ufe_ds)); b \<in> Field (uf_\<alpha> (uf_ds ufe_ds))
+    ; uf_rep_of (uf_ds ufe_ds) a \<noteq> uf_rep_of (uf_ds ufe_ds) b
+    ; x \<in> Field (uf_\<alpha> (uf_ds ufe_ds)); y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))
+    ; ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
+    ; P ufe_ds x y
+    ; find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y) x \<ge>
+      find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y) y
+    \<rbrakk> \<Longrightarrow> P (ufe_union ufe_ds a b) x y"
+  shows "P ufe_ds x y"
+  using assms(1-3)
+proof(induction arbitrary: x y rule: ufe_ds_induct)
+  case ufe_init
+  from assms(4) show ?case by blast
+next
+  case (ufe_union ufe_ds a b x y)
+  then interpret union_find_explain_ds where ufe_ds = ufe_ds
+    by blast
+  let ?lca = "ufa_lca (uf_ds (ufe_union ufe_ds a b))"
+  show ?case
+  proof(cases "find_newest_on_walk (ufe_union ufe_ds a b) (?lca x y) x \<ge>
+    find_newest_on_walk (ufe_union ufe_ds a b) (?lca x y) y")
+    case True
+    from assms(6)[OF ufe_union.hyps _ _ _ ufe_union.IH this] show ?thesis
+      using ufe_union.prems
+      sorry
+  next
+    case False
+    then have "find_newest_on_walk (ufe_union ufe_ds a b) (?lca y x) y \<ge>
+      find_newest_on_walk (ufe_union ufe_ds a b) (?lca y x) x"
+      using ufa_lca_symmetric by simp
+    from assms(6)[OF ufe_union.hyps ufe_union.IH this] have "P (ufe_union ufe_ds a b) y x"
+      using ufe_union.prems
+      sorry
+    note symm = assms(5)[OF ufe_explain_ds_union[OF ufe_union.hyps(2,3)] this]
+    show ?thesis
+      by (intro symm )
+  qed
+qed
+
+lemma
   assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
   assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   shows
@@ -110,7 +229,7 @@ lemma (in union_find_explain_ds)
           let (ay, by) = unions ufe_ds ! the newest_y
           in {(ay, by)} \<union> explain (unions ufe_ds) x by \<union> explain (unions ufe_ds) ay y)"
   using assms
-proof(induction arbitrary: x y rule: ufe_ds_induct)
+proof(induction rule: ufe_ds_induct)
   case ufe_init
   with assms have "ufe_rep_of ufe_init x = ufe_rep_of ufe_init y \<longleftrightarrow> x = y"
     unfolding ufe_init_sel
@@ -121,18 +240,21 @@ next
   case (ufe_union ufe_ds a b)
   then interpret ufe_ds: union_find_explain_ds where ufe_ds = ufe_ds
     by blast
+
   from ufe_union have unions_ufe_union:
     "unions (ufe_union ufe_ds a b) = unions ufe_ds @ [(a, b)]"
     by simp
-  have "unions ufe_ds @ [(a, b)] \<noteq> []"
-    by blast
-  have butlast_unions_append:
-    "butlast (unions ufe_ds @ [(a, b)]) = unions ufe_ds"
+  from unions_ufe_union have unions_union_neq_Nil[simp]:
+    "unions (ufe_union ufe_ds a b) \<noteq> []"
     by simp
-  have last_unions_append:
-    "last (unions ufe_ds @ [(a, b)]) = (a, b)"
+  from unions_ufe_union have butlast_unions_append[simp]:
+    "butlast (unions (ufe_union ufe_ds a b)) = unions ufe_ds"
     by simp
-  note explain.simps(2)[OF \<open>unions ufe_ds @ [(a, b)] \<noteq> []\<close>]
+  from unions_ufe_union have last_unions_append[simp]:
+    "last (unions (ufe_union ufe_ds a b)) = (a, b)"
+    by simp
+
+  note explain.simps(2)[OF \<open>unions (ufe_union ufe_ds a b) \<noteq> []\<close>]
   note this[unfolded butlast_unions_append last_unions_append]
   note explain_simp = this[folded ufe_ds.ufe_ds_eq_ufe_unions]
 
@@ -146,26 +268,235 @@ next
   note ufa_lca_union = 
     ufe_ds.ufa_lca_union[OF ufe_union.hyps(2-4) x_in_Field_\<alpha> y_in_Field_\<alpha> this]
 
-  note find_newest_on_walk_ufe_union =
+  note find_newest_on_walk_union =
     ufe_ds.find_newest_on_walk_ufe_union[OF ufe_union.hyps(2-4)]
 
   show ?case
   proof(cases "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y")
-    case True
-    then have "explain (unions (ufe_union ufe_ds a b)) x y = explain (unions ufe_ds) x y"
-      unfolding unions_ufe_union explain_simp by simp
+    case rep_of_eq: True
+    then have explain_union:
+      "explain (unions (ufe_union ufe_ds a b)) x y = explain (unions ufe_ds) x y"
+      unfolding explain_simp by simp
 
-    then show ?thesis sorry
+    from rep_of_eq ufa_lca_union have ufa_lca_union:
+      "ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y = ufa_lca (uf_ds ufe_ds) x y" (is "_ = ?lca")
+      using ufe_union.hyps(4) by fastforce
+
+    interpret ufe_tree_x: ufe_tree where ufe_ds = ufe_ds and x = x
+      by (use x_in_Field_\<alpha> in unfold_locales)
+
+    from rep_of_eq y_in_Field_\<alpha> have "ufe_tree_x.lca ?lca x y"
+      using ufe_ds.\<alpha>_rep_of ufe_ds.in_vertsI
+      by (intro ufe_tree_x.lca_ufa_lca) blast+
+    then obtain px py where x_awalk_lca:
+      "ufe_tree_x.awalk ?lca px x" "ufe_tree_x.awalk ?lca py y"
+      by (meson ufe_tree_x.lca_reachableD ufe_tree_x.reachable_awalk)
+    with rep_of_eq have
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x) ?lca px x"
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x) ?lca py y"
+      using ufe_tree_x.union_awalk_if_awalk ufe_union.hyps(2-4) by auto
+    from this[THEN find_newest_on_walk_union] rep_of_eq have find_newest_on_walk_union:
+      "find_newest_on_walk (ufe_union ufe_ds a b) ?lca x =
+        find_newest_on_walk ufe_ds ?lca x"
+      "find_newest_on_walk (ufe_union ufe_ds a b) ?lca y =
+        find_newest_on_walk ufe_ds ?lca y"
+      using \<open>ufe_tree_x.awalk ?lca py y\<close> by fastforce+
+
+    consider
+      (eq) "x = y" |
+      (newest_x) "x \<noteq> y" "find_newest_on_walk ufe_ds ?lca x \<ge> find_newest_on_walk ufe_ds ?lca y" |
+      (newest_y) "x \<noteq> y" "\<not> find_newest_on_walk ufe_ds ?lca x \<ge> find_newest_on_walk ufe_ds ?lca y"
+      by fastforce
+    then show ?thesis
+    proof cases
+      case eq
+      then show ?thesis
+        by simp
+    next
+      case newest_x
+      then have "?lca \<noteq> x"
+        using x_awalk_lca[THEN ufe_tree_x.find_newest_on_walk_eq_None_iff]
+        by force
+      with x_awalk_lca have newest_on_walk_newest_x:
+        "ufe_tree_x.newest_on_walk (the (find_newest_on_walk ufe_ds ?lca x)) ?lca px x"
+        (is "ufe_tree_x.newest_on_walk ?newest_x _ _ _")
+        using ufe_tree_x.newest_on_walk_find_newest_on_walk by blast
+      with \<open>?lca \<noteq> x\<close> have
+        "the (find_newest_on_walk ufe_ds ?lca x) < length (unions ufe_ds)"
+        using ufe_tree_x.newest_on_walk_lt_length_unions by blast
+      then have nth_unions_union:
+        "unions (ufe_union ufe_ds a b) ! the (find_newest_on_walk ufe_ds ?lca x) =
+        unions ufe_ds ! the (find_newest_on_walk ufe_ds ?lca x)"
+        unfolding unions_ufe_union by simp
+
+      obtain u v where uv: "unions ufe_ds ! ?newest_x = (u, v)"
+        by force
+      then have
+        "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds u" "ufe_rep_of ufe_ds v = ufe_rep_of ufe_ds y"
+      proof -
+        have "ufe_rep_of ufe_ds (ufa_lca (uf_ds ufe_ds) x y) = ufe_rep_of ufe_ds x"
+          using ufe_tree_x.rep_of_ufa_lca x_awalk_lca(2) by blast
+        note ufe_tree_x.rep_of_eq_if_newest_on_walk[
+            OF newest_on_walk_newest_x \<open>?lca \<noteq> x\<close> uv, unfolded this]
+        with rep_of_eq show
+          "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds u" "ufe_rep_of ufe_ds v = ufe_rep_of ufe_ds y"
+          by metis+
+      qed
+      then have
+        "explain (unions (ufe_union ufe_ds a b)) x u = explain (unions ufe_ds) x u"
+        "explain (unions (ufe_union ufe_ds a b)) v y = explain (unions ufe_ds) v y"
+        by (simp_all add: explain_simp)
+      with newest_x uv show ?thesis
+        unfolding explain_union ufe_union.IH[OF x_in_Field_\<alpha> y_in_Field_\<alpha> rep_of_eq]
+        unfolding ufa_lca_union Let_def find_newest_on_walk_union nth_unions_union
+        by simp
+    next
+      case newest_y
+      then have "?lca \<noteq> y"
+        using x_awalk_lca[THEN ufe_tree_x.find_newest_on_walk_eq_None_iff]
+        by force
+      with x_awalk_lca have newest_on_walk_newest_x:
+        "ufe_tree_x.newest_on_walk (the (find_newest_on_walk ufe_ds ?lca y)) ?lca py y"
+        (is "ufe_tree_x.newest_on_walk ?newest_y _ _ _")
+        using ufe_tree_x.newest_on_walk_find_newest_on_walk by blast
+      with \<open>?lca \<noteq> y\<close> have
+        "the (find_newest_on_walk ufe_ds ?lca y) < length (unions ufe_ds)"
+        using ufe_tree_x.newest_on_walk_lt_length_unions by blast
+      then have nth_unions_union:
+        "unions (ufe_union ufe_ds a b) ! the (find_newest_on_walk ufe_ds ?lca y) =
+        unions ufe_ds ! the (find_newest_on_walk ufe_ds ?lca y)"
+        unfolding unions_ufe_union by simp
+
+      obtain u v where uv: "unions ufe_ds ! ?newest_y = (u, v)"
+        by force
+      then have
+        "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds v" "ufe_rep_of ufe_ds u = ufe_rep_of ufe_ds y"
+      proof -
+        have "ufe_rep_of ufe_ds (ufa_lca (uf_ds ufe_ds) x y) = ufe_rep_of ufe_ds x"
+          using ufe_tree_x.rep_of_ufa_lca x_awalk_lca(2) by blast
+        note ufe_tree_x.rep_of_eq_if_newest_on_walk[
+            OF newest_on_walk_newest_x \<open>?lca \<noteq> y\<close> uv, unfolded this]
+        with rep_of_eq show
+          "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds v" "ufe_rep_of ufe_ds u = ufe_rep_of ufe_ds y"
+          by metis+
+      qed
+      then have
+        "explain (unions (ufe_union ufe_ds a b)) x v = explain (unions ufe_ds) x v"
+        "explain (unions (ufe_union ufe_ds a b)) u y = explain (unions ufe_ds) u y"
+        by (simp_all add: explain_simp)
+      with newest_y uv show ?thesis
+        unfolding explain_union ufe_union.IH[OF x_in_Field_\<alpha> y_in_Field_\<alpha> rep_of_eq]
+        unfolding Let_def
+        unfolding ufa_lca_union Let_def find_newest_on_walk_union nth_unions_union
+        by simp
+    qed
   next
-    case False
+    case rep_of_neq: False
+    then have "x \<noteq> y"
+      by blast      
 
-      
-    from False ufa_lca_union have ufa_lca_union:
-      "ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y = ufe_rep_of ufe_ds b"
+    from rep_of_neq ufa_lca_union have ufa_lca_union:
+      "ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y = ufe_rep_of ufe_ds b" (is "_ = ?rep_b")
       using ufe_union.hyps(4) by auto
-    show ?thesis
-      unfolding ufa_lca_union
+
+    interpret ufe_ds_union: union_find_explain_ds where ufe_ds = "ufe_union ufe_ds a b"
+      by (intro ufe_ds.ufe_explain_ds_union ufe_union.hyps(2,3))
+    interpret ufe_tree_union: ufe_tree where ufe_ds = "ufe_union ufe_ds a b" and x = ?rep_b
+      using ufe_ds.rep_of_in_Field_\<alpha>_if_in_Field_\<alpha>[OF ufe_union.hyps(3)]
+      by unfold_locales force
+
+    from rep_of_neq x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) have
+      "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds a \<and> ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds b \<or>
+      ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b \<and> ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds a"
+      using ufe_ds.rep_of_union[OF ufe_union.hyps(2,3)]
+      unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)] by metis
+    moreover from calculation have lca_rep_b: "ufe_tree_union.lca ?rep_b x y"
+      apply (subst (2) ufa_lca_union[symmetric], intro ufe_tree_union.lca_ufa_lca)
       sorry
+    ultimately obtain p where
+      "ufe_tree_union.awalk ?rep_b p x \<or> ufe_tree_union.awalk ?rep_b p y"
+      using ufe_tree_union.lca_reachableD(1) ufe_tree_union.reachable_awalk by blast
+    with rep_of_neq lca_rep_b find_newest_on_walk_union have newest_eq_Some_length_unions:
+      "find_newest_on_walk (ufe_union ufe_ds a b) ?rep_b x = Some (length (unions ufe_ds)) \<or>
+      find_newest_on_walk (ufe_union ufe_ds a b) ?rep_b y = Some (length (unions ufe_ds))"
+      (is "?newest_x = _ \<or> ?newest_y = _")
+      by (metis ufe_tree_union.lca_reachableD(1,2) ufe_tree_union.reachable_awalk)
+    have newest_leq_Some_length_unions:
+      "find_newest_on_walk (ufe_union ufe_ds a b) ?rep_b x \<le> Some (length (unions ufe_ds))"
+        (is "?newest_x \<le> _")
+      "find_newest_on_walk (ufe_union ufe_ds a b) ?rep_b y \<le> Some (length (unions ufe_ds))"
+        (is "?newest_y \<le> _")
+      sorry
+    then have newest_lt_Some_length_unions:
+      "?newest_x < Some (length (unions ufe_ds)) \<or> ?newest_y < Some (length (unions ufe_ds))"
+      by (metis \<open>x \<noteq> y\<close> order_le_less ufa_lca_union ufe_ds_union.in_vertsI
+          ufe_ds_union.rep_of_Pair_in_\<alpha>_if_in_Field_\<alpha> ufe_ds_union.ufa_tree_of_eq_if_in_verts
+          ufe_ds_union.union_find_explain_ds_axioms
+          ufe_tree.intro ufe_tree.neq_find_newest_on_path
+          ufe_tree_axioms.intro ufe_union.prems(1) ufe_union.prems(2) ufe_union.prems(3))
+    have nth_unions_union_length_unions:
+      "unions (ufe_union ufe_ds a b) ! length (unions ufe_ds) = (a, b)"
+      using unions_ufe_union by force
+    show ?thesis
+    proof(cases "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b")
+      case True
+ 
+      from True rep_of_neq explain_simp have explain_union_x_y:
+        "explain (unions (ufe_union ufe_ds a b)) x y =
+        {(a, b)} \<union> explain (unions ufe_ds) x b \<union> explain (unions ufe_ds) a y"
+        unfolding unions_ufe_union by simp
+
+      from True rep_of_neq have "ufe_rep_of ufe_ds y \<noteq> ufe_rep_of ufe_ds b"
+        by fastforce
+      with find_newest_on_walk_union lca_rep_b ufe_union.hyps(3) have
+        "?newest_y = Some (length (unions ufe_ds))"
+        using ufe_ds.rep_of_rep_of
+        by (metis ufe_tree_union.lca_reachableD(2) ufe_tree_union.reachable_awalk)
+      with newest_lt_Some_length_unions have "\<not> ?newest_x \<ge> ?newest_y"
+        by simp
+
+      from True have explain_union_x_b:
+        "explain (unions (ufe_union ufe_ds a b)) x b = explain (unions ufe_ds) x b"
+        unfolding explain_simp[of x b] by simp
+
+      from \<open>ufe_rep_of ufe_ds y \<noteq> ufe_rep_of ufe_ds b\<close> have explain_union_a_y:
+        "explain (unions (ufe_union ufe_ds a b)) a y = explain (unions ufe_ds) a y"
+        unfolding explain_simp[of a y] sorry
+
+      from \<open>\<not> ?newest_x \<ge> ?newest_y\<close> \<open>?newest_y = Some (length (unions ufe_ds))\<close> \<open>x \<noteq> y\<close>
+      show ?thesis
+        unfolding ufa_lca_union explain_union_x_y
+        using explain_union_x_b explain_union_a_y nth_unions_union_length_unions by force
+    next
+      case False
+ 
+      from False rep_of_neq explain_simp have explain_union_x_y:
+        "explain (unions (ufe_union ufe_ds a b)) x y =
+        {(a, b)} \<union> explain (unions ufe_ds) x a \<union> explain (unions ufe_ds) b y"
+        unfolding unions_ufe_union by simp
+
+      from False rep_of_neq have "ufe_rep_of ufe_ds y \<noteq> ufe_rep_of ufe_ds a"
+        sorry
+      with False find_newest_on_walk_union lca_rep_b ufe_union.hyps(3) have
+        "?newest_x = Some (length (unions ufe_ds))"
+        using ufe_ds.rep_of_rep_of
+        by (metis ufe_tree_union.lca_reachableD(1) ufe_tree_union.reachable_awalk)
+      with newest_lt_Some_length_unions have "?newest_x \<ge> ?newest_y"
+        by simp
+
+      from False have explain_union_x_a:
+        "explain (unions (ufe_union ufe_ds a b)) x a = explain (unions ufe_ds) x a"
+        unfolding explain_simp[of x a] sorry
+
+      from \<open>ufe_rep_of ufe_ds y \<noteq> ufe_rep_of ufe_ds a\<close> have explain_union_b_y:
+        "explain (unions (ufe_union ufe_ds a b)) b y = explain (unions ufe_ds) b y"
+        unfolding explain_simp[of b y] sorry
+
+      from \<open>?newest_x \<ge> ?newest_y\<close> \<open>?newest_x = Some (length (unions ufe_ds))\<close> \<open>x \<noteq> y\<close>
+      show ?thesis
+        unfolding ufa_lca_union explain_union_x_y
+        using explain_union_x_a explain_union_b_y nth_unions_union_length_unions by force
+    qed
   qed
 qed
 

@@ -148,10 +148,10 @@ function explain :: "('dom \<times> 'dom) list \<Rightarrow> 'dom \<Rightarrow> 
       (a, b) = last us
     in
       (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain (butlast us) y z
-      else {(ufe_rep_of ufe_ds a, ufe_rep_of ufe_ds b)} \<union>
-        (if ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds y
-          then explain (butlast us) y a \<union> explain (butlast us) b z
-         else explain (butlast us) z a \<union> explain (butlast us) b y))
+      else {(a, b)} \<union>
+        (if ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds y
+          then explain (butlast us) y b \<union> explain (butlast us) a z
+         else explain (butlast us) y a \<union> explain (butlast us) b z))
     )"
   by force+
 termination by (relation "measure (\<lambda>(us, y, z). size us)") auto
