@@ -130,22 +130,11 @@ next
     y_in_Field_\<alpha>: "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
     using ufe_union.hyps(2-4) by force+
 
-  have unions_ufe_union:
-    "unions (ufe_union ufe_ds a b) \<noteq> []"
-    "butlast (unions (ufe_union ufe_ds a b)) = unions ufe_ds"
-    "last (unions (ufe_union ufe_ds a b)) = (a, b)"
-    by (simp_all add: ufe_union.hyps(4))
-  note explain_simp = explain.simps(2)[OF this(1)]
-
-  from ufe_union x_in_Field_\<alpha> y_in_Field_\<alpha> have
-    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b \<or> ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds b"
-    if "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
-    using that by (metis uf_ds_ufe_union ufe_ds.rep_of_union)
-  from x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2,3,4) show ?case
-    unfolding ufe_union_sel_if_rep_of_neq(1)[OF ufe_union.hyps(4)]
-    unfolding explain_simp unions_ufe_union ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
-    using ufe_union.hyps x_in_Field_\<alpha> y_in_Field_\<alpha>
-    by (cases rule: ufe_ds.rep_of_union_eq_cases) (auto simp: ufe_union.IH)
+  from x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) show ?case
+    unfolding ufe_union_sel_if_rep_of_neq(1,3)[OF ufe_union.hyps(4)]
+    unfolding explain.simps Let_def ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
+    by (cases rule: ufe_ds.rep_of_union_eq_cases)
+      (use ufe_union.IH x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.hyps in \<open>force+\<close>)
 qed
 
 lemma explain_induct[consumes 3,
@@ -371,7 +360,6 @@ next
       apply (subst explain.simps(2)[unfolded Let_def])
       defer
       apply (simp add: find_newest_on_walk_union nth_unions_union)
-      sledgehammer
       apply (simp_all add: ufa_lca_union)
 
 
@@ -732,5 +720,98 @@ lemma (in union_find_explain_invars)
   assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   shows "explain_dom (ufe_union ufe_ds u v) (x, y)"
   oops
+
+lemma (in union_find_explain_ds) explain_sound:
+  assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+  assumes "u \<in> explain (unions ufe_ds) x y"
+  shows "u \<in> set (unions ufe_ds)"
+  using assms
+proof(induction arbitrary: x y u rule: ufe_ds_induct)
+  case ufe_init
+  then show ?case by simp
+next
+  case (ufe_union ufe_ds x y a b)
+  then interpret ufe_ds: union_find_explain_ds where ufe_ds = ufe_ds
+    by blast
+
+  from ufe_union.prems ufe_union.hyps(2-4) show ?case
+    unfolding ufe_union_sel_if_rep_of_neq(3)[OF ufe_union.hyps(4)]
+    unfolding explain.simps[unfolded Let_def, folded ufe_ds.ufe_ds_eq_ufe_unions]
+    by (auto simp: ufe_union.IH split: if_splits)
+qed
+
+lemma symcl_Un[simp]:
+  "symcl (A \<union> B) = symcl A \<union> symcl B"
+  unfolding symcl_def by auto
+
+lemma symcl_insert:
+  "symcl (insert x A) = insert x (insert (case x of (a, b) \<Rightarrow> (b, a)) (symcl A))"
+  unfolding symcl_def by auto
+
+lemma (in union_find_explain_ds) explain_complete:
+  assumes "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+  shows "(x, y) \<in> ((explain (unions ufe_ds) x y)\<^sup>s)\<^sup>*"
+  using assms
+proof(induction arbitrary: x y rule: ufe_ds_induct)
+  case ufe_init
+  then have "x = y"
+    using ufp_invar_init.refl_parent_of_iff_refl_rep_of by auto
+  then show ?case
+    by simp
+next
+  case (ufe_union ufe_ds a b x y)
+  then interpret ufe_ds: union_find_explain_ds where ufe_ds = ufe_ds
+    by blast
+
+  from ufe_union.prems(1,2) have
+    x_in_Field_\<alpha>: "x \<in> Field (uf_\<alpha> (uf_ds ufe_ds))" and
+    y_in_Field_\<alpha>: "y \<in> Field (uf_\<alpha> (uf_ds ufe_ds))"
+    using ufe_union.hyps(2-4) by force+
+
+  note x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2-4)
+  from this[unfolded ufe_union_sel_if_rep_of_neq(1,3)[OF ufe_union.hyps(4)]] show ?case
+  proof (cases rule: ufe_ds.rep_of_union_eq_cases)
+    case 1
+    with x_in_Field_\<alpha> y_in_Field_\<alpha> show ?thesis
+      unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
+      unfolding explain.simps Let_def ufe_ds.ufe_ds_eq_ufe_unions[symmetric]
+      by (auto simp: ufe_union.IH)
+  next
+    case 2
+    with ufe_union.IH have
+      "(x, a) \<in> ((explain (unions ufe_ds) x a)\<^sup>s)\<^sup>*" (is "_ \<in> ?explain_x_a\<^sup>*")
+      "(b, y) \<in> ((explain (unions ufe_ds) b y)\<^sup>s)\<^sup>*" (is "_ \<in> ?explain_b_y\<^sup>*")
+      using x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.hyps(2,3) by metis+
+    then have
+      "(x, y) \<in> (insert (a, b) (insert (b, a) (?explain_x_a\<^sup>* \<union> ?explain_b_y\<^sup>*)))\<^sup>*"
+      by (meson UnCI insertCI rtrancl.simps)
+    also have "\<dots> = (insert (a, b) (insert (b, a) (?explain_x_a \<union> ?explain_b_y)))\<^sup>*"
+      using rtrancl_Un_rtrancl
+      by (metis (no_types) Un_insert_left Un_insert_right rtrancl_idemp)
+    finally show ?thesis
+      using 2
+      unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
+      unfolding explain.simps Let_def ufe_ds.ufe_ds_eq_ufe_unions[symmetric]   
+      by (simp add: symcl_insert)
+  next
+    case 3
+    with ufe_union.IH have
+      "(x, b) \<in> ((explain (unions ufe_ds) x b)\<^sup>s)\<^sup>*" (is "_ \<in> ?explain_x_b\<^sup>*")
+      "(a, y) \<in> ((explain (unions ufe_ds) a y)\<^sup>s)\<^sup>*" (is "_ \<in> ?explain_a_y\<^sup>*")
+      using x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.hyps(2,3) by metis+
+    then have
+      "(x, y) \<in> (insert (a, b) (insert (b, a) (?explain_x_b\<^sup>* \<union> ?explain_a_y\<^sup>*)))\<^sup>*"
+      by (meson UnCI insertCI rtrancl.simps)
+    also have "\<dots> = (insert (a, b) (insert (b, a) (?explain_x_b \<union> ?explain_a_y)))\<^sup>*"
+      using rtrancl_Un_rtrancl
+      by (metis (no_types) Un_insert_left Un_insert_right rtrancl_idemp)
+    finally show ?thesis
+      using 3
+      unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
+      unfolding explain.simps Let_def ufe_ds.ufe_ds_eq_ufe_unions[symmetric]   
+      by (simp add: symcl_insert)
+  qed
+qed
 
 end

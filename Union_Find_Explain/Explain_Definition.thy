@@ -142,18 +142,17 @@ end
 
 function explain :: "('dom \<times> 'dom) list \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
   "explain [] _ _ = {}"
-| "us \<noteq> [] \<Longrightarrow> explain us y z =
+| "explain (us @ [(a, b)]) y z =
     (let
-      ufe_ds = ufe_unions ufe_init (butlast us);
-      (a, b) = last us
+      ufe_ds = ufe_unions ufe_init us
     in
-      (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain (butlast us) y z
+      (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain us y z
       else {(a, b)} \<union>
         (if ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds y
-          then explain (butlast us) y b \<union> explain (butlast us) a z
-         else explain (butlast us) y a \<union> explain (butlast us) b z))
+          then explain us y b \<union> explain us a z
+         else explain us y a \<union> explain us b z))
     )"
-  by force+
+  by auto (metis prod.exhaust rev_exhaust)
 termination by (relation "measure (\<lambda>(us, y, z). size us)") auto
 
 lemma explain_refl[simp]:
@@ -164,31 +163,9 @@ proof(induction "size us" arbitrary: us)
     by simp
 next
   case (Suc l)
-  moreover from Suc have "us \<noteq> []"
-    by auto
-  moreover from Suc \<open>us \<noteq> []\<close> have "size (butlast us) = l"
-    by simp
-  ultimately show ?case
-    by simp
-qed
-
-lemma explain_symmetric:
-  "explain us x y = explain us y x"
-proof(induction "size us" arbitrary: us x y)
-  case 0
   then show ?case
-    by simp
-next
-  case (Suc l)
-  moreover from Suc have "us \<noteq> []"
-    by auto
-  moreover from Suc \<open>us \<noteq> []\<close> have "l = size (butlast us)"
-    by simp
-  note Suc.hyps(1)[OF this]
-  ultimately show ?case
-    unfolding explain.simps(2)[OF \<open>us \<noteq> []\<close>]
-    sorry
-oops
+    by (cases "(us, x, x)" rule: explain.cases) auto
+qed
 
 (*
 text \<open>Explain operation, as described in the paper.\<close>
