@@ -147,10 +147,16 @@ proof(unfold_locales)
     by (auto simp: FieldI2 ufa_tree_of_def)
 qed (auto simp: ufa_tree_of_def)
 
-
 lemma x_in_verts[simp, intro]: "x \<in> verts (ufa_tree_of uf x)"
   using \<alpha>_rep_of unfolding verts_ufa_tree_of
   by fastforce
+
+lemma in_verts_if_rep_of_eq:
+  assumes "y \<in> Field (uf_\<alpha> uf)"
+  assumes "uf_rep_of uf y = uf_rep_of uf x"
+  shows "y \<in> verts (ufa_tree_of uf x)"
+  using assms x_in_Field_\<alpha>
+  by (intro in_vertsI) (metis \<alpha>_rep_of)
 
 lemma ufa_tree_of_parent_of[simp]:
   "ufa_tree_of uf (uf_parent_of uf x) = ufa_tree_of uf x"

@@ -163,7 +163,7 @@ lemmas
   invar_union[simp, intro] = invar_union[OF invar_uf] and
   \<alpha>_union[simp] = \<alpha>_union[OF invar_uf]
 
-lemma Field_\<alpha>_union[simp]:
+lemma Field_\<alpha>_union:
   assumes "x \<in> Field (uf_\<alpha> uf)" "y \<in> Field (uf_\<alpha> uf)"
   shows "Field (uf_\<alpha> (uf_union uf x y)) = Field (uf_\<alpha> uf)"
   using assms by auto
