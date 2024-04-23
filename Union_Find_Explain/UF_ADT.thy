@@ -498,34 +498,6 @@ qed
 
 end
 
-context union_find_invar
-begin
-
-(*
-lemma rep_of_uf_unions_take_neq_if_rep_of_uf_unions_neq:
-  assumes "valid_unions uf us"
-  assumes "j \<in> Field (uf_\<alpha> uf)" "k \<in> Field (uf_\<alpha> uf)"
-  assumes "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
-  shows "uf_rep_of (uf_unions uf (take i us)) j \<noteq> uf_rep_of (uf_unions uf (take i us)) k"
-  using assms
-proof(induction us arbitrary: i rule: rev_induct)
-  case (snoc u us)
-  from snoc interpret uf_unions: union_find_invar where uf = "uf_unions uf us"
-    by unfold_locales auto
-  from snoc have rep_of_ufa_union:
-    "uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) j
-    \<noteq> uf_rep_of (uf_union (uf_unions uf us) (fst u) (snd u)) k"
-    by (cases u) simp
-  note uf_unions.rep_of_neq_if_rep_of_ufa_union_neq[OF _ _ _  _ this]
-  with snoc.prems have "uf_rep_of (uf_unions uf us) j \<noteq> uf_rep_of (uf_unions uf us) k"
-    by auto
-  note snoc.IH[OF _ snoc.prems(2,3) this]
-  with snoc.prems(1) rep_of_ufa_union show ?case
-    by (cases "i \<le> length us") (auto split: prod.splits)
-qed simp
-*)
-end
-
 lemma (in union_find) eff_unions_append:
   assumes "uf_invar uf"
   assumes "valid_unions uf (us1 @ us2)"
