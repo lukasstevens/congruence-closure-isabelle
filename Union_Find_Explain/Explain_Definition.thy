@@ -5,54 +5,43 @@ theory Explain_Definition
     "HOL-Library.Option_ord"
     "UFA_Tree"
 begin
- 
-
-no_notation Ref.update ("_ := _" 62)
 
 subsection \<open>Definitions\<close>
 
-record ('uf, 'au, 'dom) union_find_explain_ds =
-  uf_ds :: 'uf
-  au_ds :: 'au
-  unions :: "('dom \<times> 'dom) list"
-
-locale union_find_explain_adts =
-  union_find_parent_adt where uf_adt = uf_adt +
-  map_mono_adt where mm_adt = au_adt
-  for
-    uf_adt :: "('uf, 'dom, _) union_find_parent_adt_scheme" (structure) and
-    au_adt :: "('au, 'dom, nat, _) map_mono_adt_scheme"
-begin
+record union_find_explain_ds =
+  uf_ds :: ufa
+  au_ds :: "nat \<rightharpoonup> nat"
+  unions :: "(nat \<times> nat) list"
 
 fun ufe_union where
   "ufe_union \<lparr> uf_ds = uf, au_ds = au, unions = u \<rparr> x y =
-    (if uf_rep_of uf x \<noteq> uf_rep_of uf y then
-      \<lparr> uf_ds = uf_union uf x y
-      , au_ds = mm_update\<^bsub>au_adt\<^esub> au (uf_rep_of uf x) (length u)
+    (if ufa_rep_of uf x \<noteq> ufa_rep_of uf y then
+      \<lparr> uf_ds = ufa_union uf x y
+      , au_ds = au(ufa_rep_of uf x \<mapsto> length u)
       , unions = u @ [(x, y)]
       \<rparr>
     else \<lparr> uf_ds = uf, au_ds = au, unions = u \<rparr>)"
 
-definition "ufe_init \<equiv>
-  \<lparr> uf_ds = uf_init, au_ds = mm_empty\<^bsub>au_adt\<^esub>, unions = ([] :: ('dom \<times> 'dom) list) \<rparr>"
+definition ufe_init :: "nat \<Rightarrow> union_find_explain_ds" where
+  "ufe_init n \<equiv> \<lparr> uf_ds = ufa_init n, au_ds = Map.empty, unions = [] \<rparr>"
 
 definition "ufe_unions \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union ufe_ds x y)"
 
-abbreviation "ufe_rep_of ufe_ds x \<equiv> uf_rep_of (uf_ds ufe_ds) x"
-abbreviation "ufe_parent_of ufe_ds x \<equiv> uf_parent_of (uf_ds ufe_ds) x"
+abbreviation "ufe_rep_of ufe_ds x \<equiv> ufa_rep_of (uf_ds ufe_ds) x"
+abbreviation "ufe_parent_of ufe_ds x \<equiv> ufa_parent_of (uf_ds ufe_ds) x"
 
 lemma uf_ds_ufe_union:
   "uf_ds (ufe_union ufe_ds x y) =
     (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
       then uf_ds ufe_ds
-      else uf_union (uf_ds ufe_ds) x y)"
+      else ufa_union (uf_ds ufe_ds) x y)"
   by (cases ufe_ds) simp
 
 lemma au_ds_ufe_union:
   "au_ds (ufe_union ufe_ds x y) =
     (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
       then au_ds ufe_ds
-      else mm_update\<^bsub>au_adt\<^esub> (au_ds ufe_ds) (ufe_rep_of ufe_ds x) (length (unions ufe_ds)))"
+      else (au_ds ufe_ds)(ufe_rep_of ufe_ds x \<mapsto> length (unions ufe_ds)))"
   by (cases ufe_ds) simp
 
 lemma unions_ufe_union:
@@ -67,17 +56,17 @@ lemmas ufe_union_sel = uf_ds_ufe_union au_ds_ufe_union unions_ufe_union
 lemma ufe_union_sel_if_rep_of_neq[simp]:
   assumes "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
   shows
-    "uf_ds (ufe_union ufe_ds x y) = uf_union (uf_ds ufe_ds) x y"
+    "uf_ds (ufe_union ufe_ds x y) = ufa_union (uf_ds ufe_ds) x y"
     "au_ds (ufe_union ufe_ds x y) =
-      mm_update\<^bsub>au_adt\<^esub> (au_ds ufe_ds) (ufe_rep_of ufe_ds x) (length (unions ufe_ds))"
+      (au_ds ufe_ds)(ufe_rep_of ufe_ds x \<mapsto> length (unions ufe_ds))"
     "unions (ufe_union ufe_ds x y) = unions ufe_ds @ [(x, y)]"
   using assms
   by (simp_all add: ufe_union_sel)
 
 lemma ufe_init_sel[simp]:
-  "uf_ds ufe_init = uf_init"
-  "au_ds ufe_init = mm_empty\<^bsub>au_adt\<^esub>"
-  "unions ufe_init = []"
+  "uf_ds (ufe_init n) = ufa_init n"
+  "au_ds (ufe_init n) = Map.empty"
+  "unions (ufe_init n) = []"
   unfolding ufe_init_def by simp_all
 
 lemma ufe_unions_append[simp]:
@@ -91,11 +80,6 @@ lemma ufe_unions_Cons[simp]:
 lemma ufe_unions_Nil[simp]:
   "ufe_unions ufe_ds [] = ufe_ds"
   unfolding ufe_unions_def by simp
-
-end
-
-context union_find_parent_adt
-begin
 
 definition ufa_lca where
   "ufa_lca uf x y \<equiv>
@@ -114,24 +98,20 @@ proof -
     by auto
 qed
 
-end
 
 text \<open>Finds the newest edge on the path from x to y
       (where y is nearer to the root than x).\<close>
-context union_find_explain_adts
-begin
-
 context
-  fixes ufe_ds :: "('uf, 'au, 'dom) union_find_explain_ds"
+  fixes ufe_ds :: "union_find_explain_ds"
 begin
 
-function (domintros) find_newest_on_walk :: "'dom \<Rightarrow> 'dom \<Rightarrow> nat option" where
+function (domintros) find_newest_on_walk :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
   "find_newest_on_walk y x =
     (if y = x then None
     else 
       combine_options max 
-        (mm_lookup\<^bsub>au_adt\<^esub> (au_ds ufe_ds) x)
-        (find_newest_on_walk y (uf_parent_of (uf_ds ufe_ds) x)))"
+        (au_ds ufe_ds x)
+        (find_newest_on_walk y (ufa_parent_of (uf_ds ufe_ds) x)))"
   by pat_completeness auto
 
 lemma find_newest_on_walk_if_eq[simp]:
@@ -140,7 +120,11 @@ lemma find_newest_on_walk_if_eq[simp]:
 
 end
 
-function explain :: "('dom \<times> 'dom) list \<Rightarrow> 'dom \<Rightarrow> 'dom \<Rightarrow> ('dom \<times> 'dom) set" where
+context
+  fixes ufe_init :: union_find_explain_ds
+begin
+
+function explain :: "(nat \<times> nat) list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> (nat \<times> nat) set" where
   "explain [] _ _ = {}"
 | "explain (us @ [(a, b)]) y z =
     (let
