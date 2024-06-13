@@ -5,7 +5,8 @@ begin
 type_synonym ufri_imp = "int array"
 
 definition is_ufri :: "ufri \<Rightarrow> ufri_imp \<Rightarrow> assn" where
-  "is_ufri ufri p \<equiv> \<exists>\<^sub>Aufri_imp. p \<mapsto>\<^sub>a ufri_imp * \<up>(ufri_invar ufri_imp \<and> Abs_ufri ufri_imp = ufri)"
+  "is_ufri ufri p \<equiv> \<exists>\<^sub>Aufri_imp. p \<mapsto>\<^sub>a ufri_imp *
+    \<up>(ufri_invar ufri_imp \<and> Abs_ufri ufri_imp = ufri)"
 
 lemma snga_entails_is_ufri_Abs_ufri:
   assumes "ufri_invar ufri_imp"

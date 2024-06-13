@@ -1,6 +1,5 @@
 theory UFA_Tree
   imports
-    Map_ADT
     Union_Find
     "Tree_Theory.LCA_Directed_Tree"
 begin
@@ -406,7 +405,7 @@ begin
 interpretation ufa_tree_union: ufa_tree where uf = "ufa_union uf a b" and x = x
   by unfold_locales simp
 
-lemma in_verts_eq_eq_class_ufa_\<alpha>_union_if_in_verts[simp, intro]:
+lemma in_verts_ufa_tree_of_union_if_in_verts[simp, intro]:
   assumes "y \<in> verts (ufa_tree_of uf x)"
   shows "y \<in> verts (ufa_tree_of (ufa_union uf a b) x)"
   using assms a_b_in_Field_\<alpha> 
@@ -426,7 +425,7 @@ lemma union_awalk_if_awalk:
 proof(induction p arbitrary: y)
   case Nil
   then show ?case
-    using in_verts_eq_eq_class_ufa_\<alpha>_union_if_in_verts
+    using in_verts_ufa_tree_of_union_if_in_verts
     by (auto simp: awalk_Nil_iff ufa_tree_union.awalk_Nil_iff)
 next
   case (Cons a p)

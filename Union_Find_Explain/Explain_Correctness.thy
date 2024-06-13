@@ -82,13 +82,12 @@ next
   from ufe_union.prems(1,2) have
     x_in_Field_\<alpha>: "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
     y_in_Field_\<alpha>: "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-    using ufe_union.hyps(2-4) by auto
+    using ufe_union.hyps(2-4) Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
 
-  from x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) show ?case
-    unfolding ufe_union_sel_if_rep_of_neq(1,3)[OF ufe_union.hyps(4)]
-    unfolding explain.simps Let_def ufe_invars.ufe_ds_eq_ufe_unions[symmetric]
-    by (cases rule: ufa_rep_of_ufa_union_eq_cases)
-      (use ufe_union.IH x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.hyps in \<open>force+\<close>)
+  from x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2-5) show ?case
+    unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
+    by (force simp: ufe_invars.ufe_ds_eq_ufe_unions[symmetric] ufa_rep_of_ufa_union ufe_union.IH 
+        split: if_splits)
 qed
 
 lemma explain_induct[consumes 3,
@@ -110,6 +109,7 @@ lemma explain_induct[consumes 3,
     ; ufe_invars ufe_init ufe_ds
     ; a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds)); b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))
     ; ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b
+    ; some_pair a b = (a, b)
     ; find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y) x \<ge>
       find_newest_on_walk (ufe_union ufe_ds a b) (ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y) y
     ; P ufe_ds x y
@@ -121,6 +121,7 @@ lemma explain_induct[consumes 3,
     ; ufe_invars ufe_init ufe_ds
     ; a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds)); b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))
     ; ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b
+    ; some_pair a b = (a, b)
     \<rbrakk> \<Longrightarrow> P (ufe_union ufe_ds a b) x y"
   shows "P ufe_ds x y"
   using assms(1-3)
@@ -137,7 +138,7 @@ next
   from ufe_union.prems have
     x_in_Field_\<alpha>: "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
     y_in_Field_\<alpha>: "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-    using ufe_union.hyps(2-4) by auto
+    using ufe_union.hyps(2-4) Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
 
   show ?case
   proof(cases "find_newest_on_walk (ufe_union ufe_ds a b) (?lca x y) x \<ge>
@@ -160,9 +161,9 @@ next
       "find_newest_on_walk (ufe_union ufe_ds a b) (?lca y x) y \<ge>
       find_newest_on_walk (ufe_union ufe_ds a b) (?lca y x) x"
       using ufa_lca_symmetric by simp
-    from ufe_union_if_newest_x[OF _ _ _ _ _ _ _ this ufe_union.IH]
+    from ufe_union_if_newest_x[OF _ _ _ _ _ _ _ _ this ufe_union.IH]
     have "P (ufe_union ufe_ds a b) y x"
-      using x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2-4)
+      using x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2-5)
       using ufe_union_if_rep_of_neq by (metis ufe_invars_axioms)
     note symmetric[OF _ _ _ _ False this]
     with ufe_union.hyps ufe_union.prems show ?thesis
@@ -267,11 +268,12 @@ next
 
     with explain.simps(2) ufe_union_if_newest_x.hyps(3) have explain_ufe_union:
       "explain ufe_init (unions (ufe_union ufe_ds a b)) x y = explain ufe_init (unions ufe_ds) x y"
-      using unions_ufe_union ufe_invars.ufe_ds_eq_ufe_unions by force
+      using unions_ufe_union ufe_invars.ufe_ds_eq_ufe_unions by simp
 
-    from ufe_union_if_newest_x.hyps have ufa_lca_union:
+    from ufe_union_if_newest_x.hyps have ufa_lca_ufa_union:
       "ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y = ufa_lca (uf_ds ufe_ds) x y"
-      using ufa_lca_union uf_ds_ufe_union ufa_rep_of_ufa_union by metis
+      using ufa_lca_ufa_union uf_ds_ufe_union ufa_rep_of_ufa_union
+      by force+
 
     let ?lca = "ufa_lca (uf_ds ufe_ds)"
     from ufe_union_if_newest_x.hyps(1-3) have "ufe_tree_x.lca (?lca x y) x y"
@@ -283,7 +285,7 @@ next
     with ufe_union_if_newest_x.hyps(5-7) have
       "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x) (?lca x y) px x"
       "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x) (?lca x y) py y"
-      using ufe_tree_x.union_awalk_if_awalk by auto
+      using ufe_tree_x.ufe_union_awalk_if_awalk by blast+
     note this[THEN ufe_invars.find_newest_on_walk_ufe_union[OF ufe_union_if_newest_x.hyps(5-7)]]
     with x_awalk_lca_x x_awalk_lca_y have find_newest_on_walk_union:
       "find_newest_on_walk (ufe_union ufe_ds a b) (?lca x y) x =
@@ -295,8 +297,8 @@ next
     note ufe_invars.neq_find_newest_on_path_ufa_lca_if_neq[OF ufe_union_if_newest_x.hyps(1-3) False]
     with ufe_union_if_newest_x.hyps(8) have
       "find_newest_on_walk ufe_ds (?lca x y) x \<noteq> None"
-      unfolding ufa_lca_union find_newest_on_walk_union
-      by (metis less_eq_option_None_is_None)
+      unfolding ufa_lca_ufa_union find_newest_on_walk_union
+      by (metis find_newest_on_walk_union(1) find_newest_on_walk_union(2) less_eq_option_None_is_None local.ufa_lca_ufa_union ufe_union_if_newest_x.hyps(9))
     with False have "?lca x y \<noteq> x"
       using x_awalk_lca_x[THEN ufe_tree_x.find_newest_on_walk_eq_None_iff]
       by simp
@@ -312,12 +314,11 @@ next
         "ufe_rep_of ufe_ds v = ufe_rep_of ufe_ds x"
       using ufe_tree_x.newest_on_walk_valid_union ufe_tree_x.ufe_rep_of_eq_if_newest_on_walk
       by (metis prod.collapse)  
-    with ufe_union_if_newest_x.hyps(3) have explain_union_u_v:
+    with ufe_union_if_newest_x.hyps(3,8) have explain_union_u_v:
       "explain ufe_init (unions (ufe_union ufe_ds a b)) x u = explain ufe_init (unions ufe_ds) x u"
       "explain ufe_init (unions (ufe_union ufe_ds a b)) v y = explain ufe_init (unions ufe_ds) v y"
-      unfolding unions_ufe_union
-      by (simp_all add: ufe_invars.ufe_ds_eq_ufe_unions[symmetric])
-
+      unfolding unions_ufe_union using ufe_invars.ufe_ds_eq_ufe_unions
+      by simp_all
     from newest_on_walk_newest_x \<open>?lca x y \<noteq> x\<close> have
       "the ?newest_x < length (unions ufe_ds)"
       using ufe_tree_x.newest_on_walk_lt_length_unions by blast
@@ -325,8 +326,8 @@ next
       "unions (ufe_union ufe_ds a b) ! the ?newest_x = unions ufe_ds ! the ?newest_x"
       unfolding unions_ufe_union by (meson nth_append)
 
-    from False ufe_union_if_newest_x.hyps(8) show ?thesis
-      unfolding explain_ufe_union ufa_lca_union Let_def
+    from False ufe_union_if_newest_x.hyps(8,9) show ?thesis
+      unfolding explain_ufe_union ufa_lca_ufa_union Let_def
       unfolding find_newest_on_walk_union nth_unions_union
       by (simp add: nth_newest_x_eq_prod_u_v explain_union_u_v ufe_union_if_newest_x.IH)
   qed
@@ -338,7 +339,7 @@ next
   from ufe_union_if_rep_of_neq have "x \<noteq> y"
     by blast
 
-  from ufe_union_if_rep_of_neq.hyps ufa_lca_union have ufa_lca_union:
+  from ufe_union_if_rep_of_neq.hyps ufa_lca_ufa_union have ufa_lca_ufa_union:
     "ufa_lca (uf_ds (ufe_union ufe_ds a b)) x y = ufe_rep_of ufe_ds b" (is "_ = ?rep_b")
     by simp
 
@@ -347,21 +348,21 @@ next
     by (intro ufe_invars.ufe_invars_ufe_union)
   interpret ufe_tree_union: ufe_tree
     where ufe_ds = "ufe_union ufe_ds a b" and x = b
-    using ufe_union_if_rep_of_neq.hyps
-    by unfold_locales simp
+    using ufe_union_if_rep_of_neq.hyps Field_ufa_\<alpha>_uf_ds_ufe_union
+    by unfold_locales blast
 
   from ufe_union_if_rep_of_neq.hyps have
     x_in_Field_\<alpha>_union: "x \<in> Field (ufa_\<alpha> (uf_ds (ufe_union ufe_ds a b)))" and
     y_in_Field_\<alpha>_union: "y \<in> Field (ufa_\<alpha> (uf_ds (ufe_union ufe_ds a b)))"
-    by auto
+    using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
   with ufe_union_if_rep_of_neq.hyps have
     "x \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) b)"
     "y \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) b)"
-    by (safe intro!: ufe_tree_union.in_verts_if_rep_of_eq)
-      (auto simp: uf_ds_ufe_union ufa_rep_of_ufa_union split: if_splits)
+    apply (safe intro!: ufe_tree_union.in_verts_if_rep_of_eq)
+    by (simp_all add: ufa_rep_of_ufa_union) metis+
 
   note ufe_tree_union.lca_ufa_lca[OF this]
-  with ufa_lca_union have "ufe_tree_union.lca ?rep_b x y"
+  with ufa_lca_ufa_union have "ufe_tree_union.lca ?rep_b x y"
     by simp
   then obtain px py where
     "ufe_tree_union.awalk ?rep_b px x"
@@ -380,11 +381,11 @@ next
   note ufe_invars_union.neq_find_newest_on_path_ufa_lca_if_neq[
     OF x_in_Field_\<alpha>_union y_in_Field_\<alpha>_union ufe_union_if_rep_of_neq.hyps(3)]
   then have newest_x_neq_newest_y: "?newest_x \<noteq> ?newest_y" if "x \<noteq> y"
-    using that ufa_lca_union by force
+    using that ufa_lca_ufa_union by force
 
   note ufe_union_if_rep_of_neq.hyps(1-3,6-8) ufe_union_if_rep_of_neq.prems
-  from this[unfolded ufe_union_sel_if_rep_of_neq[OF ufe_union_if_rep_of_neq.hyps(8)]] show ?case
-  proof(cases rule: ufa_rep_of_ufa_union_eq_cases)
+  from this show ?case
+  proof(cases rule: ufe_rep_of_ufe_union_eq_cases)
     case 2
     with \<open>ufe_tree_union.awalk ?rep_b px x\<close> have newest_x_eq:
       "?newest_x = Some (length (unions ufe_ds))"
@@ -393,8 +394,9 @@ next
     with 2 newest_leq_Some_length_unions have "?newest_x \<ge> ?newest_y"
       by fastforce
 
-    with 2 \<open>x \<noteq> y\<close> show ?thesis
-      using newest_x_eq ufa_lca_union ufe_invars.ufe_ds_eq_ufe_unions by auto
+    with 2 \<open>x \<noteq> y\<close> \<open>some_pair a b = (a, b)\<close> show ?thesis
+      using newest_x_eq ufa_lca_ufa_union 
+      by (simp add: ufe_invars.ufe_ds_eq_ufe_unions[symmetric])
   next
     case 3
     with \<open>ufe_tree_union.awalk ?rep_b py y\<close> have newest_y_eq:
@@ -404,12 +406,13 @@ next
     moreover note ufe_invars_union.neq_find_newest_on_path_ufa_lca_if_neq[
         OF x_in_Field_\<alpha>_union y_in_Field_\<alpha>_union ufe_union_if_rep_of_neq.hyps(3)]
     with \<open>x \<noteq> y\<close> have "?newest_x \<noteq> ?newest_y"
-      using ufa_lca_union by simp
+      using ufa_lca_ufa_union by simp
     ultimately have "\<not> ?newest_x \<ge> ?newest_y"
       using 3 newest_leq_Some_length_unions by auto
 
-    with 3 \<open>x \<noteq> y\<close> show ?thesis
-      using newest_y_eq ufa_lca_union ufe_invars.ufe_ds_eq_ufe_unions by auto
+    with 3 \<open>x \<noteq> y\<close> \<open>some_pair a b = (a, b)\<close> show ?thesis
+      using newest_y_eq ufa_lca_ufa_union 
+      by (simp add: ufe_invars.ufe_ds_eq_ufe_unions[symmetric])
   qed (use ufe_union_if_rep_of_neq in blast)
 qed
 
@@ -426,10 +429,9 @@ next
   then interpret ufe_invars: ufe_invars where ufe_ds = ufe_ds
     by blast
 
-  from ufe_union.prems ufe_union.hyps(2-4) show ?case
+  from ufe_union.prems ufe_union.hyps(2-5) show ?case
     unfolding ufe_union_sel_if_rep_of_neq(3)[OF ufe_union.hyps(4)]
-    unfolding explain.simps[unfolded Let_def, folded ufe_invars.ufe_ds_eq_ufe_unions]
-    by (auto simp: ufe_union.IH split: if_splits)
+    by (auto simp: ufe_union.IH Let_def split: if_splits)
 qed
 
 lemma symcl_Un[simp]:
@@ -459,16 +461,16 @@ next
   from ufe_union.prems(1,2) have
     x_in_Field_\<alpha>: "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
     y_in_Field_\<alpha>: "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-    using ufe_union.hyps(2-4) by force+
+    using ufe_union.hyps(2-4)  using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
 
   note x_in_Field_\<alpha> y_in_Field_\<alpha> ufe_union.prems(3) ufe_union.hyps(2-4)
-  from this[unfolded ufe_union_sel_if_rep_of_neq(1,3)[OF ufe_union.hyps(4)]] show ?case
-  proof (cases rule: ufa_rep_of_ufa_union_eq_cases)
+  from this show ?case
+  proof (cases rule: ufe_rep_of_ufe_union_eq_cases)
     case 1
-    with x_in_Field_\<alpha> y_in_Field_\<alpha> show ?thesis
+    with x_in_Field_\<alpha> y_in_Field_\<alpha> \<open>some_pair a b = (a, b)\<close> show ?thesis
       unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
-      unfolding explain.simps Let_def ufe_invars.ufe_ds_eq_ufe_unions[symmetric]
-      by (auto simp: ufe_union.IH)
+      using ufe_invars.ufe_ds_eq_ufe_unions
+      by (auto simp: ufe_union.IH Let_def)
   next
     case 2
     with ufe_union.IH have
@@ -482,10 +484,9 @@ next
       using rtrancl_Un_rtrancl
       by (metis (no_types) Un_insert_left Un_insert_right rtrancl_idemp)
     finally show ?thesis
-      using 2
+      using \<open>some_pair a b = (a, b)\<close> 2 ufe_invars.ufe_ds_eq_ufe_unions
       unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
-      unfolding explain.simps Let_def ufe_invars.ufe_ds_eq_ufe_unions[symmetric]   
-      by (simp add: symcl_insert)
+      by (auto simp: Let_def symcl_insert insert_commute)
   next
     case 3
     with ufe_union.IH have
@@ -499,11 +500,12 @@ next
       using rtrancl_Un_rtrancl
       by (metis (no_types) Un_insert_left Un_insert_right rtrancl_idemp)
     finally show ?thesis
-      using 3
+      using \<open>some_pair a b = (a, b)\<close> 3 ufe_invars.ufe_ds_eq_ufe_unions
       unfolding ufe_union_sel_if_rep_of_neq[OF ufe_union.hyps(4)]
-      unfolding explain.simps Let_def ufe_invars.ufe_ds_eq_ufe_unions[symmetric]   
-      by (simp add: symcl_insert)
+      by (auto simp: Let_def symcl_insert insert_commute)
   qed
 qed
+
+end
 
 end

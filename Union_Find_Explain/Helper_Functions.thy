@@ -20,7 +20,7 @@ proof -
     by simp
 qed
 
-theorem (in ufa_tree) rep_of_ufa_lca:
+theorem (in ufa_tree) ufa_rep_of_ufa_lca:
   assumes "y \<in> verts (ufa_tree_of uf x)"
   assumes "z \<in> verts (ufa_tree_of uf x)"
   shows "ufa_rep_of uf (ufa_lca uf y z) = ufa_rep_of uf y"
@@ -33,7 +33,7 @@ proof -
 qed
 
 
-lemma ufa_lca_union:
+lemma ufa_lca_ufa_union:
   assumes "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
   assumes "ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
   assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
@@ -309,25 +309,220 @@ next
   with False newest_on_walk_lt_length_unions show ?thesis
     by (cases "find_newest_on_walk ufe_ds y z") auto
 qed
-
-
-lemma ufa_rep_of_ufa_union_eq_cases:
-  assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
-  assumes "ufa_rep_of (ufa_union uf a b) x = ufa_rep_of (ufa_union uf a b) y"
-  assumes "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-  assumes "ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
+lemma ufe_rep_of_ufe_union_eq_cases:
+  assumes "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of (ufe_union ufe_ds a b) x = ufe_rep_of (ufe_union ufe_ds a b) y"
+  assumes "a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b"
   obtains
-    "ufa_rep_of uf x = ufa_rep_of uf y" |
-    "ufa_rep_of uf x \<noteq> ufa_rep_of uf y"
-    "ufa_rep_of uf x = ufa_rep_of uf a" "ufa_rep_of uf y = ufa_rep_of uf b" |
-    "ufa_rep_of uf x \<noteq> ufa_rep_of uf y"
-    "ufa_rep_of uf x = ufa_rep_of uf b" "ufa_rep_of uf y = ufa_rep_of uf a"
-  using assms by (metis ufa_rep_of_ufa_union)
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y" |
+    "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds a" "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds b" |
+    "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+    "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b" "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds a"
+  using assms unfolding ufe_union_sel_if_rep_of_neq[OF assms(6)]
+  by (cases a b rule: some_pair_cases) (metis prod.case ufa_rep_of_ufa_union)+
+
+lemma (in ufe_invars) find_newest_on_walk_ufe_union_if_rep_of_neq:
+  assumes "a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
+  assumes "ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b" (is "?rep_a \<noteq> ?rep_b")
+  assumes "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
+  assumes "uf_ds (ufe_union ufe_ds a b) = ufa_union (uf_ds ufe_ds) a b"
+  assumes awalk_pxy:
+    "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z) x pxy y"
+  shows "find_newest_on_walk (ufe_union ufe_ds a b) x y = Some (length (unions ufe_ds))"
+proof -
+  from assms ufe_invars_ufe_union interpret ufe_invars_union: ufe_invars
+    where ufe_ds = "ufe_union ufe_ds a b" 
+    by blast
+  from assms have "z \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z)"
+    unfolding pre_digraph.awalk_def
+    by (metis in_ufa_\<alpha>_if_in_verts in_vertsI part_equiv_trans_sym(1) part_equiv_ufa_\<alpha>)
+
+  with assms interpret ufe_tree_union: ufe_tree
+    where ufe_ds = "ufe_union ufe_ds a b" and x = z
+    by unfold_locales blast
+
+  from assms awalk_pxy have
+    "x \<in> Field (ufa_\<alpha> (uf_ds (ufe_union ufe_ds a b)))"
+    "y \<in> Field (ufa_\<alpha> (uf_ds (ufe_union ufe_ds a b)))"
+    by blast+
+  with assms have
+    x_in_Field_\<alpha>: "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
+    y_in_Field_\<alpha>: "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
+    using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
+
+  from x_in_Field_\<alpha> interpret ufe_tree_x: ufe_tree where ufe_ds = ufe_ds and x = x
+    by unfold_locales
+  from y_in_Field_\<alpha> interpret ufe_tree_y: ufe_tree where ufe_ds = ufe_ds and x = y
+    by unfold_locales
+  interpret ufe_tree_z: ufe_tree where ufe_ds = ufe_ds and x = z
+    using assms ufe_tree_union.x_in_Field_\<alpha> Field_ufa_\<alpha>_uf_ds_ufe_union
+    by unfold_locales blast+
+
+  from assms have
+    rep_a_in_Field_\<alpha>: "?rep_a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
+    rep_b_in_Field_\<alpha>: "?rep_b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
+    by blast+
+  note this[THEN ufe_tree_x.awalk_from_rep_union[OF assms(1-3)]]
+  then have awalk_from_rep_union_rep_a:
+    "awalk_from_rep (uf_ds (ufe_union ufe_ds a b)) (ufe_rep_of ufe_ds a) =
+    awalk_from_rep (uf_ds ufe_ds) (ufe_rep_of ufe_ds b) @ [(?rep_b, ?rep_a)]"
+    using assms awalk_from_rep_rep_of by simp
+
+  from awalk_pxy have
+    "ufe_rep_of (ufe_union ufe_ds a b) x = ufe_rep_of (ufe_union ufe_ds a b) y"
+    by auto
+  note rep_of_union_eq_assms = x_in_Field_\<alpha> y_in_Field_\<alpha> this assms(1-4)
+  then consider
+    "ufe_rep_of ufe_ds x = ?rep_a" "ufe_rep_of ufe_ds y = ?rep_b" |
+    "ufe_rep_of ufe_ds x = ?rep_b" "ufe_rep_of ufe_ds y = ?rep_a"
+    using ufe_rep_of_ufe_union_eq_cases by blast
+  then show ?thesis
+  proof cases
+    case 1
+    then have
+      "ufe_tree_x.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
+      using ufe_tree_x.awalk_awalk_from_rep by fastforce
+    note ufe_tree_x.union_awalk_if_awalk[OF _ _this]
+    with assms have
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)
+        ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
+      by fastforce
+    then have union_awalk_awalk_from_rep_x:
+      "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
+      using ufa_tree_of_eq_if_in_verts
+      by (metis awalk_pxy ufe_tree_union.awalkE')
+    moreover
+    from 1 have
+      "ufe_tree_y.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
+      using ufe_tree_y.awalk_awalk_from_rep by fastforce
+    note ufe_tree_y.union_awalk_if_awalk[OF _ _this]
+    with assms have
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) y)
+        ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
+      by fastforce
+    then have union_awalk_awalk_from_rep_y:
+      "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
+      using ufa_tree_of_eq_if_in_verts
+      by (metis awalk_pxy ufe_tree_union.awalkE')
+    moreover
+    have "ufe_tree_union.awalk ?rep_b [(?rep_b, ?rep_a)] ?rep_a"
+    proof -
+      from calculation have "?rep_a \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z)"
+        by blast
+      note ufe_tree_union.awalk_awalk_from_rep[OF this]
+      then show ?thesis
+        using assms awalk_from_rep_union_rep_a awalk_from_rep_rep_of by simp
+    qed
+    ultimately have
+      "ufe_tree_union.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
+      using awalk_pxy by (simp add: ufe_tree_union.awalk_Cons_iff)
+    then have
+      "ufe_tree_y.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
+      using 1 union_awalk_awalk_from_rep_y ufe_tree_union.unique_awalk_All
+      by (metis ufe_tree_y.awalk_awalk_from_rep ufe_tree_y.x_in_verts)
+    with 1 have "ufe_tree_y.awalk x pxy y"
+      using ufe_tree_x.awlast_awalk_from_rep[OF ufe_tree_x.x_in_verts]
+      by (simp add: ufe_tree_y.awalk_Cons_iff awalk_verts_with_proj_eq)
+    with \<open>ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y\<close> show ?thesis
+      by auto
+  next
+    case 2
+    then have x_awalk_awalk_from_rep_x:
+      "ufe_tree_x.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
+      using ufe_tree_x.awalk_awalk_from_rep by fastforce
+    note ufe_tree_x.union_awalk_if_awalk[OF _ _this]
+    with assms have
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)
+        ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
+      by fastforce
+    then have union_awalk_awalk_from_rep_x:
+      "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
+      using ufa_tree_of_eq_if_in_verts
+      by (metis awalk_pxy ufe_tree_union.awalkE')
+    moreover
+    from 2 have y_awalk_awalk_from_rep_y:
+      "ufe_tree_y.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
+      using ufe_tree_y.awalk_awalk_from_rep by fastforce
+    note ufe_tree_y.union_awalk_if_awalk[OF _ _this]
+    with assms have
+      "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) y)
+        ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
+      by fastforce
+    then have union_awalk_awalk_from_rep_y:
+      "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
+      using ufa_tree_of_eq_if_in_verts
+      by (metis awalk_pxy ufe_tree_union.awalkE')
+    moreover
+    from 2 have "ufe_tree_union.awalk ?rep_b [(?rep_b, ?rep_a)] ?rep_a"
+    proof -
+      from calculation have "?rep_a \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z)"
+        by blast
+      note ufe_tree_union.awalk_awalk_from_rep[OF this]
+      then show ?thesis
+        using assms(1-3,5) awalk_from_rep_rep_of awalk_from_rep_union_rep_a by auto
+    qed
+    ultimately have union_awalk_rep_b_y:
+      "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
+      "ufe_tree_union.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) y) y"
+      using awalk_pxy
+      by (simp_all add: ufe_tree_union.awalk_Cons_iff)
+    have "awalk_from_rep (uf_ds ufe_ds) x = []"
+    proof(rule ccontr)
+      assume "awalk_from_rep (uf_ds ufe_ds) x \<noteq> []"
+      then obtain es where "awalk_from_rep (uf_ds ufe_ds) x = (?rep_b, ?rep_a) # es"
+        using union_awalk_rep_b_y y_awalk_awalk_from_rep_y 
+        by (metis (no_types, lifting) Cons_eq_append_conv ufe_tree_union.unique_awalk_All)
+      with union_awalk_rep_b_y have "awalk_from_rep (uf_ds ufe_ds) y = es @ pxy"
+        using ufe_tree_union.unique_awalk_All by auto
+      with y_awalk_awalk_from_rep_y have
+        "ufe_tree_y.awalk (ufe_tree_y.awlast ?rep_a es) pxy y"
+        by simp
+      moreover from union_awalk_awalk_from_rep_y have
+        "ufe_tree_union.awalk (ufe_tree_y.awlast ?rep_a es) pxy y"
+        using \<open>awalk_from_rep (uf_ds ufe_ds) y = es @ pxy\<close> 
+        by (metis awalk_verts_with_proj_eq ufe_tree_union.awalk_append_iff)
+      ultimately have "ufe_tree_y.awalk x pxy y"
+        using ufe_tree_union.awalk_ends[OF awalk_pxy] by metis
+      then have "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
+        using ufe_tree_y.awalk_hd_in_verts by auto
+      with \<open>ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y\<close> show False
+        by blast
+    qed
+    then have "?rep_b = x"
+      using x_awalk_awalk_from_rep_x by auto
+    with awalk_pxy union_awalk_rep_b_y have "(?rep_b, ?rep_a) \<in> set pxy"
+      using ufe_tree_union.unique_awalk_All
+      by (metis list.set_intros(1))
+    moreover
+    from assms have "some_pair a b = (a, b)"      
+      unfolding ufe_union_sel
+      by (cases a b rule: some_pair_cases) (simp_all, metis ufa_rep_of_ufa_union)
+    then have "ufe_tree_union.au_of (?rep_b, ?rep_a) = length (unions ufe_ds)"
+      using assms(3) unfolding ufe_tree_union.au_of_def
+      by simp
+    moreover have "ufe_tree_union.au_of e < length (unions (ufe_union ufe_ds a b))"
+      if "e \<in> set pxy" for e
+      using that awalk_pxy ufe_tree_union.au_of_lt_length_unions
+      by (meson subsetD ufe_tree_union.awalkE')
+    then have "ufe_tree_union.au_of e \<le> length (unions ufe_ds)"
+      if "e \<in> set pxy" for e
+      using that assms(3) by (simp add: less_Suc_eq order_le_less)
+    ultimately have "Max (ufe_tree_union.au_of ` set pxy) = length (unions ufe_ds)"
+      by (intro Max_eqI) (auto simp: rev_image_eqI)
+    moreover note ufe_tree_union.find_newest_on_walk_eq_Max_au_of[OF awalk_pxy]
+    ultimately show ?thesis
+      using \<open>ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y\<close> by auto
+  qed
+qed
+
 
 lemma (in ufe_invars) find_newest_on_walk_ufe_union:
   assumes "a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
   assumes "ufe_rep_of ufe_ds a \<noteq> ufe_rep_of ufe_ds b" (is "?rep_a \<noteq> ?rep_b")
-  assumes awalk_pxy: "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z) x pxy y"
+  assumes awalk_pxy:
+    "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z) x pxy y"
   shows "find_newest_on_walk (ufe_union ufe_ds a b) x y = 
     (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y then find_newest_on_walk ufe_ds x y
     else Some (length (unions ufe_ds)))"
@@ -350,15 +545,15 @@ proof -
   with assms have
     x_in_Field_\<alpha>: "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
     y_in_Field_\<alpha>: "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-    by simp_all
+    using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
 
   from x_in_Field_\<alpha> interpret ufe_tree_x: ufe_tree where ufe_ds = ufe_ds and x = x
     by unfold_locales
   from y_in_Field_\<alpha> interpret ufe_tree_y: ufe_tree where ufe_ds = ufe_ds and x = y
     by unfold_locales
   interpret ufe_tree_z: ufe_tree where ufe_ds = ufe_ds and x = z
-    using assms ufe_tree_union.x_in_Field_\<alpha>
-    by unfold_locales simp
+    using assms ufe_tree_union.x_in_Field_\<alpha> Field_ufa_\<alpha>_uf_ds_ufe_union
+    by unfold_locales blast+
 
   have ?thesis if "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   proof -
@@ -366,9 +561,9 @@ proof -
       by blast
     note ufa_tree_of_eq_if_in_verts[OF this]
     with that awalk_pxy have "ufe_tree_x.awalk x pxy y"
-      using ufe_union_sel_if_rep_of_neq(1)[OF assms(3)]
-      by (intro ufe_tree_x.awalk_if_union_awalk[OF assms(1,2)]) simp_all
-    with that have "find_newest_on_walk ufe_ds x y = Some (Max (ufe_tree_x.au_of ` set pxy))"
+      by (intro ufe_tree_x.awalk_if_ufe_union_awalk[OF assms(1,2)]) simp_all
+    with that have
+      "find_newest_on_walk ufe_ds x y = Some (Max (ufe_tree_x.au_of ` set pxy))"
       using ufe_tree_x.find_newest_on_walk_eq_Max_au_of by blast
     moreover from that awalk_pxy have
       "find_newest_on_walk (ufe_union ufe_ds a b) x y =
@@ -384,166 +579,29 @@ proof -
       with that have "head (ufa_tree_of (uf_ds ufe_ds) x) e \<in> dom (au_ds ufe_ds)"
         using \<open>ufe_tree_x.awalk x pxy y\<close> by blast
       ultimately show ?thesis
-        unfolding ufe_tree_x.au_of_def ufe_tree_union.au_of_def au_ds_ufe_union
-        by auto
+        using assms(2) lookup_au_ds_eq_None_iff[where z="ufe_rep_of ufe_ds b"]
+        unfolding ufe_tree_x.au_of_def ufe_tree_union.au_of_def au_ds_ufe_union                  
+        by (cases a b rule: some_pair_cases) auto
     qed
     ultimately show ?thesis
       using that by simp
   qed
   moreover have ?thesis if "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
-  proof -
-    from assms have
-      rep_a_in_Field_\<alpha>: "?rep_a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" and
-      rep_b_in_Field_\<alpha>: "?rep_b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-      by blast+
-    note this[THEN ufe_tree_x.awalk_from_rep_union[OF assms(1-3)]]
-    moreover from assms(1) have "awalk_from_rep (uf_ds ufe_ds) (ufe_rep_of ufe_ds a) = []"
-      using awalk_from_rep_rep_of by blast
-    ultimately have awalk_from_rep_rep_a:
-      "awalk_from_rep (uf_ds (ufe_union ufe_ds a b)) ?rep_a = [(?rep_b, ?rep_a)]"
-      using ufa_rep_of_ufa_rep_of assms(1,3) by simp
-    
-    from awalk_pxy have rep_of_union_eq:
-      "ufe_rep_of (ufe_union ufe_ds a b) x = ufe_rep_of (ufe_union ufe_ds a b) z"
-      "ufe_rep_of (ufe_union ufe_ds a b) x = ufe_rep_of (ufe_union ufe_ds a b) y"
-      by auto
-    note rep_of_union_eq_assms[unfolded ufe_union_sel_if_rep_of_neq[OF assms(3)]] = 
-      x_in_Field_\<alpha> y_in_Field_\<alpha> this(2) assms(1-3)
-    from rep_of_union_eq_assms show ?thesis
-    proof(cases rule: ufa_rep_of_ufa_union_eq_cases)
-      case 2
-      then have
-        "ufe_tree_x.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
-        using ufe_tree_x.awalk_awalk_from_rep by fastforce
-      note ufe_tree_x.union_awalk_if_awalk[OF _ _this]
-      with assms have
-        "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)
-          ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
-        by fastforce
-      then have union_awalk_awalk_from_rep_x:
-        "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
-        using ufa_tree_of_eq_if_in_verts
-        by (metis awalk_pxy ufe_tree_union.awalkE')
-      moreover
-      from 2 have
-        "ufe_tree_y.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
-        using ufe_tree_y.awalk_awalk_from_rep by fastforce
-      note ufe_tree_y.union_awalk_if_awalk[OF _ _this]
-      with assms have
-        "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) y)
-          ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
-        by fastforce
-      then have union_awalk_awalk_from_rep_y:
-        "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
-        using ufa_tree_of_eq_if_in_verts
-        by (metis awalk_pxy ufe_tree_union.awalkE')
-      moreover
-      from 2 awalk_from_rep_rep_a have "ufe_tree_union.awalk ?rep_b [(?rep_b, ?rep_a)] ?rep_a"
-      proof -
-        from calculation have "?rep_a \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z)"
-          by blast
-        note ufe_tree_union.awalk_awalk_from_rep[OF this]
-        with awalk_from_rep_rep_a show ?thesis
-          using assms(1-3) rep_a_in_Field_\<alpha> ufa_rep_of_ufa_union by fastforce
-      qed
-      ultimately have
-        "ufe_tree_union.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
-        using awalk_pxy by (simp add: ufe_tree_union.awalk_Cons_iff)
-      then have
-        "ufe_tree_y.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
-        using 2 union_awalk_awalk_from_rep_y ufe_tree_union.unique_awalk_All
-        by (metis ufe_tree_y.awalk_awalk_from_rep ufe_tree_y.x_in_verts)
-      with 2 have "ufe_tree_y.awalk x pxy y"
-        using ufe_tree_x.awlast_awalk_from_rep[OF ufe_tree_x.x_in_verts]
-        by (simp add: ufe_tree_y.awalk_Cons_iff awalk_verts_with_proj_eq)
-      with that show ?thesis
-        by auto
-    next
-      case 3
-      then have x_awalk_awalk_from_rep_x:
-        "ufe_tree_x.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
-        using ufe_tree_x.awalk_awalk_from_rep by fastforce
-      note ufe_tree_x.union_awalk_if_awalk[OF _ _this]
-      with assms have
-        "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) x)
-          ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
-        by fastforce
-      then have union_awalk_awalk_from_rep_x:
-        "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
-        using ufa_tree_of_eq_if_in_verts
-        by (metis awalk_pxy ufe_tree_union.awalkE')
-      moreover
-      from 3 have y_awalk_awalk_from_rep_y:
-        "ufe_tree_y.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
-        using ufe_tree_y.awalk_awalk_from_rep by fastforce
-      note ufe_tree_y.union_awalk_if_awalk[OF _ _this]
-      with assms have
-        "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) y)
-          ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
-        by fastforce
-      then have union_awalk_awalk_from_rep_y:
-        "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
-        using ufa_tree_of_eq_if_in_verts
-        by (metis awalk_pxy ufe_tree_union.awalkE')
-      moreover
-      from 3 awalk_from_rep_rep_a have "ufe_tree_union.awalk ?rep_b [(?rep_b, ?rep_a)] ?rep_a"
-      proof -
-        from calculation have "?rep_a \<in> verts (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z)"
-          by blast
-        note ufe_tree_union.awalk_awalk_from_rep[OF this]
-        with awalk_from_rep_rep_a show ?thesis
-          using assms(1-3) rep_a_in_Field_\<alpha> ufa_rep_of_ufa_union by fastforce
-      qed
-      ultimately have union_awalk_rep_b_y:
-        "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
-        "ufe_tree_union.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) y) y"
-        using awalk_pxy
-        by (simp_all add: ufe_tree_union.awalk_Cons_iff)
-      have "awalk_from_rep (uf_ds ufe_ds) x = []"
-      proof(rule ccontr)
-        assume "awalk_from_rep (uf_ds ufe_ds) x \<noteq> []"
-        then obtain es where "awalk_from_rep (uf_ds ufe_ds) x = (?rep_b, ?rep_a) # es"
-          using union_awalk_rep_b_y y_awalk_awalk_from_rep_y 
-          by (metis (no_types, lifting) Cons_eq_append_conv ufe_tree_union.unique_awalk_All)
-        with union_awalk_rep_b_y have "awalk_from_rep (uf_ds ufe_ds) y = es @ pxy"
-          using ufe_tree_union.unique_awalk_All by auto
-        with y_awalk_awalk_from_rep_y have
-          "ufe_tree_y.awalk (ufe_tree_y.awlast ?rep_a es) pxy y"
-          by simp
-        moreover from union_awalk_awalk_from_rep_y have
-          "ufe_tree_union.awalk (ufe_tree_y.awlast ?rep_a es) pxy y"
-          using \<open>awalk_from_rep (uf_ds ufe_ds) y = es @ pxy\<close> 
-          by (metis awalk_verts_with_proj_eq ufe_tree_union.awalk_append_iff)
-        ultimately have "ufe_tree_y.awalk x pxy y"
-          using ufe_tree_union.awalk_ends[OF awalk_pxy] by metis
-        then have "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
-          using ufe_tree_y.awalk_hd_in_verts by auto
-        with that show False
-          by blast
-      qed
-      then have "?rep_b = x"
-        using x_awalk_awalk_from_rep_x by auto
-      with awalk_pxy union_awalk_rep_b_y have "(?rep_b, ?rep_a) \<in> set pxy"
-        using ufe_tree_union.unique_awalk_All
-        by (metis list.set_intros(1))
-      moreover have "ufe_tree_union.au_of (?rep_b, ?rep_a) = length (unions ufe_ds)"
-        using assms(3) unfolding ufe_tree_union.au_of_def by simp
-      moreover have "ufe_tree_union.au_of e < length (unions (ufe_union ufe_ds a b))"
-        if "e \<in> set pxy" for e
-        using that awalk_pxy ufe_tree_union.au_of_lt_length_unions
-        by (meson subsetD ufe_tree_union.awalkE')
-      then have "ufe_tree_union.au_of e \<le> length (unions ufe_ds)"
-        if "e \<in> set pxy" for e
-        using that assms(3) by (simp add: less_Suc_eq order_le_less)
-      ultimately have "Max (ufe_tree_union.au_of ` set pxy) = length (unions ufe_ds)"
-        by (intro Max_eqI) (auto simp: rev_image_eqI)
-      moreover note ufe_tree_union.find_newest_on_walk_eq_Max_au_of[OF awalk_pxy]
-      ultimately show ?thesis
-        using that by auto
-    qed (use that in blast)
+  proof(cases "uf_ds (ufe_union ufe_ds a b) = ufa_union (uf_ds ufe_ds) a b")
+    case True
+    with assms that show ?thesis
+      using find_newest_on_walk_ufe_union_if_rep_of_neq by simp
+  next
+    case False
+    with assms have "uf_ds (ufe_union ufe_ds a b) = ufa_union (uf_ds ufe_ds) b a"
+      unfolding ufe_union_sel
+      by (cases a b rule: some_pair_cases) simp_all
+    with assms that show ?thesis
+      using find_newest_on_walk_ufe_union_if_rep_of_neq ufe_union_commute 
+      by metis
   qed
   ultimately show ?thesis
-    by (cases "x = y") simp_all
+    by force
 qed
 
 end
