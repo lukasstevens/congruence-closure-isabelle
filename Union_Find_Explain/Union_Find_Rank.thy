@@ -106,6 +106,11 @@ lemma ufa_of_ufr_transfer:
   "(ufa_ufr_rel ===> (=)) id ufa_of_ufr"
   using ufa_ufr_rel_def by auto
 
+lemma ufr_of_ufa_transfer[ufa_ufr_transfer]:
+  "((=) ===> ufa_ufr_rel) id ufr_of_ufa"
+  unfolding ufa_ufr_rel_def
+  by (intro rel_funI, transfer) simp
+
 lemma ufr_parent_of_transfer[ufa_ufr_transfer]:
   "(ufa_ufr_rel ===> (=) ===> (=)) ufa_parent_of ufr_parent_of"
   unfolding ufa_ufr_rel_def ufr_parent_of_def by blast

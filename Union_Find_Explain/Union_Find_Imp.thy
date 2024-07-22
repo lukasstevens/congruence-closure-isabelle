@@ -2,10 +2,16 @@ theory Union_Find_Imp
   imports Union_Find "Separation_Logic_Imperative_HOL.Sep_Main"
 begin
 
+lemma pcr_ufa_transfer[transfer_rule]:
+  includes lifting_syntax
+  shows "(list_all2 (=) ===> pcr_ufa ===> (=)) (=) pcr_ufa"
+  apply(intro rel_funI)
+  by (metis left_uniqueD list_all2_eq ufa.left_unique)
+
 type_synonym ufa_imp = "nat array"
 
 definition is_ufa :: "ufa \<Rightarrow> ufa_imp \<Rightarrow> assn" where
-  "is_ufa ufa p \<equiv> \<exists>\<^sub>Auf. p \<mapsto>\<^sub>a uf * \<up>(ufa_invar uf \<and> Abs_ufa uf = ufa)"
+  "is_ufa ufa p \<equiv> \<exists>\<^sub>Auf. p \<mapsto>\<^sub>a uf * \<up>(pcr_ufa uf ufa)"
 
 definition ufa_imp_init :: "nat \<Rightarrow> ufa_imp Heap" where
   "ufa_imp_init n \<equiv> Array.of_list [0..<n]"
@@ -13,12 +19,11 @@ definition ufa_imp_init :: "nat \<Rightarrow> ufa_imp Heap" where
 lemma ufa_imp_init_rule[sep_heap_rules]:
   "<emp> ufa_imp_init n <is_ufa (ufa_init n)>"
 proof -
-  have "ufa_invar [0..<n]"
-    using ufa_init.rep_eq
-    by (metis Rep_ufa mem_Collect_eq)
+  have "pcr_ufa uf (ufa_init n)" if "uf = [0..<n]" for uf
+    using that including ufa.lifting by transfer
   then show ?thesis
-    unfolding ufa_imp_init_def is_ufa_def
-    by (sep_auto simp: ufa_init.abs_eq)
+   unfolding ufa_imp_init_def is_ufa_def
+   by sep_auto 
 qed
 
 definition "ufa_imp_parent_of p i \<equiv> Array.nth p i"
@@ -26,8 +31,14 @@ definition "ufa_imp_parent_of p i \<equiv> Array.nth p i"
 lemma ufa_parent_of_rule[sep_heap_rules]:
   assumes "i \<in> Field (ufa_\<alpha> ufa)"
   shows "<is_ufa ufa p> ufa_imp_parent_of p i <\<lambda>r. is_ufa ufa p * \<up>(r = ufa_parent_of ufa i)>"
-  using assms unfolding ufa_imp_parent_of_def is_ufa_def
-  by (sep_auto simp: ufa_\<alpha>.rep_eq ufa_parent_of.rep_eq Abs_ufa_inverse)
+proof -
+  have "ufa_parent_of ufa i = uf ! i" "i < length uf"
+    if "pcr_ufa uf ufa" "i \<in> Field (ufa_\<alpha> ufa)" for uf
+    using that including ufa.lifting
+    by (transfer, simp)+
+  then show ?thesis
+    using assms unfolding ufa_imp_parent_of_def is_ufa_def by sep_auto
+qed
 
 partial_function (heap) ufa_imp_rep_of :: "ufa_imp \<Rightarrow> nat \<Rightarrow> nat Heap" 
   where [code]: 
@@ -65,10 +76,15 @@ lemma ufa_imp_union_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufa_\<alpha> ufa)" "y \<in> Field (ufa_\<alpha> ufa)"
   shows "<is_ufa ufa p> ufa_imp_union p x y <is_ufa (ufa_union ufa x y)>"
 proof -
-  have "<is_ufa ufa p> Array.upd (ufa_rep_of ufa x) (ufa_rep_of ufa y) p
+  have
+    "ufa_rep_of ufa x < length uf"
+    "pcr_ufa (uf[ufa_rep_of ufa x := ufa_rep_of ufa y]) (ufa_union ufa x y)"
+    if "pcr_ufa uf ufa" "x \<in> Field (ufa_\<alpha> ufa)" "y \<in> Field (ufa_\<alpha> ufa)" for uf
+    using that including ufa.lifting by (transfer, simp)+
+  then have "<is_ufa ufa p> Array.upd (ufa_rep_of ufa x) (ufa_rep_of ufa y) p
     <is_ufa (ufa_union ufa x y)>"
     using assms ufa_invar_list_update_rep_of_rep_of unfolding is_ufa_def
-    by (sep_auto simp: ufa_rep_of.abs_eq ufa_\<alpha>.abs_eq ufa_union.abs_eq eq_onp_same_args)
+    by sep_auto
   with assms show ?thesis
     unfolding ufa_imp_union_def by sep_auto
 qed
