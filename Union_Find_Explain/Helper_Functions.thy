@@ -32,7 +32,6 @@ proof -
     by simp
 qed
 
-
 lemma ufa_lca_ufa_union:
   assumes "eff_union uf a b"
   assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
@@ -571,7 +570,6 @@ proof -
       from assms have "ufe_rep_of ufe_ds a \<notin> dom (au_ds ufe_ds)"
         using lookup_au_ds_eq_None_iff ufa_rep_of_in_Field_ufa_\<alpha>I ufa_rep_of_ufa_rep_of
         by blast
-
       moreover note ufe_tree_x.head_in_dom_lookup_if_in_arcs
       with that have "head (ufa_tree_of (uf_ds ufe_ds) x) e \<in> dom (au_ds ufe_ds)"
         using \<open>ufe_tree_x.awalk x pxy y\<close> by blast
