@@ -1,4 +1,4 @@
-theory Explain_Impl
+theory Explain_Imp
   imports
     Explain_Correctness
     Union_Find_Rank_Int_Imp
