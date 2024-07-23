@@ -80,12 +80,6 @@ definition "ufe_imp_union_raw ufe_ds_imp x y rep_x rep_y rank \<equiv> do {
   return \<lparr> uf_ds = uf', au_ds = au', unions = us' \<rparr>
 }"
 
-
-lemma ufr_of_ufa_ufri_of_ufr_transfer[transfer_rule]:
-  includes lifting_syntax
-  shows "(ufa_ufr_rel ===> pcr_ufri) ufr_of_ufa ufri_of_ufr"
-  using ufa_ufr_rel_def ufr_ufri_rel_def ufri.pcr_cr_eq by auto
-
 lemma ufe_imp_union_raw_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufa_\<alpha> (ufe_ds.uf_ds ufe_ds))" "y \<in> Field (ufa_\<alpha> (ufe_ds.uf_ds ufe_ds))"
   defines "rep_x \<equiv> ufe_rep_of ufe_ds x"

@@ -39,7 +39,6 @@ lemma ufa_lca_ufa_union:
   shows "ufa_lca (ufa_union uf a b) x y =
     (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y else ufa_rep_of uf b)"
 proof -
-
   interpret ufa_tree_x: ufa_tree where x = x
     using assms by unfold_locales
   interpret ufa_tree_y: ufa_tree where x = y
@@ -68,7 +67,8 @@ proof -
       by auto
   next
     case False
-    with assms consider
+    
+    from False assms consider
       "ufa_rep_of uf x = ufa_rep_of uf a" "ufa_rep_of uf y = ufa_rep_of uf b" |
       "ufa_rep_of uf x = ufa_rep_of uf b" "ufa_rep_of uf y = ufa_rep_of uf a"
       by (metis eff_unionD(1,2) ufa_rep_of_ufa_union)
@@ -89,13 +89,21 @@ proof -
         assume "longest_common_prefix (awalk_verts_from_rep uf x) py \<noteq> []"
         then obtain py' where "py = ufa_rep_of uf a # py'"
           unfolding awalk_verts_from_rep_x by (cases py) force+
-        with assms(1) show "False"
-          using ufa_tree_y.awalk_awalk_from_rep
-              ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts
-              ufa_tree_y.not_rep_if_in_tl_awalk_verts
-              ufa_tree_y.x_in_verts
-          using awalk_verts_from_rep_y
-          by (metis eff_unionD(1) list.sel(3) list.set_intros(1) ufa_parent_of_ufa_rep_of)
+        then have "awalk_verts_from_rep uf y = ufa_rep_of uf b # ufa_rep_of uf a # py'"
+          using awalk_verts_from_rep_y by blast
+        moreover note ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_y.x_in_verts]
+        moreover note ufa_tree_y.awalk_awalk_from_rep[OF ufa_tree_y.x_in_verts]
+        ultimately have
+          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf y)"
+          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf y)"
+          using ufa_tree_y.adj_in_verts
+          by (metis ufa_tree_y.awalk_imp_vwalk ufa_tree_y.vwalk_Cons_Cons)+
+        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
+        then have "ufa_rep_of uf a = ufa_rep_of uf b"
+          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
+          by simp
+        with eff_unionD(3)[OF assms(1)] show False
+          by blast
       qed
 
       with assms 1 show ?thesis
@@ -117,13 +125,21 @@ proof -
         assume "longest_common_prefix px (awalk_verts_from_rep uf y) \<noteq> []"
         then obtain px' where "px = ufa_rep_of uf a # px'"
           unfolding awalk_verts_from_rep_y by (cases px) force+
-        with assms(1) show "False"
-          using ufa_tree_x.awalk_awalk_from_rep
-              ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts
-              ufa_tree_x.not_rep_if_in_tl_awalk_verts
-              ufa_tree_x.x_in_verts
-          using awalk_verts_from_rep_x
-          by (metis eff_unionD(1) list.sel(3) list.set_intros(1) ufa_parent_of_ufa_rep_of)
+        then have "awalk_verts_from_rep uf x = ufa_rep_of uf b # ufa_rep_of uf a # px'"
+          using awalk_verts_from_rep_x by blast
+        moreover note ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_x.x_in_verts]
+        moreover note ufa_tree_x.awalk_awalk_from_rep[OF ufa_tree_x.x_in_verts]
+        ultimately have
+          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf x)"
+          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf x)"
+          using ufa_tree_x.adj_in_verts
+          by (metis ufa_tree_x.awalk_imp_vwalk ufa_tree_x.vwalk_Cons_Cons)+
+        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
+        then have "ufa_rep_of uf a = ufa_rep_of uf b"
+          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
+          by simp
+        with eff_unionD(3)[OF assms(1)] show False
+          by blast
       qed
 
       with assms 2 False show ?thesis

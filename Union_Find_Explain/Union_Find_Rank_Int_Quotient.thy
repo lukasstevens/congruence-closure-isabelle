@@ -128,7 +128,14 @@ lemma ufa_of_ufr_ufr_of_ufri_transfer[transfer_rule]:
   unfolding ufri.pcr_cr_eq ufr_ufri_rel_def ufa_ufr_rel_def
   by (metis (mono_tags, lifting) Quotient_rep_abs_fold_unmap Quotient_ufri_ufr eq_ufr_def rel_funI)
 
-lemma Rep_ufa_ufa_of_ufr_transfer[transfer_rule]:
+lemma ufr_of_ufa_ufri_of_ufr_transfer[transfer_rule]:
+  includes lifting_syntax
+  shows "(ufa_ufr_rel ===> pcr_ufri) ufr_of_ufa ufri_of_ufr"
+  unfolding ufa_ufr_rel_def ufr_ufri_rel_def ufri.pcr_cr_eq
+  by (intro rel_funI, transfer)
+    (auto simp: eq_ufr_ufr_of_ufa_ufa_of_ufr) 
+
+lemma Rep_ufa_ufa_of_ufr_transfer:
   includes lifting_syntax
   shows "(ufa_ufr_rel ===> pcr_ufa) Rep_ufa ufa_of_ufr"
   unfolding ufa_ufr_rel_def
@@ -146,12 +153,6 @@ lemma ufa_of_ufr_ufr_of_ufri_Abs_ufri_eq:
   using assms
   by (simp add: Rep_ufri_inverse eq_onp_same_args
       ufa_of_ufr.rep_eq ufa_of_ufri.abs_eq ufr_of_ufri.rep_eq)
-
-lemma ufri_of_ufr_ufr_of_ufa_ufa_of_ufr[simp]:
-  "ufri_of_ufr (ufr_of_ufa (ufa_of_ufr ufr)) = ufri_of_ufr ufr"
-  apply transfer
-  using id_eq_ufr_ufr_of_ufa_ufa_of_ufr
-  by (metis rel_funD eq_id_iff refl_eq_ufr sym_eq_ufr)
 
 lemma map_index_congL':
   assumes "\<forall>i < length xs. f i (xs ! i) = ys ! i"
@@ -187,6 +188,7 @@ qed
 
 lemma Abs_ufri_replicate_neg_1_eq_ufri_init:
   includes ufa.lifting ufa_ufr_transfer
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufr_transfer
   shows "Abs_ufri (replicate n (-1)) = ufri_init n"
   apply (transfer, transfer, transfer)
   using ufa_of_ufr_ufr_of_ufri_Abs_ufri_eq[OF ufri_invar_replicate_neg_1]
@@ -207,6 +209,7 @@ lemma ufri_rep_of_ufri_rep_of[simp]:
 
 lemma lt_length_if_in_Field_ufri_\<alpha>_Abs_ufri:
   includes ufa_ufr_transfer ufa.lifting
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufr_transfer
   assumes "ufri_invar ufri"
   assumes "i \<in> Field (ufri_\<alpha> (Abs_ufri ufri))"
   shows "i < length ufri"
@@ -223,6 +226,7 @@ lemma eq_uf_of_ufri[simp]:
 
 lemma ufri_parent_of_Abs_ufri_eq:
   includes ufa.lifting ufa_ufr_transfer
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufr_transfer
   assumes "ufri_invar ufri"
   assumes "i \<in> Field (ufri_\<alpha> (Abs_ufri ufri))"
   shows "ufri_parent_of (Abs_ufri ufri) i = (if ufri ! i < 0 then i else nat (ufri ! i))"
@@ -234,6 +238,7 @@ lemma ufri_parent_of_Abs_ufri_eq:
 
 lemma ufri_rep_of_Abs_ufri_eq:
   includes ufa.lifting ufa_ufr_transfer
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufr_transfer
   assumes "ufri_invar ufri"
   assumes "i \<in> Field (ufri_\<alpha> (Abs_ufri ufri))"
   shows "ufri_rep_of (Abs_ufri ufri) i =
@@ -263,6 +268,7 @@ lemma uf_of_ufri_list_update:
   unfolding uf_of_ufri_def map_index_list_update by blast
 
 lemma ufri_union_Abs_ufri:
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufr_transfer
   assumes "ufri_invar ufri"
   assumes "x \<in> Field (ufri_\<alpha> (Abs_ufri ufri))"
   assumes "y \<in> Field (ufri_\<alpha> (Abs_ufri ufri))"

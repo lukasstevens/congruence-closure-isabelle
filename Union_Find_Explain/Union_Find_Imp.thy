@@ -2,11 +2,10 @@ theory Union_Find_Imp
   imports Union_Find "Separation_Logic_Imperative_HOL.Sep_Main"
 begin
 
-lemma pcr_ufa_transfer[transfer_rule]:
+lemma pcr_ufa_transfer:
   includes lifting_syntax
   shows "(list_all2 (=) ===> pcr_ufa ===> (=)) (=) pcr_ufa"
-  apply(intro rel_funI)
-  by (metis left_uniqueD list_all2_eq ufa.left_unique)
+  by (intro rel_funI) (metis left_uniqueD list_all2_eq ufa.left_unique)
 
 type_synonym ufa_imp = "nat array"
 
@@ -19,6 +18,7 @@ definition ufa_imp_init :: "nat \<Rightarrow> ufa_imp Heap" where
 lemma ufa_imp_init_rule[sep_heap_rules]:
   "<emp> ufa_imp_init n <is_ufa (ufa_init n)>"
 proof -
+  note [transfer_rule] = pcr_ufa_transfer
   have "pcr_ufa uf (ufa_init n)" if "uf = [0..<n]" for uf
     using that including ufa.lifting by transfer
   then show ?thesis
@@ -32,6 +32,7 @@ lemma ufa_parent_of_rule[sep_heap_rules]:
   assumes "i \<in> Field (ufa_\<alpha> ufa)"
   shows "<is_ufa ufa p> ufa_imp_parent_of p i <\<lambda>r. is_ufa ufa p * \<up>(r = ufa_parent_of ufa i)>"
 proof -
+  note [transfer_rule] = pcr_ufa_transfer
   have "ufa_parent_of ufa i = uf ! i" "i < length uf"
     if "pcr_ufa uf ufa" "i \<in> Field (ufa_\<alpha> ufa)" for uf
     using that including ufa.lifting
@@ -76,6 +77,7 @@ lemma ufa_imp_union_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufa_\<alpha> ufa)" "y \<in> Field (ufa_\<alpha> ufa)"
   shows "<is_ufa ufa p> ufa_imp_union p x y <is_ufa (ufa_union ufa x y)>"
 proof -
+  note [transfer_rule] = pcr_ufa_transfer
   have
     "ufa_rep_of ufa x < length uf"
     "pcr_ufa (uf[ufa_rep_of ufa x := ufa_rep_of ufa y]) (ufa_union ufa x y)"

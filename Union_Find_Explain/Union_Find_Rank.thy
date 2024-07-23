@@ -237,6 +237,11 @@ lemma equivp_eq_ufr: "equivp eq_ufr"
   using sym_eq_ufr trans_eq_ufr
   by (intro equivpI reflpI sympI transpI) blast+
 
+lemma eq_ufr_ufr_of_ufa_ufa_of_ufr:
+  "eq_ufr x (ufr_of_ufa (ufa_of_ufr x))"
+  unfolding eq_ufr_def
+  by (simp add: ufr_rank_def ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
+
 lemma eq_ufr_eq_transfer[ufa_ufr_transfer]:
   includes lifting_syntax
   shows "(ufa_ufr_rel ===> ufa_ufr_rel ===> (=)) (=) eq_ufr"
