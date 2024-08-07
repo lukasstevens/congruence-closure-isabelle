@@ -6,7 +6,7 @@ text \<open>In order to execute the functions, they need to terminate.\<close>
 
 termination path_from_rep sorry
 termination rep_of sorry
-termination find_newest_on_walk sorry
+termination find_newest_on_path sorry
 termination explain sorry
 
 text \<open>Example 1\<close>
@@ -39,9 +39,9 @@ value ex5
 
 text \<open>Example 6\<close>
 
-abbreviation "ex6_1 \<equiv> find_newest_on_walk l (au ex3) 3 0"
+abbreviation "ex6_1 \<equiv> find_newest_on_path l (au ex3) 3 0"
 value ex6_1
-abbreviation "ex6_2 \<equiv> find_newest_on_walk l (au ex3) 1 0"
+abbreviation "ex6_2 \<equiv> find_newest_on_path l (au ex3) 1 0"
 value ex6_2
 
 text \<open>Example 7\<close>

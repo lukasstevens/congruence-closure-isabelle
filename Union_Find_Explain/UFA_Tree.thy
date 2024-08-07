@@ -4,7 +4,6 @@ theory UFA_Tree
     "Tree_Theory.LCA_Directed_Tree"
 begin
 
-
 context
   fixes uf :: ufa
 begin

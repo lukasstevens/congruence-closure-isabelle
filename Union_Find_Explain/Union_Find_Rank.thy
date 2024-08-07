@@ -111,6 +111,16 @@ lemma ufr_of_ufa_transfer[ufa_ufr_transfer]:
   unfolding ufa_ufr_rel_def
   by (intro rel_funI, transfer) simp
 
+lemma ufa_of_ufr_ufr_of_ufa_eq[simp]:
+  notes [transfer_rule] = ufa_ufr_transfer ufa_of_ufr_transfer
+  shows "ufa_of_ufr (ufr_of_ufa ufa) = ufa"
+  by transfer simp
+
+lemma Rep_ufa_ufa_of_ufr_transfer:
+  "(ufa_ufr_rel ===> pcr_ufa) Rep_ufa ufa_of_ufr"
+  unfolding ufa_ufr_rel_def
+  by (metis (mono_tags, lifting) cr_ufa_def rel_funI ufa.pcr_cr_eq)
+
 lemma ufr_parent_of_transfer[ufa_ufr_transfer]:
   "(ufa_ufr_rel ===> (=) ===> (=)) ufa_parent_of ufr_parent_of"
   unfolding ufa_ufr_rel_def ufr_parent_of_def by blast
@@ -237,17 +247,23 @@ lemma equivp_eq_ufr: "equivp eq_ufr"
   using sym_eq_ufr trans_eq_ufr
   by (intro equivpI reflpI sympI transpI) blast+
 
-lemma eq_ufr_ufr_of_ufa_ufa_of_ufr:
-  "eq_ufr x (ufr_of_ufa (ufa_of_ufr x))"
-  unfolding eq_ufr_def
-  by (simp add: ufr_rank_def ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
-
 lemma eq_ufr_eq_transfer[ufa_ufr_transfer]:
   includes lifting_syntax
   shows "(ufa_ufr_rel ===> ufa_ufr_rel ===> (=)) (=) eq_ufr"
   unfolding eq_ufr_def
   apply(intro rel_funI)
   using ufa_ufr_rel_def ufr_rank_def by auto
+
+lemma eq_ufr_ufr_of_ufa_ufa_of_ufr:
+  "eq_ufr ufr (ufr_of_ufa (ufa_of_ufr ufr))"
+  unfolding eq_ufr_def ufr_rank_def
+  by (simp add: eq_ufr_def ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
+
+lemma id_eq_ufr_ufr_of_ufa_ufa_of_ufr:
+  includes lifting_syntax
+  shows "(eq_ufr ===> eq_ufr) id (\<lambda>ufr. ufr_of_ufa (ufa_of_ufr ufr))"
+  unfolding eq_ufr_def unfolding ufr_rank_def
+  by (intro rel_funI) (simp add: ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
 
 lemma ufr_rep_of_eq_if_eq_ufr:
   notes [transfer_rule] = ufa_ufr_transfer ufa_of_ufr_transfer
@@ -303,11 +319,6 @@ proof -
 qed
 
 
-bundle ufa_ufr_transfer
-begin
-
-declare ufa_ufr_transfer[transfer_rule]
-
-end
+bundle ufa_ufr_transfer = ufa_ufr_transfer[transfer_rule]
 
 end

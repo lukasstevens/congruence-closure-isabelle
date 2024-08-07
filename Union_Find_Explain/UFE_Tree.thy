@@ -1,94 +1,6 @@
 theory UFE_Tree
-  imports Explain_Definition
+  imports Explain_Simple Explain_Efficient
 begin
-
-definition "ufa_unions \<equiv> foldl (\<lambda>uf (x, y). ufa_union uf x y)"
-
-lemma
-  ufa_unions_Nil[simp]: "ufa_unions uf [] = uf" and
-  ufa_unions_Cons[simp]: "ufa_unions uf (u # us) = ufa_unions (ufa_union uf (fst u) (snd u)) us"
-  unfolding ufa_unions_def by (simp_all split: prod.splits)
-
-lemma ufa_unions_append:
-  "ufa_unions uf (us1 @ us2) = ufa_unions (ufa_unions uf us1) us2"
-  by (induction us1 arbitrary: uf) simp_all
-
-definition "valid_union uf a b \<equiv> a \<in> Field (ufa_\<alpha> uf) \<and> b \<in> Field (ufa_\<alpha> uf)"
-
-definition "eff_union uf a b \<equiv> 
-  valid_union uf a b \<and> ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
-
-lemma valid_unionI[intro]:
-  assumes "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-  shows "valid_union uf a b"
-  using assms unfolding valid_union_def by simp
-
-lemma valid_unionD[simp, dest?]:
-  assumes "valid_union uf a b"
-  shows "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-  using assms unfolding valid_union_def by simp_all
-
-lemma valid_unionE[elim]:
-  assumes "valid_union uf a b"
-  obtains "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-  using assms unfolding valid_union_def by simp
-
-definition "valid_unions uf us \<equiv> \<forall>(x, y) \<in> set us. valid_union uf x y"
-
-lemma valid_unions_Cons_prod[simp]:
-  "valid_unions uf (u # us) \<longleftrightarrow>
-    valid_union uf (fst u) (snd u) \<and> valid_unions uf us"
-  by (cases u) (simp add: valid_unions_def)
-
-lemma valid_unions_append[simp]:
-  "valid_unions uf (us1 @ us2) \<longleftrightarrow> valid_unions uf us1 \<and> valid_unions uf us2"
-  unfolding valid_unions_def by auto
-
-lemma eff_unionI[intro]:
-  assumes "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-  assumes "ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
-  shows "eff_union uf a b"
-  using assms unfolding eff_union_def valid_union_def by force
-
-lemma eff_unionD[simp, dest?]:
-  assumes "eff_union uf a b"
-  shows
-    "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-    "ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
-  using assms unfolding eff_union_def valid_union_def by blast+
-
-lemma eff_unionE[elim]:
-  assumes "eff_union uf a b"
-  obtains
-    "a \<in> Field (ufa_\<alpha> uf)" "b \<in> Field (ufa_\<alpha> uf)"
-    "ufa_rep_of uf a \<noteq> ufa_rep_of uf b"
-  using assms unfolding eff_union_def valid_union_def by blast
-
-fun eff_unions where
-  "eff_unions uf [] \<longleftrightarrow> True"
-| "eff_unions uf ((a, b) # us) \<longleftrightarrow> eff_union uf a b \<and> eff_unions (ufa_union uf a b) us"
-
-lemma eff_unions_Cons_prod[simp]:
-  "eff_unions uf (u # us) \<longleftrightarrow>
-    eff_union uf (fst u) (snd u) \<and> eff_unions (ufa_union uf (fst u) (snd u)) us"
-  by (cases u) simp
-
-lemma eff_unions_append:
-  "eff_unions uf (us1 @ us2) \<longleftrightarrow> eff_unions uf us1 \<and> eff_unions (ufa_unions uf us1) us2"
-  by (induction uf us1 rule: eff_unions.induct) simp_all
-
-lemma in_Field_ufa_\<alpha>_if_in_eff_unions:
-  assumes "eff_unions uf us"
-  assumes "u \<in> set us"
-  shows "fst u \<in> Field (ufa_\<alpha> uf)" "snd u \<in> Field (ufa_\<alpha> uf)"
-  using assms
-  by (induction uf us rule: eff_unions.induct) auto
-
-lemma Field_ufa_\<alpha>_ufa_unions[simp]:
-  assumes "eff_unions uf us"
-  shows "Field (ufa_\<alpha> (ufa_unions uf us)) = Field (ufa_\<alpha> uf)"
-  using assms
-  by (induction uf us rule: eff_unions.induct) simp_all
 
 lemma ufa_\<alpha>_uf_ds_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds:
   assumes "eff_unions (uf_ds ufe_ds) us"
@@ -441,61 +353,61 @@ lemma inj_on_au_of_awalk:
   using assms inj_on_au_of_arcs
   by (meson awalkE' inj_on_subset)
 
-definition "newest_on_walk newest y p z \<equiv> awalk y p z \<and> newest = Max (au_of ` set p)"
+definition "newest_on_path newest y p z \<equiv> awalk y p z \<and> newest = Max (au_of ` set p)"
 
-lemma newest_on_walk_awalkD[simp]:
-  assumes "newest_on_walk newest y p z"
+lemma newest_on_path_awalkD[simp]:
+  assumes "newest_on_path newest y p z"
   shows "awalk y p z"
-  using assms unfolding newest_on_walk_def by simp
+  using assms unfolding newest_on_path_def by simp
 
-lemma newest_on_walkE:
-  assumes "newest_on_walk newest y p z"
+lemma newest_on_pathE:
+  assumes "newest_on_path newest y p z"
   assumes "y \<noteq> z" 
   obtains i where
     "i \<in> set p"
     "awalk y p z" "newest = au_of i"
 proof -
   from assms have "au_of ` set p \<noteq> {}"
-    unfolding newest_on_walk_def by auto
+    unfolding newest_on_path_def by auto
   from Max_in[OF _ this] obtain i where "i \<in> set p" "Max (au_of ` set p) = au_of i"
     by blast
   with assms that show ?thesis
-    unfolding newest_on_walk_def by simp
+    unfolding newest_on_path_def by simp
 qed
 
-lemma newest_on_walk_lt_length_unions:
-  assumes "newest_on_walk newest y p z"
+lemma newest_on_path_lt_length_unions:
+  assumes "newest_on_path newest y p z"
   assumes "y \<noteq> z"
   shows "newest < length (unions ufe_ds)"
 proof -
-  from newest_on_walkE[OF assms] obtain i where i:
+  from newest_on_pathE[OF assms] obtain i where i:
     "awalk y p z" "i \<in> set p" "newest = au_of i"
     by blast
   then show ?thesis
     using au_of_lt_length_unions by blast
 qed
 
-lemma newest_on_walk_valid_union:
-  assumes "newest_on_walk newest y p z"
+lemma newest_on_path_valid_union:
+  assumes "newest_on_path newest y p z"
   assumes "y \<noteq> z"
   assumes "unions ufe_ds ! newest = (a, b)"
   shows "a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
 proof -
   from assms have "(a, b) \<in> set (unions ufe_ds)"
-    using newest_on_walk_lt_length_unions by (metis nth_mem)
+    using newest_on_path_lt_length_unions by (metis nth_mem)
   then show "a \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "b \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
     using uf_ds_ufe_ds_eq_ufa_unions in_Field_ufa_\<alpha>_if_in_eff_unions eff_unions by auto
 qed
 
-lemma ufe_rep_of_eq_if_newest_on_walk:
-  assumes "newest_on_walk newest y p z"
+lemma ufe_rep_of_eq_if_newest_on_path:
+  assumes "newest_on_path newest y p z"
   assumes "y \<noteq> z"
   assumes "unions ufe_ds ! newest = (a, b)"
   shows
     "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
     "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
 proof -
-  from newest_on_walkE[OF assms(1,2)] obtain i where
+  from newest_on_pathE[OF assms(1,2)] obtain i where
     "i \<in> set p" "awalk y p z" "newest = au_of i"
     by blast
   moreover note rep_of_eq_au_of[OF _ assms(3)[unfolded this]]

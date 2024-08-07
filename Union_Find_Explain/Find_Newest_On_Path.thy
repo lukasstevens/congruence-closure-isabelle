@@ -1,174 +1,25 @@
-section \<open>Correctness proofs for the helper functions\<close>
-theory Helper_Functions
-  imports Explain_Definition UFE_Tree 
-begin 
+theory Find_Newest_On_Path
+  imports UFE_Tree
+begin
 
-subsection \<open>Proofs about the domain of the helper functions\<close>
+lemma find_newest_on_path_dom_parent_of:
+  assumes "find_newest_on_path_dom ufe_ds (y, x)" "x \<noteq> y"
+  shows "find_newest_on_path_dom ufe_ds (y, ufe_parent_of ufe_ds x)"
+  using assms find_newest_on_path.domintros
+  by (induction rule: find_newest_on_path.pinduct) blast
 
-theorem (in ufa_tree) lca_ufa_lca:
-  assumes "y \<in> verts (ufa_tree_of uf x)"
-  assumes "z \<in> verts (ufa_tree_of uf x)"
-  shows "lca (ufa_lca uf y z) y z"
-proof -
-  from assms have "ufa_rep_of uf y = ufa_rep_of uf z"
-    by simp
-  note assms[THEN awalk_awalk_from_rep, folded this]
-  note lca_last_longest_common_prefix_awalk_verts[OF this]
-  with \<open>ufa_rep_of uf y = ufa_rep_of uf z\<close> show ?thesis
-    unfolding ufa_lca_def
-    unfolding assms[THEN awalk_verts_from_rep_eq_awalk_verts]
-    by simp
-qed
-
-theorem (in ufa_tree) ufa_rep_of_ufa_lca:
-  assumes "y \<in> verts (ufa_tree_of uf x)"
-  assumes "z \<in> verts (ufa_tree_of uf x)"
-  shows "ufa_rep_of uf (ufa_lca uf y z) = ufa_rep_of uf y"
-proof -
-  note lca_ufa_lca[OF assms]
-  then have "ufa_lca uf y z \<in> verts (ufa_tree_of uf x)"
-    using lca_reachableD(2) reachable_in_verts(1) by blast
-  with assms show ?thesis
-    by simp
-qed
-
-lemma ufa_lca_ufa_union:
-  assumes "eff_union uf a b"
-  assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
-  assumes "ufa_rep_of (ufa_union uf a b) x = ufa_rep_of (ufa_union uf a b) y"
-  shows "ufa_lca (ufa_union uf a b) x y =
-    (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y else ufa_rep_of uf b)"
-proof -
-  interpret ufa_tree_x: ufa_tree where x = x
-    using assms by unfold_locales
-  interpret ufa_tree_y: ufa_tree where x = y
-    using assms by unfold_locales
-
-  note awalk_verts_from_rep_union_eq = 
-    assms(2,3)[THEN ufa_tree_x.awalk_verts_from_rep_union[OF eff_unionD[OF assms(1)]]]
-  
-  show ?thesis
-  proof(cases "ufa_rep_of uf x = ufa_rep_of uf y")
-    case True
-    with \<open>x \<in> Field (ufa_\<alpha> uf)\<close> \<open>y \<in> Field (ufa_\<alpha> uf)\<close>
-    have "x \<in> verts (ufa_tree_of uf x)" "y \<in> verts (ufa_tree_of uf x)"
-      using ufa_tree_x.in_verts_if_rep_of_eq by simp_all
-    note this[THEN ufa_tree_x.awalk_verts_from_rep_eq_Cons]
-    with True obtain px py where
-      "awalk_verts_from_rep uf x = ufa_rep_of uf y # px"
-      "awalk_verts_from_rep uf y = ufa_rep_of uf y # py"
-      by metis
-    then have
-      "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y) \<noteq> []"
-      by simp
-  
-    with True show ?thesis
-      unfolding ufa_lca_def awalk_verts_from_rep_union_eq
-      by auto
-  next
-    case False
-    
-    from False assms consider
-      "ufa_rep_of uf x = ufa_rep_of uf a" "ufa_rep_of uf y = ufa_rep_of uf b" |
-      "ufa_rep_of uf x = ufa_rep_of uf b" "ufa_rep_of uf y = ufa_rep_of uf a"
-      by (metis eff_unionD(1,2) ufa_rep_of_ufa_union)
-    then show ?thesis
-    proof(cases)
-      case 1
-      from 1 obtain px where awalk_verts_from_rep_x:
-        "awalk_verts_from_rep uf x = ufa_rep_of uf a # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
-        by metis
-      from 1 obtain py where awalk_verts_from_rep_y:
-        "awalk_verts_from_rep uf y = ufa_rep_of uf b # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
-        by metis
-
-      have "longest_common_prefix (awalk_verts_from_rep uf x) py = []"
-      proof(rule ccontr)
-        assume "longest_common_prefix (awalk_verts_from_rep uf x) py \<noteq> []"
-        then obtain py' where "py = ufa_rep_of uf a # py'"
-          unfolding awalk_verts_from_rep_x by (cases py) force+
-        then have "awalk_verts_from_rep uf y = ufa_rep_of uf b # ufa_rep_of uf a # py'"
-          using awalk_verts_from_rep_y by blast
-        moreover note ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_y.x_in_verts]
-        moreover note ufa_tree_y.awalk_awalk_from_rep[OF ufa_tree_y.x_in_verts]
-        ultimately have
-          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf y)"
-          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf y)"
-          using ufa_tree_y.adj_in_verts
-          by (metis ufa_tree_y.awalk_imp_vwalk ufa_tree_y.vwalk_Cons_Cons)+
-        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
-        then have "ufa_rep_of uf a = ufa_rep_of uf b"
-          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
-          by simp
-        with eff_unionD(3)[OF assms(1)] show False
-          by blast
-      qed
-
-      with assms 1 show ?thesis
-        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_y
-        by auto
-    next
-      case 2
-      from 2 obtain px where awalk_verts_from_rep_x:
-        "awalk_verts_from_rep uf x = ufa_rep_of uf b # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
-        by metis
-      from 2 obtain py where awalk_verts_from_rep_y:
-        "awalk_verts_from_rep uf y = ufa_rep_of uf a # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
-        by metis
-
-      have "longest_common_prefix px (awalk_verts_from_rep uf y) = []"
-      proof(rule ccontr)
-        assume "longest_common_prefix px (awalk_verts_from_rep uf y) \<noteq> []"
-        then obtain px' where "px = ufa_rep_of uf a # px'"
-          unfolding awalk_verts_from_rep_y by (cases px) force+
-        then have "awalk_verts_from_rep uf x = ufa_rep_of uf b # ufa_rep_of uf a # px'"
-          using awalk_verts_from_rep_x by blast
-        moreover note ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_x.x_in_verts]
-        moreover note ufa_tree_x.awalk_awalk_from_rep[OF ufa_tree_x.x_in_verts]
-        ultimately have
-          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf x)"
-          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf x)"
-          using ufa_tree_x.adj_in_verts
-          by (metis ufa_tree_x.awalk_imp_vwalk ufa_tree_x.vwalk_Cons_Cons)+
-        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
-        then have "ufa_rep_of uf a = ufa_rep_of uf b"
-          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
-          by simp
-        with eff_unionD(3)[OF assms(1)] show False
-          by blast
-      qed
-
-      with assms 2 False show ?thesis
-        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_x
-        by simp
-    qed
-  qed
-qed
-
-subsection \<open>Correctness of \<open>find_newest_on_walk\<close>.\<close>
-
-lemma find_newest_on_walk_dom_parent_of:
-  assumes "find_newest_on_walk_dom ufe_ds (y, x)" "x \<noteq> y"
-  shows "find_newest_on_walk_dom ufe_ds (y, ufe_parent_of ufe_ds x)"
-  using assms find_newest_on_walk.domintros
-  by (induction rule: find_newest_on_walk.pinduct) blast
-
-lemma find_newest_on_walk_eq_if_eq[simp]:
+lemma find_newest_on_path_eq_if_eq[simp]:
   assumes "y = x"
-  shows "find_newest_on_walk ufe_ds y x = None"
+  shows "find_newest_on_path ufe_ds y x = None"
   using assms
-  by (metis find_newest_on_walk.domintros find_newest_on_walk.pelims)
+  by (metis find_newest_on_path.domintros find_newest_on_path.pelims)
 
 context ufe_tree
 begin
 
-lemma find_newest_on_walk_dom:
+lemma find_newest_on_path_dom:
   assumes "awalk y p z"
-  shows "find_newest_on_walk_dom ufe_ds (y, z)"
+  shows "find_newest_on_path_dom ufe_ds (y, z)"
 proof -
   from assms have "z \<in> verts (ufa_tree_of (uf_ds ufe_ds) x)"
     by blast
@@ -178,7 +29,7 @@ proof -
   proof(cases "p = []")
     case True
     then show ?thesis
-      using assms awalk_empty_ends find_newest_on_walk.domintros by blast
+      using assms awalk_empty_ends find_newest_on_path.domintros by blast
   next
     case False
     with \<open>z \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))\<close> assms show ?thesis
@@ -192,21 +43,21 @@ proof -
         using awalk_not_Nil_butlastD(1) awalk_Nil_iff
         by (simp add: awlast_butlast_eq_parent_of_if_awalk)
       with not_rep have
-        "find_newest_on_walk_dom ufe_ds (y, ufe_parent_of ufe_ds i)"
-        by (metis awalk_empty_ends find_newest_on_walk.domintros)
+        "find_newest_on_path_dom ufe_ds (y, ufe_parent_of ufe_ds i)"
+        by (metis awalk_empty_ends find_newest_on_path.domintros)
       then show ?case
-        using find_newest_on_walk.domintros by blast
+        using find_newest_on_path.domintros by blast
     qed
   qed
 qed
 
-lemma find_newest_on_walk_eq_Max_au_of:
+lemma find_newest_on_path_eq_Max_au_of:
   assumes "awalk y p z"
       and "y \<noteq> z"
-    shows "find_newest_on_walk ufe_ds y z = Some (Max (au_of ` set p))"
+    shows "find_newest_on_path ufe_ds y z = Some (Max (au_of ` set p))"
 proof -
-  from find_newest_on_walk_dom[OF assms(1)] assms show ?thesis
-  proof(induction arbitrary: p rule: find_newest_on_walk.pinduct)
+  from find_newest_on_path_dom[OF assms(1)] assms show ?thesis
+  proof(induction arbitrary: p rule: find_newest_on_path.pinduct)
     case (1 y z)
     then have "z \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
       using in_Field_ufa_\<alpha>_if_in_verts awalk_last_in_verts by blast
@@ -220,7 +71,7 @@ proof -
       with "1.prems" have p_eq: "p = [(ufe_parent_of ufe_ds z, z)]" (is "_ = [?a]")
         using awalk_parent_of unique_awalk_All by blast
       with "1.prems" au_z show ?thesis
-        unfolding au_of_def find_newest_on_walk.psimps[OF "1.hyps"]
+        unfolding au_of_def find_newest_on_path.psimps[OF "1.hyps"]
         by (auto simp: combine_options_def split: option.splits)
     next
       case False 
@@ -245,23 +96,23 @@ proof -
         by (metis awalk_and_parent_of_reflD(1) awalk_butlast domD domIff)
       
       from \<open>y \<noteq> z\<close> au_z au_p_z have
-        "find_newest_on_walk ufe_ds y z =
-        combine_options max (Some au_z) (find_newest_on_walk ufe_ds y (ufe_parent_of ufe_ds z))"
+        "find_newest_on_path ufe_ds y z =
+        combine_options max (Some au_z) (find_newest_on_path ufe_ds y (ufe_parent_of ufe_ds z))"
       proof -
-        have "find_newest_on_walk_dom ufe_ds (y, ufe_parent_of ufe_ds z)"
-          using awalk_butlast find_newest_on_walk_dom by blast
+        have "find_newest_on_path_dom ufe_ds (y, ufe_parent_of ufe_ds z)"
+          using awalk_butlast find_newest_on_path_dom by blast
         with False au_p_z have
-          "find_newest_on_walk ufe_ds y (ufe_parent_of ufe_ds z) \<noteq> None"
-          by (auto simp: find_newest_on_walk.psimps combine_options_def split: option.splits)
+          "find_newest_on_path ufe_ds y (ufe_parent_of ufe_ds z) \<noteq> None"
+          by (auto simp: find_newest_on_path.psimps combine_options_def split: option.splits)
         with "1.prems" au_z show ?thesis 
-          unfolding find_newest_on_walk.psimps[OF "1.hyps"(1)] by fastforce
+          unfolding find_newest_on_path.psimps[OF "1.hyps"(1)] by fastforce
       qed
       also have "\<dots> = Some (max au_z (Max (au_of ` set (butlast p))))"
       proof -
         note "1.IH"[OF \<open>y \<noteq> z\<close> \<open>awalk y (butlast p) (ufe_parent_of ufe_ds z)\<close>
             \<open>y \<noteq> ufe_parent_of ufe_ds z\<close>]
         then show ?thesis
-          unfolding newest_on_walk_def by simp
+          unfolding newest_on_path_def by simp
       qed
       also have "\<dots> = Some (Max (au_of ` set p))"
       proof -
@@ -289,38 +140,38 @@ proof -
   qed
 qed
 
-lemma find_newest_on_walk_eq_None_iff:
+lemma find_newest_on_path_eq_None_iff:
   assumes "awalk y p z"
-  shows "find_newest_on_walk ufe_ds y z = None \<longleftrightarrow> y = z"
-  using find_newest_on_walk_dom[OF assms] assms
-proof(induction rule: find_newest_on_walk.pinduct)
+  shows "find_newest_on_path ufe_ds y z = None \<longleftrightarrow> y = z"
+  using find_newest_on_path_dom[OF assms] assms
+proof(induction rule: find_newest_on_path.pinduct)
   case (1 y z)
   then show ?case
-    using find_newest_on_walk_eq_Max_au_of by (cases "y = z") simp_all
+    using find_newest_on_path_eq_Max_au_of by (cases "y = z") simp_all
 qed
   
-theorem newest_on_walk_find_newest_on_walk:
+theorem newest_on_path_find_newest_on_path:
   assumes "awalk y p z"
       and "y \<noteq> z"
-    shows "newest_on_walk (the (find_newest_on_walk ufe_ds y z)) y p z"
-  using find_newest_on_walk_eq_Max_au_of[OF assms] \<open>awalk y p z\<close>
-  unfolding newest_on_walk_def
+    shows "newest_on_path (the (find_newest_on_path ufe_ds y z)) y p z"
+  using find_newest_on_path_eq_Max_au_of[OF assms] \<open>awalk y p z\<close>
+  unfolding newest_on_path_def
   by simp
 
 end
 
-lemma (in ufe_tree) find_newest_on_walk_lt_Some_length_unions:
+lemma (in ufe_tree) find_newest_on_path_lt_Some_length_unions:
   assumes "awalk y p z"
-  shows "find_newest_on_walk ufe_ds y z < Some (length (unions ufe_ds))"
+  shows "find_newest_on_path ufe_ds y z < Some (length (unions ufe_ds))"
 proof(cases "y = z")
   case True
   then show ?thesis by simp
 next
   case False
-  with assms have "newest_on_walk (the (find_newest_on_walk ufe_ds y z)) y p z"
-    using newest_on_walk_find_newest_on_walk by blast
-  with False newest_on_walk_lt_length_unions show ?thesis
-    by (cases "find_newest_on_walk ufe_ds y z") auto
+  with assms have "newest_on_path (the (find_newest_on_path ufe_ds y z)) y p z"
+    using newest_on_path_find_newest_on_path by blast
+  with False newest_on_path_lt_length_unions show ?thesis
+    by (cases "find_newest_on_path ufe_ds y z") auto
 qed
 lemma ufe_rep_of_ufe_union_eq_cases:
   assumes "eff_union (uf_ds ufe_ds) a b"
@@ -335,13 +186,13 @@ lemma ufe_rep_of_ufe_union_eq_cases:
   using assms
   by (metis eff_unionD(1,2) uf_ds_ufe_union ufa_rep_of_ufa_union)
 
-lemma (in ufe_invars) find_newest_on_walk_ufe_union_if_rep_of_neq:
+lemma (in ufe_invars) find_newest_on_path_ufe_union_if_rep_of_neq:
   assumes "eff_union (uf_ds ufe_ds) a b"
   assumes "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
   assumes "uf_ds (ufe_union ufe_ds a b) = ufa_union (uf_ds ufe_ds) a b"
   assumes awalk_pxy:
     "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z) x pxy y"
-  shows "find_newest_on_walk (ufe_union ufe_ds a b) x y = Some (length (unions ufe_ds))"
+  shows "find_newest_on_path (ufe_union ufe_ds a b) x y = Some (length (unions ufe_ds))"
 proof -
   from assms ufe_invars_ufe_union interpret ufe_invars_union: ufe_invars
     where ufe_ds = "ufe_union ufe_ds a b"
@@ -524,19 +375,19 @@ proof -
       using that assms(3) by (simp add: less_Suc_eq order_le_less)
     ultimately have "Max (ufe_tree_union.au_of ` set pxy) = length (unions ufe_ds)"
       by (intro Max_eqI) (auto simp: rev_image_eqI)
-    moreover note ufe_tree_union.find_newest_on_walk_eq_Max_au_of[OF awalk_pxy]
+    moreover note ufe_tree_union.find_newest_on_path_eq_Max_au_of[OF awalk_pxy]
     ultimately show ?thesis
       using \<open>ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y\<close> by auto
   qed
 qed
 
 
-lemma (in ufe_invars) find_newest_on_walk_ufe_union:
+lemma (in ufe_invars) find_newest_on_path_ufe_union:
   assumes "eff_union (uf_ds ufe_ds) a b"
   assumes awalk_pxy:
     "pre_digraph.awalk (ufa_tree_of (uf_ds (ufe_union ufe_ds a b)) z) x pxy y"
-  shows "find_newest_on_walk (ufe_union ufe_ds a b) x y = 
-    (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y then find_newest_on_walk ufe_ds x y
+  shows "find_newest_on_path (ufe_union ufe_ds a b) x y = 
+    (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y then find_newest_on_path ufe_ds x y
     else Some (length (unions ufe_ds)))"
 proof -
   from assms ufe_invars_ufe_union interpret ufe_invars_union: ufe_invars
@@ -575,12 +426,12 @@ proof -
     with assms(2) that awalk_pxy have "ufe_tree_x.awalk x pxy y"
       by (intro ufe_tree_x.awalk_if_ufe_union_awalk[OF assms(1)]) simp_all
     with that have
-      "find_newest_on_walk ufe_ds x y = Some (Max (ufe_tree_x.au_of ` set pxy))"
-      using ufe_tree_x.find_newest_on_walk_eq_Max_au_of by blast
+      "find_newest_on_path ufe_ds x y = Some (Max (ufe_tree_x.au_of ` set pxy))"
+      using ufe_tree_x.find_newest_on_path_eq_Max_au_of by blast
     moreover from that awalk_pxy have
-      "find_newest_on_walk (ufe_union ufe_ds a b) x y =
+      "find_newest_on_path (ufe_union ufe_ds a b) x y =
       Some (Max (ufe_tree_union.au_of ` set pxy))"
-      using ufe_tree_union.find_newest_on_walk_eq_Max_au_of by blast
+      using ufe_tree_union.find_newest_on_path_eq_Max_au_of by blast
     moreover have "ufe_tree_x.au_of e = ufe_tree_union.au_of e" if "e \<in> set pxy" for e
     proof -
       from assms have "ufe_rep_of ufe_ds a \<notin> dom (au_ds ufe_ds)"
@@ -598,7 +449,7 @@ proof -
       using that by simp
   qed
   moreover have ?thesis if "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
-    using assms awalk_pxy that find_newest_on_walk_ufe_union_if_rep_of_neq by auto
+    using assms awalk_pxy that find_newest_on_path_ufe_union_if_rep_of_neq by auto
   ultimately show ?thesis
     by force
 qed

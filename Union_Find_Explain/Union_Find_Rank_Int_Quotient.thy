@@ -133,19 +133,25 @@ lemma ufr_of_ufa_ufri_of_ufr_transfer[transfer_rule]:
   shows "(ufa_ufr_rel ===> pcr_ufri) ufr_of_ufa ufri_of_ufr"
   unfolding ufa_ufr_rel_def ufr_ufri_rel_def ufri.pcr_cr_eq
   by (intro rel_funI, transfer)
-    (auto simp: eq_ufr_ufr_of_ufa_ufa_of_ufr) 
+    (auto simp: eq_ufr_ufr_of_ufa_ufa_of_ufr)
 
-lemma Rep_ufa_ufa_of_ufr_transfer:
-  includes lifting_syntax
-  shows "(ufa_ufr_rel ===> pcr_ufa) Rep_ufa ufa_of_ufr"
-  unfolding ufa_ufr_rel_def
-  by (metis (mono_tags, lifting) cr_ufa_def rel_funI ufa.pcr_cr_eq)
+lemma ufa_of_ufri_eq_ufa_of_ufr_ufr_of_ufri:
+  "ufa_of_ufri ufri = ufa_of_ufr (ufr_of_ufri ufri)"
+  by (simp add: Rep_ufri_inverse ufa_of_ufr.rep_eq ufr_of_ufri.rep_eq)
 
-lemma id_eq_ufr_ufr_of_ufa_ufa_of_ufr:
-  includes lifting_syntax
-  shows "(eq_ufr ===> eq_ufr) id (\<lambda>ufr. ufr_of_ufa (ufa_of_ufr ufr))"
-  unfolding eq_ufr_def unfolding ufr_rank_def
-  by (intro rel_funI) (simp add: ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
+lemma ufa_of_ufri_transfer[transfer_rule]:
+  includes lifting_syntax ufa_ufr_transfer
+  notes [transfer_rule] = ufa_of_ufr_transfer
+  shows "(pcr_ufri ===> (=)) ufa_of_ufr ufa_of_ufri"
+  unfolding ufa_of_ufri_eq_ufa_of_ufr_ufr_of_ufri ufri.pcr_cr_eq ufr_ufri_rel_def
+  by (intro rel_funI, transfer)
+    (metis eq_ufr_def fst_conv ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq)
+
+lemma ufri_of_ufr_ufr_of_ufa_ufa_of_ufr[simp]:
+  includes ufa_ufr_transfer
+  notes ufa_of_ufr_transfer[transfer_rule]
+  shows "ufri_of_ufr (ufr_of_ufa (ufa_of_ufr ufr)) = ufri_of_ufr ufr"
+  by transfer simp
 
 lemma ufa_of_ufr_ufr_of_ufri_Abs_ufri_eq:
   assumes "ufri_invar ufri"

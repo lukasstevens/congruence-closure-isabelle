@@ -61,14 +61,14 @@ proof(induction rule: ufri_rep_of_induct)
 next
   case (rep i)
   then have "ufri_rep_of ufri i = i"
-    including ufa_ufr_transfer Union_Find_Rank_Int_Quotient.ufri.lifting
+    including ufa_ufr_transfer ufri.lifting
     using ufa_rep_of_if_refl_ufa_parent_of by (transfer, transfer)
   with rep show ?case
     by (subst ufri_imp_rep_of.simps) sep_auto
 next
   case (not_rep i)
   from not_rep.hyps have "ufri_rep_of ufri (ufri_parent_of ufri i) = ufri_rep_of ufri i"
-    including ufa_ufr_transfer Union_Find_Rank_Int_Quotient.ufri.lifting
+    including ufa_ufr_transfer ufri.lifting
     using ufa_rep_of_ufa_parent_of by (transfer, transfer)
   with not_rep show ?case
     by (subst ufri_imp_rep_of.simps) sep_auto

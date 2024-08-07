@@ -1,13 +1,11 @@
-chapter \<open>Union-Find Data-Structure with Explain Operation\<close>
-theory Explain_Definition
+theory Explain_Efficient
   imports 
     "HOL-Library.Sublist"
     "HOL-Library.Option_ord"
     "UFA_Tree"
+    "UFA_LCA"
     "Equality_Proof"
 begin
-
-subsection \<open>Definitions\<close>
 
 record ufe_ds =
   uf_ds :: ufa
@@ -76,75 +74,47 @@ lemma ufe_unions_Nil[simp]:
   "ufe_unions ufe_ds [] = ufe_ds"
   unfolding ufe_unions_def by simp
 
-definition ufa_lca where
-  "ufa_lca uf x y \<equiv>
-    last (longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y))"
-
-lemma ufa_lca_symmetric:
-  "ufa_lca uf x y = ufa_lca uf y x"
-proof -
-  have
-    "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y)
-    = longest_common_prefix (awalk_verts_from_rep uf y) (awalk_verts_from_rep uf x)"
-    by (simp add: longest_common_prefix_max_prefix longest_common_prefix_prefix1
-          longest_common_prefix_prefix2 prefix_order.eq_iff)
-  then show ?thesis
-    unfolding ufa_lca_def
-    by auto
-qed
-
-
-text \<open>Finds the newest edge on the path from x to y
-      (where y is nearer to the root than x).\<close>
 context
-  fixes ufe_ds :: "ufe_ds"
+  fixes ufe_ds :: ufe_ds
 begin
 
-function (domintros) find_newest_on_walk :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
-  "find_newest_on_walk y x =
+function (domintros) find_newest_on_path :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
+  "find_newest_on_path y x =
     (if y = x then None
     else 
       combine_options max 
         (au_ds ufe_ds x)
-        (find_newest_on_walk y (ufe_parent_of ufe_ds x)))"
+        (find_newest_on_path y (ufe_parent_of ufe_ds x)))"
   by pat_completeness auto
 
-lemma find_newest_on_walk_if_eq[simp]:
-  "find_newest_on_walk x x = None"
-  by (meson find_newest_on_walk.domintros find_newest_on_walk.psimps)
+lemma find_newest_on_path_if_eq[simp]:
+  "find_newest_on_path x x = None"
+  by (meson find_newest_on_path.domintros find_newest_on_path.psimps)
 
-end
+function (domintros) explain' :: "nat \<Rightarrow> nat \<Rightarrow> nat eq_prf" where
+  "explain' x y =
+    (if x = y then ReflP x
+    else 
+      let
+        lca = ufa_lca (uf_ds ufe_ds) x y;
+        newest_x = find_newest_on_path lca x;
+        newest_y = find_newest_on_path lca y
+      in
+        if newest_x \<ge> newest_y then
+          let (ax, bx) = unions ufe_ds ! the newest_x
+          in TransP
+            (TransP (explain' x ax) (AssmP (the newest_x)))
+            (explain' bx y)
+        else
+          let (ay, by) = unions ufe_ds ! the newest_y
+          in TransP
+            (TransP (explain' x by) (SymP (AssmP (the newest_y))))
+            (explain' ay y))"
+  by pat_completeness auto
 
-context
-  fixes ufe_init :: ufe_ds
-begin
-
-function explain :: "(nat \<times> nat) list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat eq_prf" where
-  "explain [] x _ = ReflP x"
-| "explain (us @ [(a, b)]) y z =
-    (let
-      ufe_ds = ufe_unions ufe_init us
-    in
-      (if ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds z then explain us y z
-      else if ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds y then
-        TransP (TransP (explain us y b) (SymP (AssmP (length us)))) (explain us a z)
-      else
-        TransP (TransP (explain us y a) (AssmP (length us))) (explain us b z))
-    )"
-  by auto (metis prod.exhaust rev_exhaust)
-termination by (relation "measure (\<lambda>(us, y, z). size us)") auto
-
-lemma explain_refl[simp]:
-  "explain us x x = ReflP x"
-proof(induction "size us" arbitrary: us)
-  case 0
-  then show ?case
-    by simp
-next
-  case (Suc l)
-  then show ?case
-    by (cases "(us, x, x)" rule: explain.cases) auto
-qed
+lemma explain'_refl[simp]:
+  "explain' x x = ReflP x"
+  using explain'.domintros explain'.psimps by fastforce
 
 end
 

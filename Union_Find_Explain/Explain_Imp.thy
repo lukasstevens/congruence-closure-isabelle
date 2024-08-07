@@ -1,6 +1,6 @@
 theory Explain_Imp
   imports
-    Explain_Correctness
+    Explain_Efficient_Correctness
     Union_Find_Rank_Int_Imp
     Dynamic_Array
 begin
@@ -190,10 +190,6 @@ partial_function (heap) ufri_imp_awalk_verts_from_rep_acc where
     else ufri_imp_awalk_verts_from_rep_acc ufri px (x # vs)
   }"
 
-lemma ufa_of_ufri_eq_ufa_of_ufr_ufr_of_ufri:
-  "ufa_of_ufri ufri = ufa_of_ufr (ufr_of_ufri ufri)"
-  by (simp add: Rep_ufri_inverse ufa_of_ufr.rep_eq ufr_of_ufri.rep_eq)
-
 lemma ufri_imp_awalk_verts_from_rep_acc_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufri_\<alpha> ufri)"
   shows
@@ -204,12 +200,13 @@ lemma ufri_imp_awalk_verts_from_rep_acc_rule[sep_heap_rules]:
 proof(induction arbitrary: vs rule: ufri_rep_of_induct)
   case "parametric"
   then show ?case
-    unfolding ufa_ufr_rel_def rel_fun_def by simp
+    unfolding ufa_ufr_rel_def rel_fun_def
+    by simp
 next
   case (rep i)
   moreover from this have "ufa_parent_of (ufa_of_ufri ufri) i = i"
-    unfolding ufa_of_ufri_eq_ufa_of_ufr_ufr_of_ufri
-    using ufr_parent_of_def ufri_parent_of.rep_eq by force
+    including ufa_ufr_transfer ufri.lifting
+    by transfer (simp add: ufr_parent_of_def)
   moreover from this have "awalk_verts_from_rep_dom (ufa_of_ufri ufri) i"
     using awalk_verts_from_rep.domintros by force
   ultimately show ?case
@@ -265,36 +262,35 @@ proof -
   from assms(1,2) have "x \<in> Field (ufri_\<alpha> ufri)" "y \<in> Field (ufri_\<alpha> ufri)"
     unfolding ufri_def by (transfer, transfer, simp)+
   moreover have "ufa_lca (ufa_of_ufri ufri) x y = ufa_lca (ufe_ds.uf_ds ufe_ds) x y"
-    unfolding ufri_def ufa_of_ufri_eq_ufa_of_ufr_ufr_of_ufri
-    using ufa_of_ufr.rep_eq ufr_of_ufa.rep_eq
-    by (metis Quotient_rep_abs Quotient_ufri_ufr eq_ufr_def fst_eqD)
+    unfolding ufri_def
+    by transfer simp
   ultimately show ?thesis
     using assms
     unfolding is_ufe_ds_def ufri_def by sep_auto
 qed
 
-partial_function (heap) find_newest_on_walk_acc_imp where
-  [code]: "find_newest_on_walk_acc_imp ufe_ds_imp y x acc =
+partial_function (heap) find_newest_on_path_acc_imp where
+  [code]: "find_newest_on_path_acc_imp ufe_ds_imp y x acc =
     (if y = x then return acc
     else do {
       au_x \<leftarrow> Array.nth (au_ds ufe_ds_imp) x;
       px \<leftarrow> ufri_imp_parent_of (uf_ds ufe_ds_imp) x;
-      find_newest_on_walk_acc_imp ufe_ds_imp y px (combine_options max au_x acc)
+      find_newest_on_path_acc_imp ufe_ds_imp y px (combine_options max au_x acc)
     })"
 
-lemma (in ufe_tree) find_newest_on_walk_acc_imp_rule[sep_heap_rules]:
+lemma (in ufe_tree) find_newest_on_path_acc_imp_rule[sep_heap_rules]:
   assumes "awalk z p y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      find_newest_on_walk_acc_imp ufe_ds_imp z y acc
+      find_newest_on_path_acc_imp ufe_ds_imp z y acc
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp *
-      \<up>(r = combine_options max acc (find_newest_on_walk ufe_ds z y))>"
+      \<up>(r = combine_options max acc (find_newest_on_path ufe_ds z y))>"
 proof -
-  note find_newest_on_walk_dom[OF assms]
+  note find_newest_on_path_dom[OF assms]
   moreover from assms have "y \<in> Field (ufa_\<alpha> (ufe_ds.uf_ds ufe_ds))"
     by blast
   ultimately show ?thesis
-  proof(induction arbitrary: p acc rule: find_newest_on_walk.pinduct)
+  proof(induction arbitrary: p acc rule: find_newest_on_path.pinduct)
     case (1 z y)
 
     moreover from 1 have "y \<in> Field (ufri_\<alpha> (ufri_of_ufr (ufr_of_ufa (ufe_ds.uf_ds ufe_ds))))"
@@ -313,21 +309,21 @@ proof -
 
     note [sep_heap_rules] = "1.IH"
     from "1.prems" "1.hyps" show ?case
-      by (subst find_newest_on_walk_acc_imp.simps)
-        (sep_auto simp: find_newest_on_walk.psimps combine_options_assoc combine_options_commute)
+      by (subst find_newest_on_path_acc_imp.simps)
+        (sep_auto simp: find_newest_on_path.psimps combine_options_assoc combine_options_commute)
   qed
 qed
 
-definition find_newest_on_walk_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option Heap" where
-  "find_newest_on_walk_imp ufe_ds_imp y x \<equiv> find_newest_on_walk_acc_imp ufe_ds_imp y x None"
+definition find_newest_on_path_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option Heap" where
+  "find_newest_on_path_imp ufe_ds_imp y x \<equiv> find_newest_on_path_acc_imp ufe_ds_imp y x None"
 
-lemma (in ufe_tree) find_newest_on_walk_imp_rule[sep_heap_rules]:
+lemma (in ufe_tree) find_newest_on_path_imp_rule[sep_heap_rules]:
   assumes "awalk z p y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      find_newest_on_walk_imp ufe_ds_imp z y
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = find_newest_on_walk ufe_ds z y)>"
-  using assms unfolding find_newest_on_walk_imp_def
+      find_newest_on_path_imp ufe_ds_imp z y
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = find_newest_on_path ufe_ds z y)>"
+  using assms unfolding find_newest_on_path_imp_def
   by sep_auto
 
 partial_function (heap) explain_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat eq_prf Heap" where
@@ -335,8 +331,8 @@ partial_function (heap) explain_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarro
     (if x = y then return (ReflP x)
     else do {
       lca \<leftarrow> ufri_imp_lca (uf_ds ufe_ds_imp) x y;
-      newest_x \<leftarrow> find_newest_on_walk_imp ufe_ds_imp lca x;
-      newest_y \<leftarrow> find_newest_on_walk_imp ufe_ds_imp lca y;
+      newest_x \<leftarrow> find_newest_on_path_imp ufe_ds_imp lca x;
+      newest_y \<leftarrow> find_newest_on_path_imp ufe_ds_imp lca y;
       if newest_x \<ge> newest_y then do {
         (ax, bx) \<leftarrow> Dynamic_Array.nth (unions ufe_ds_imp) (the newest_x);
         pxax \<leftarrow> explain_imp ufe_ds_imp x ax;
@@ -356,9 +352,11 @@ lemma (in ufe_invars) explain_imp_rule[sep_heap_rules]:
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
       explain_imp ufe_ds_imp x y
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = explain ufe_init (ufe_ds.unions ufe_ds) x y)>"
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp *
+    \<up>(r = explain (ufe_ds.uf_ds ufe_init) (ufe_ds.unions ufe_ds) x y)>"
+  unfolding explain_eq_explain'[OF assms]
   using assms
-proof(induction rule: explain_code_induct)
+proof(induction rule: explain'_induct)
   case (eq x)
   then show ?case
     by (subst explain_imp.simps) sep_auto
@@ -367,8 +365,8 @@ next
   then interpret ufe_tree where ufe_ds = ufe_ds and x = x
     by unfold_locales
   from newest_x have
-    "find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
-      find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
+    "find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
+      find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
     by order
   moreover from newest_x obtain px py where
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
@@ -376,10 +374,10 @@ next
     using lca_ufa_lca lca_reachableD reachable_awalk
     by (metis in_verts_if_rep_of_eq)
   moreover from this newest_x have
-    "the (find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x)
+    "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x)
       < length (ufe_ds.unions ufe_ds)"
-    using find_newest_on_walk_if_eq newest_on_walk_find_newest_on_walk newest_on_walk_lt_length_unions
-    by (metis less_option_None)
+    using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
+    by (metis less_option_None)     
   ultimately show ?case
     using newest_x.prems newest_x.hyps
     apply(subst explain_imp.simps)
@@ -387,15 +385,15 @@ next
      apply(rule newest_x.IH(1))
     apply(vcg)
      apply(rule newest_x.IH(2))
-    apply(sep_auto simp: explain_code)
+    apply(sep_auto simp: explain'.psimps[OF explain'_dom_if_ufe_rep_of_eq])
     done
 next
   case (newest_y x y ay "by")
   then interpret ufe_tree where ufe_ds = ufe_ds and x = x
     by unfold_locales
   from newest_y have
-    "\<not> find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
-      find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
+    "\<not> find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
+      find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
     by order
   moreover from newest_y obtain px py where
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
@@ -403,9 +401,9 @@ next
     using lca_ufa_lca lca_reachableD reachable_awalk
     by (metis in_verts_if_rep_of_eq)
   moreover from this newest_y have
-    "the (find_newest_on_walk ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y)
+    "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y)
       < length (ufe_ds.unions ufe_ds)"
-    using find_newest_on_walk_if_eq newest_on_walk_find_newest_on_walk newest_on_walk_lt_length_unions
+    using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
     by (metis less_option_None)
   ultimately show ?case
     using newest_y.prems newest_y.hyps
@@ -414,7 +412,7 @@ next
      apply(rule newest_y.IH(1))
     apply(vcg)
      apply(rule newest_y.IH(2))
-    apply(sep_auto simp: explain_code)
+    apply(sep_auto simp: explain'.psimps[OF explain'_dom_if_ufe_rep_of_eq])
     done
 qed
 
