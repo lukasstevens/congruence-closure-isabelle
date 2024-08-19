@@ -1,0 +1,334 @@
+\documentclass[
+  sigplan,
+  10pt,
+  anonymous,
+  review,
+  ]{acmart}
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
+
+\usepackage[british]{babel}
+
+\usepackage[capitalise]{cleveref}
+
+\usepackage{mathpartir}
+
+% Record brackets
+\usepackage{stmaryrd}
+
+\usepackage{xcolor}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\usepackage{enumitem}
+
+\usepackage{array}
+\usepackage{multirow}
+
+\usepackage{listings}
+\definecolor{isarblue}{HTML}{006699}
+\definecolor{isargreen}{HTML}{009966}
+\lstdefinelanguage{isabelle}{%
+    keywords=[1]{type_synonym,typedef,datatype,fun,function,abbreviation,definition,proof,lemma,theorem,corollary,inductive},
+    keywordstyle=[1]\bfseries\color{isarblue},
+    keywords=[2]{where,assumes,shows,and,fixes},
+    keywordstyle=[2]\bfseries\color{isargreen},
+    keywords=[3]{if,then,else,case,of,SOME,let,in,O},
+    keywordstyle=[3]\color{isarblue},
+}
+\lstset{%
+  language=isabelle,
+  escapeinside={&}{&},
+  columns=\lst@ifdisplaystyle{fullflexible}\else{fixed}\fi,,
+  extendedchars,
+  basewidth={0.5em,0.45em},
+  basicstyle=\ttfamily,
+  mathescape,
+}
+\makeatletter
+\lst@AddToHook{OnEmptyLine}{\vspace{-0.4\baselineskip}}
+\makeatother
+\newcommand{\lstinlinew}[2][]{\lstinline[#1]{#2}}
+% This is a hack to allow escaping inside lstinline (https://tex.stackexchange.com/questions/43526/escaping-in-lstinline)
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\lsthk@TextStyle}{\let\lst@DefEsc\@empty}{}{}{\errmessage{failed to patch}}
+\makeatother
+
+\usepackage{calc}
+
+\newcommand{\textover}[3][l]{%
+ % #1 is the alignment, default l
+ % #2 is the text to be printed
+ % #3 is the text for setting the width
+ \makebox[\widthof{#3}][#1]{#2}%
+}
+
+\hyphenation{Isa-belle}
+
+% For arXiv: LuaLatex on Arxiv: https://tex.stackexchange.com/questions/372154/lualatex-how-to-produce-pdf-acceptable-by-arxiv 
+%\hypersetup{%
+%  pdfcreator = {},
+%  pdfproducer = {}
+%}
+%\pdfvariable suppressoptionalinfo \numexpr 1+2+4+8+16+32+64+128+256+512 \relax
+
+% For arXiv: Remove copyright information
+% \setcopyright{none}
+% \renewcommand\footnotetextcopyrightpermission[1]{}
+
+
+\usepackage{todonotes}
+
+% Autoref names
+\renewcommand{\sectionautorefname}{Section}
+\renewcommand{\subsectionautorefname}{Section}
+
+% Notation
+\newcommand{\TransP}{\bigtriangledown}
+
+\begin{document}
+
+% For arXiv: Remove conference/author in the header
+% \pagestyle{plain}
+
+\setcounter{tocdepth}{1}
+
+\title{Simplified and Verified: A Fresh Look at a Proof-Producing Union-Find Algorithm}
+\author{Lukas Stevens}
+\orcid{0000-0003-0222-6858}
+\affiliation{%
+  \institution{Technical University of Munich}
+  \department{Department of Informatics}
+  \streetaddress{Boltzmannstr. 3}
+  \city{Garching}
+  \postcode{85748}
+  \country{Germany}
+}
+\email{lukas.stevens@in.tum.de}
+
+\begin{abstract}
+  TODO
+\end{abstract}
+
+\maketitle
+
+\listoftodos{}
+
+\section{Introduction}
+\begin{itemize}
+  \item Based on \cite{congcl_proofs}
+\end{itemize}
+\subsection{Contributions}
+
+\subsection{Related Work}
+\begin{itemize}
+  \item Congruence closure in Coq by Corbineau
+\end{itemize}
+
+
+\subsection{Notation}
+Isabelle/HOL~\cite{isabelle} conforms to everyday mathematical notation for the most part.
+We establish notation and in particular some essential data types together with their primitive operations that are specific to Isabelle/HOL.
+
+We write \lstinline!t :: 'a! to specify that the term \lstinline!t! has the type \lstinline!'a! and \lstinline!'a $\Rightarrow$ 'b! for the space of total functions from type \lstinline!'a! to type \lstinline!'b!.
+
+Sets with elements of type \lstinline!'a! have the type \lstinline!'a set!.
+The cardinality of a set \lstinline!A! is denoted by \lstinline!card A! and the image of \lstinline!A! under \lstinline!f! by \lstinline!f ` A!.
+
+We use \lstinline!'a list! to describe the type of lists, which are constructed using the empty list \lstinline![]! constructor or the infix cons constructor \lstinline!#!, and are appended with the infix operator \lstinline!@!.
+The function \lstinline!set! converts a list into a set.
+\todo[inline]{Indexing operator}
+\todo[inline]{Relation type synonym, Field of a relation}
+
+We remark that $\longleftrightarrow$ is equivalent to \lstinline!$=$! on the type of Booleans \lstinline!bool! and \lstinline!$\equiv$! is definitional equality of the meta-logic of Isabelle/HOL, which is called Isabelle/Pure.
+Meta-implication is denoted by \lstinline!$\Longrightarrow$! and a chain of implications
+\begin{lstlisting}
+  A$_\text{1}$ $\Longrightarrow$ $\cdots$ $\Longrightarrow$ A$_\text{k}$ $\Longrightarrow$ C
+\end{lstlisting}
+can be abbreviated by 
+\begin{lstlisting}
+  $\llbracket$ A$_\text{1}$;$\,\ldots\,$;A$_\text{k}$ $\rrbracket$ $\Longrightarrow$ C.
+\end{lstlisting}
+
+\section{Basic Union-Find}
+\subsection{Background}
+Given a set of $n$ elements $A = \{a_1, \ldots, a_n\}$, the union-find data structure keeps track of a partition of $A$ into disjoint sets $A_1, \ldots, A_k$, i.e.\ $A = A_1 \uplus \cdots \uplus A_k$.
+
+We initialise the data structure by partitioning $A$ into singleton sets of elements,
+so we have that $A = \{a_1\} \uplus \cdots \uplus \{a_n\}$.
+Those sets are merged by subsequent \lstinline!union! operations where \lstinline!union $a_i$ $a_j$! merges the set containing $a_i$ with the one that contains $a_j$.
+Each set in the partition contains one particular element that serves as its representative.
+We will denote the representative of an element $a$ in the union-find data structure $l$ as \lstinline!rep_of $l$ $a$!.
+Accordingly, two elements have the same representative exactly when they belong to the same set in the partition.
+For any element $a_i$, the \lstinline!find! operation just returns its representative \lstinline!rep_of $l$ $a_i$!.
+
+One application of this algorithm is to maintain the equivalence closure of equations, which is the partial equivalence relation formed by those equations.
+To this end, we initialize the union-find data structure with $n$ elements for a given set of variables $v_1, \ldots, v_n$ and perform a \lstinline!union! between $v_i$ and $v_j$ for each equation $v_i = v_j$.
+This results in a partition of the variables into equivalence classes.
+
+According to \citeauthor{unionfind_tarjan}~\cite{unionfind_tarjan}, this data structure can be implemented as a forest of rooted trees where each tree represents an equivalence class.
+The edges of the trees are directed towards their root, which is the representative of the corresponding equivalence class.
+To keep this invariant, we initialise the forest with $n$ nodes but without any edges and for every \lstinline!union! of $a_i$ and $a_j$ we add a directed edge from \lstinline!rep_of $l$ $a_i$! to \lstinline!rep_of $l$ $a_j$! to the forest.
+
+We encode such a forest as a list $l$ of length $n$, where at each index $i$ of the list, we save the parent of the element $i$.
+Therefore, we denote the parent of an element $a$ with \lstinline|$l$ ! $a$|.
+If $a$ is a root and thus does not have a parent, then the list contains the element $a$ itself at the index $a$, i.e., \lstinline|$l$ ! $a$ = $a$|.
+
+\todo[inline]{Mention optimisations?}
+
+\subsection{In Isabelle/HOL}
+The union-find algorithm is formalised in Isabelle/HOL by \citeauthor{unionfind_isabelle}~\cite{unionfind_isabelle}.
+The code can be found in an entry~\cite{union_find_afp} of the \emph{Archive of Formal Proofs} (AFP).\footnote{The code is in the theory file \texttt{Examples/Union\_Find.thy}.}
+Later, \citeauthor{union_find_imp_hol}~\cite{union_find_imp_hol} also formalised the running time.\todo{Check citations}
+
+The formalisation defines a function \lstinline|rep_of|, which, as described in the previous section, follows the parent pointers until we arrive the root, where the parent pointer is self-referential.
+\begin{lstlisting}[columns=fullflexible]
+function rep_of :: nat list $\Rightarrow$ nat $\Rightarrow$ nat where
+rep_of l a =
+  if l ! a = a then a else rep_of l (l ! a)
+\end{lstlisting}
+Looking closely at this definition, we see that this function is only well-defined for some inputs \lstinline|l| and \lstinline|a|:
+for every element \lstinline|a < length l|, its parent must be in the list, i.e.\ we must have \lstinline|l ! a < length l|, and the parent pointers must be cycle-free in order for the function to terminate.
+Functions in Isabelle/HOL must be total, so the \lstinline|function| command introduces a constant
+\begin{lstlisting}
+rep_of_dom :: (nat list $\times$ nat) $\Rightarrow$ bool  
+\end{lstlisting}
+that characterises the inputs for which \lstinline|rep_of| terminates.
+Then, it adds \lstinline|rep_of_dom (l, a)| as a premise to the defining equation of \lstinline|rep_of|. 
+The intuition above is cast into a predicate \lstinline|ufa_invar| that defines such well-formed lists \lstinline|l|.
+\begin{lstlisting}
+ufa_invar l = $\forall$a < length l. rep_of_dom (l, a)
+              $\land$ l ! a < length l
+\end{lstlisting}
+
+Building on this formalisation, we encapsulate this union-find data structure into an abstract data type (ADT) \lstinline|ufa| by defining
+\begin{lstlisting}
+typedef ufa = {uf. ufa_invar uf}
+\end{lstlisting}
+By lifting operations on the underlying list to the ADT using Isabelle's lifting infrastructure~\cite{lifting_transfer}, we obtain the operations
+\begin{itemize}
+  \item \lstinline!ufa_$\alpha$ :: ufa $\Rightarrow$ nat rel!,
+  \item \lstinline!ufa_rep_of :: ufa $\Rightarrow$ nat $\Rightarrow$ nat!, and
+  \item \lstinline!ufa_union :: ufa $\Rightarrow$ nat $\Rightarrow$ nat $\Rightarrow$ ufa!,
+\end{itemize}
+where \lstinline!nat rel = (nat $\times$ nat) set!.
+The intended meaning of these operations is the following:
+\begin{itemize}
+  \item \lstinline!ufa_$\alpha$ uf! is the partial equivalence relation represented by \lstinline!uf!,
+  \item \lstinline!ufa_rep_of uf x! is the representative of the equivalence class that \lstinline!x! belongs to, and
+  \item \lstinline!ufa_union uf x y! returns a union-find data structure where the equivalence classes of \lstinline!x! and \lstinline!y! are merged.
+    This is implemented by updating the underlying list at index \lstinline!rep_of l x! with \lstinline|rep_of l y|.
+\end{itemize}
+More rigorously, the above operations fulfil the following properties:
+\begin{lstlisting}
+lemma ufa_rep_of uf x = ufa_rep_of uf y $\longleftrightarrow$
+  (x, y) $\in$ ufa_$\alpha$ uf
+
+lemma ufa_$\alpha$ (ufa_union uf x y) =
+  per_union (ufa_$\alpha$ uf) x y
+\end{lstlisting}
+where \lstinline!per_union R x y! is defined as the equivalence relation that results from merging the respective equivalence classes in the relation \lstinline|R| that \lstinline!x! and \lstinline!y! belong to.
+
+\section{Simple Certifying Union-Find Algorithm}
+\begin{figure}
+  \begin{gather*}
+    \inferrule*[right=Assm]{\hbox{\lstinline|i < length us|} \\ \hbox{\lstinline|us ! i = (x, y)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ AssmP i : (x, y)|}} \\[0.5em]
+    \inferrule*[right=Refl]{ }{\hbox{\lstinline|us $\ \vdash_=\ $ ReflP x : (x, x)|}} \\[0.5em]
+    \inferrule*[right=Sym]{\hbox{\lstinline|us $\ \vdash_=\ $ p : (x, y)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ SymP p : (y, x)|}} \\[0.5em]
+    \inferrule*[right=Trans]{\hbox{\lstinline|us $\ \vdash_=\ $ p1 : (x, y)|} \\ \hbox{\lstinline|us $\ \vdash_=\ $ p2 (y, z)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ p1 $\ \TransP\ $ p2|}}
+  \end{gather*}
+  \caption{The data type \lstinline|eq_prf| of certificates and its corresponding system of inference rules $\vdash_=$.\label{fig:eq_prf}}
+\end{figure}
+Building on the union-find ADT from the previous section, we now develop a simple \lstinline|explain| operation that,
+for a given list of equations \lstinline|us|, takes two elements \lstinline|x| and \lstinline|y| and produces a certificate that \lstinline|x = y| modulo \lstinline|us|.
+The certificate is given in terms of a data type \lstinline|eq_prf| with its corresponding system $\vdash_=$ of inference rules as seen in \autoref{fig:eq_prf}.
+As expected, we have inference rules that utilise the reflexivity, symmetry, and transitivity of equality as well as an assumption rule.
+To improve readability, we use the infix operator $\bigtriangledown$ to denote the proof term for transitivity.
+
+\begin{figure*}
+  \centering
+  \begin{lstlisting}
+function explain :: (nat $\times$ nat) list $\Rightarrow$ nat $\Rightarrow$ nat $\Rightarrow$ nat eq_prf where
+  explain [] x _ = ReflP x
+| explain (us @ [(a, b)]) x y =
+    let
+      uf = ufa_unions uf_init us
+      a_b_P = AssmP (length us)
+    in
+      if ufa_rep_of uf x = ufa_rep_of uf y then explain us x y
+      else if ufa_rep_of uf x = ufa_rep_of uf a then
+        explain us x a $\TransP$ a_b_P $\TransP$ explain us y b
+      else
+        explain us x b $\TransP$ SymP a_b_P $\TransP$ explain us a y
+  \end{lstlisting}
+  \caption{A simple implementation of the \lstinline|explain| operation.\label{fig:explain}}
+\end{figure*}
+Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with the union-find ADT \lstinline|uf| that results from applying \lstinline|us| as unions to an initial union-find data structure \lstinline|uf_init|.
+Accordingly, we define
+\begin{lstlisting}
+definition ufa_unions =
+  foldl ($\lambda$uf (x, y). ufa_union uf x y)
+\end{lstlisting}
+where we have \lstinline|uf = ufa_unions uf_init us| in terms of the constants above.
+At last, we are ready to implement the \lstinline|explain| operation as depicted in \autoref{fig:explain}.\todo{explain with Cons instead of snoc}
+The algorithm works with the assumption that the given elements \lstinline|x| and \lstinline|y| are equal modulo \lstinline|us|.
+Furthermore, we assume that each element of the initial data structure \lstinline|uf_init| is equal to itself, i.e.\ it holds that \lstinline|ufa_$\alpha$ uf_init $\subseteq$ Id|.
+
+If the list of unions is empty, then \lstinline|x| and \lstinline|y| must actually be equal which we certify with \lstinline|ReflP x|.
+
+Otherwise, the list of unions must be equal to \lstinline|us @ [(a, b)]| for some \lstinline|us|, \lstinline|a|, and \lstinline|b|.
+We distinguish between two cases:
+\begin{itemize}
+  \item The elements \lstinline|x| and \lstinline|y| are already equal modulo \lstinline|us|, so we proceed recursively with \lstinline|us|.
+  \item In the case that the equation \lstinline|a = b| is necessary for \lstinline|x = y| to hold, we either have \lstinline|x = a| and \lstinline|b = y| or \lstinline|x = b| and \lstinline|a = y| modulo \lstinline|us|.
+    Assuming that the former holds --- the other case is analogous --- we recursively construct the certificates for \lstinline|x = a| and \lstinline|b = y|.
+    Together with the fact that \lstinline|a = b|, which we prove by assumption, we obtain \lstinline|x = y| by transitivity.
+\end{itemize}
+
+\begin{itemize}
+  \item Soundness of the proof system
+  \item Completeness of the algorithm
+\end{itemize}
+
+\begin{itemize}
+  \item Inspired by formalisation by Lammich~\cite{unionfind_isabelle}, in AFP~\cite{union_find_afp}
+  \item Refinements with ranks and int ranks
+\end{itemize}
+
+\subsection{Data Structure to enable explain}
+
+\subsection{Union}
+
+\subsection{Explain}
+
+\subsection{Soundness and Completeness}
+
+\section{Deriving an Efficient Implementation}
+\begin{itemize}
+  \item Refinements with ranks and ints
+  \item Helper Functions
+  \item Locales
+  \item Induction principle and code equation
+\end{itemize}
+
+\section{Refinement to Imperative HOL}
+\begin{itemize}
+  \item Refining ufri
+  \item Dynamic Array inspired by Auto2 Imperative HOL
+  \item Refining explain operations
+\end{itemize}
+
+\section{Tactic}
+Proof of concept tactic
+
+\section{Conclusion and Future Work}
+
+\begin{acks}
+  TODO
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{sources}
+
+\end{document}
