@@ -29,7 +29,7 @@ function (domintros) awalk_verts_from_rep where
     (let
       px = ufa_parent_of uf x
     in
-      (if px = x then [] else awalk_verts_from_rep px) @ [x])"
+      if px = x then [] else awalk_verts_from_rep px) @ [x]"
   by auto
 
 end

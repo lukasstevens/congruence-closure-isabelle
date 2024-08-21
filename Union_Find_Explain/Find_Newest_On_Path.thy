@@ -173,6 +173,7 @@ next
   with False newest_on_path_lt_length_unions show ?thesis
     by (cases "find_newest_on_path ufe_ds y z") auto
 qed
+
 lemma ufe_rep_of_ufe_union_eq_cases:
   assumes "eff_union (uf_ds ufe_ds) a b"
   assumes "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"

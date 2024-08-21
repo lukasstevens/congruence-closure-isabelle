@@ -2,6 +2,43 @@ theory Equality_Proof
   imports Main
 begin
 
+definition "symcl r \<equiv> r \<union> r\<inverse>"
+
+definition "equivcl r \<equiv> (symcl r)\<^sup>*"
+
+lemma symcl_mono:
+  assumes "r \<subseteq> s"
+  shows "symcl r \<subseteq> symcl s"
+  using assms unfolding symcl_def by blast
+
+lemma equivcl_mono:
+  assumes "r \<subseteq> s"
+  shows "equivcl r \<subseteq> equivcl s"
+  using assms rtrancl_mono symcl_mono
+  unfolding equivcl_def by blast
+
+lemma symcl_insert:
+  "symcl (insert p r) = insert (snd p, fst p) (insert p (symcl r))"
+  unfolding symcl_def by auto
+
+lemma Field_symcl[simp]:
+  "Field (symcl r) = Field r"
+  unfolding symcl_def by simp
+
+lemma Field_trancl[simp]:
+  "Field (trancl r) = Field r"
+  by (simp add: Field_def)
+
+lemma in_Field_if_in_equivcl:
+  assumes "(x, y) \<in> equivcl r" "x \<noteq> y"
+  shows "x \<in> Field r" "y \<in> Field r"
+  using assms unfolding equivcl_def
+  by (fastforce dest: FieldI1 FieldI2 simp: rtrancl_eq_or_trancl)+
+
+lemma refl_in_equivcl[simp, intro!]:
+  "(x, x) \<in> equivcl r"
+  unfolding equivcl_def by simp
+
 datatype 'a eq_prf = AssmP nat | ReflP 'a | TransP "'a eq_prf" "'a eq_prf" | SymP "'a eq_prf"
 
 inductive proves_eq :: "('a \<times> 'a) list \<Rightarrow> 'a eq_prf \<Rightarrow> ('a \<times> 'a) \<Rightarrow> bool" ("_ \<turnstile>\<^sub>= _ : _" [60,0,60] 60) where
@@ -33,9 +70,9 @@ next
 qed
 
 lemma proves_eq_complete:
-  assumes "(x, y) \<in> (set as \<union> (set as)\<inverse>)\<^sup>*"
+  assumes "(x, y) \<in> equivcl (set as)"
   shows "\<exists>p. as \<turnstile>\<^sub>= p : (x, y)"
-  using assms
+  using assms unfolding equivcl_def
 proof(induction rule: rtrancl_induct)
   case base
   then show ?case
@@ -52,7 +89,7 @@ next
   next
     case False
     with step have "(z, y) \<in> set as"
-      by simp
+      unfolding symcl_def by simp
     with step obtain i where "as \<turnstile>\<^sub>= AssmP i : (z, y)"
       using proves_eq.assm in_set_conv_nth by metis
     from proves_eq.trans[OF _ proves_eq.sym[OF this]] step show ?thesis
@@ -62,16 +99,17 @@ qed
 
 lemma proves_eq_sound:
   assumes "as \<turnstile>\<^sub>= p : (x, y)"
-  shows "(x, y) \<in> (set as \<union> (set as)\<inverse>)\<^sup>*"
+  shows "(x, y) \<in> equivcl (set as)"
   using assms
 proof(induction rule: proves_eq.induct)
   case (assm i as x y)
   then show ?case
-    using nth_mem by fastforce
+    using nth_mem unfolding equivcl_def symcl_def by fastforce
 next
   case (sym as p x y)
   then show ?case
+    unfolding equivcl_def symcl_def
     by (simp add: Un_commute converse_Un rtrancl_converseD)
-qed auto
+qed (auto simp: equivcl_def symcl_def)
 
 end

@@ -42,7 +42,6 @@ proof -
       by force
   next
     case not_lca
-    moreover
     from not_lca px py have "px \<noteq> []" "py \<noteq> []"
       using awalk_empty_ends px by blast+
     from not_lca px py obtain ix iy where
@@ -387,7 +386,7 @@ lemma explain_eq_explain':
   assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   shows
     "explain (uf_ds ufe_init) (unions ufe_ds) x y = explain' ufe_ds x y"
-  using assms
+  using assms                                                 
 proof(induction arbitrary: x y rule: ufe_ds_induct)
   case ufe_init
   then have "x = y"
