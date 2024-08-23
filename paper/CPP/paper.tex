@@ -31,7 +31,7 @@
 \lstdefinelanguage{isabelle}{%
     keywords=[1]{type_synonym,typedef,datatype,fun,function,abbreviation,definition,proof,lemma,theorem,corollary,inductive},
     keywordstyle=[1]\bfseries\color{isarblue},
-    keywords=[2]{where,assumes,shows,and,fixes},
+    keywords=[2]{where,assumes,shows,and,fixes,defines},
     keywordstyle=[2]\bfseries\color{isargreen},
     keywords=[3]{if,then,else,case,of,SOME,let,in,O},
     keywordstyle=[3]\color{isarblue},
@@ -220,7 +220,7 @@ The intended meaning of these operations is the following:
   \item \lstinline!ufa_union uf x y! returns a union-find data structure where the equivalence classes of \lstinline!x! and \lstinline!y! are merged.
     This is implemented by updating the underlying list at index \lstinline!rep_of l x! with \lstinline|rep_of l y|.
 \end{itemize}
-More rigorously, the above operations fulfil the following properties:
+More rigorously, the above operations fulfil the following properties:\todo{Spacing between lemmas,defs}
 \begin{lstlisting}
 lemma ufa_rep_of uf x = ufa_rep_of uf y $\longleftrightarrow$
   (x, y) $\in$ ufa_$\alpha$ uf
@@ -228,7 +228,18 @@ lemma ufa_rep_of uf x = ufa_rep_of uf y $\longleftrightarrow$
 lemma ufa_$\alpha$ (ufa_union uf x y) =
   per_union (ufa_$\alpha$ uf) x y
 \end{lstlisting}
-where \lstinline!per_union R x y! is defined as the equivalence relation that results from merging the respective equivalence classes in the relation \lstinline|R| that \lstinline!x! and \lstinline!y! belong to.
+where \lstinline!per_union R x y!\todo{Definition with \lstinline|trancl|?} is defined as the equivalence relation that results from merging the respective equivalence classes in the relation \lstinline|R| that \lstinline!x! and \lstinline!y! belong to.
+
+But what happens if \lstinline!x! or \lstinline!y! is not an element of the partial equivalence relation \lstinline|R|?\todo{Define element of per.}
+In that case, the equivalence relation is unchanged, which means that \lstinline|per_union R x y = R|.
+This, however, can be seen as a misuse of the union-find data structure, since we initialise it with a fixed set of elements \lstinline|A| and expect the user to only work with these elements.
+Therefore, we introduce the following definitions that characterise valid union(s) with regard to the initial set \lstinline|A|.
+\begin{lstlisting}
+definition valid_union uf a b =
+  a $\in$ Field (ufa_$\alpha$ uf) $\land$ b $\in$ Field (ufa_$\alpha$ uf)
+definition valid_unions uf us =
+  $\forall$(x, y) $\in$ set us. valid_union uf x y
+\end{lstlisting}
 
 \section{Simple Certifying Union-Find Algorithm}
 \begin{figure}
@@ -236,7 +247,7 @@ where \lstinline!per_union R x y! is defined as the equivalence relation that re
     \inferrule*[right=Assm]{\hbox{\lstinline|i < length us|} \\ \hbox{\lstinline|us ! i = (x, y)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ AssmP i : (x, y)|}} \\[0.5em]
     \inferrule*[right=Refl]{ }{\hbox{\lstinline|us $\ \vdash_=\ $ ReflP x : (x, x)|}} \\[0.5em]
     \inferrule*[right=Sym]{\hbox{\lstinline|us $\ \vdash_=\ $ p : (x, y)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ SymP p : (y, x)|}} \\[0.5em]
-    \inferrule*[right=Trans]{\hbox{\lstinline|us $\ \vdash_=\ $ p1 : (x, y)|} \\ \hbox{\lstinline|us $\ \vdash_=\ $ p2 (y, z)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ p1 $\ \TransP\ $ p2|}}
+    \inferrule*[right=Trans]{\hbox{\lstinline|us $\ \vdash_=\ $ p1 : (x, y)|} \\ \hbox{\lstinline|us $\ \vdash_=\ $ p2 (y, z)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ p1 $\ \TransP\ $ p2 : (x, z)|}}
   \end{gather*}
   \caption{The data type \lstinline|eq_prf| of certificates and its corresponding system of inference rules $\vdash_=$.\label{fig:eq_prf}}
 \end{figure}
@@ -246,34 +257,60 @@ The certificate is given in terms of a data type \lstinline|eq_prf| with its cor
 As expected, we have inference rules that utilise the reflexivity, symmetry, and transitivity of equality as well as an assumption rule.
 To improve readability, we use the infix operator $\bigtriangledown$ to denote the proof term for transitivity.
 
+We remark that one can not prove disequality with this proof system.
+In that sense, we are working with an open-world assumption. 
+
+We prove that $\vdash_=$ is sound and complete with respect to the equivalence relation induced by \lstinline|us|, i.e.\ the equivalence closure of \lstinline|us|.
+In Isabelle, we define\todo{Introduce inverse and rtrancl?}
+\begin{lstlisting}
+definition symcl r = r $\cup$ r$^{-1}$
+definition equivcl r = (symcl r)$^*$
+\end{lstlisting}
+and prove
+\begin{lstlisting}
+lemma $\vdash_=$_sound:
+assumes as $\vdash_=$ p : (x, y)
+shows (x, y) $\in$ equivcl (set as)
+
+lemma $\vdash_=$_complete:
+assumes (x, y) $\in$ equivcl (set as)
+shows $\exists$p. as $\vdash_=$ p : (x, y)
+\end{lstlisting}
+
 \begin{figure*}
   \centering
   \begin{lstlisting}
 function explain :: (nat $\times$ nat) list $\Rightarrow$ nat $\Rightarrow$ nat $\Rightarrow$ nat eq_prf where
   explain [] x _ = ReflP x
 | explain (us @ [(a, b)]) x y =
-    let
-      uf = ufa_unions uf_init us
-      a_b_P = AssmP (length us)
-    in
-      if ufa_rep_of uf x = ufa_rep_of uf y then explain us x y
-      else if ufa_rep_of uf x = ufa_rep_of uf a then
-        explain us x a $\TransP$ a_b_P $\TransP$ explain us y b
-      else
-        explain us x b $\TransP$ SymP a_b_P $\TransP$ explain us a y
+    let uf = ufa_unions uf_init us; a_b_P = AssmP (length us)
+    in if ufa_rep_of uf x = ufa_rep_of uf y then explain us x y
+      else if ufa_rep_of uf x = ufa_rep_of uf a then explain us x a $\TransP$ a_b_P $\TransP$ explain us y b
+      else explain us x b $\TransP$ SymP a_b_P $\TransP$ explain us a y
+
+definition explain_partial us x y =
+  if (x, y) $\in$ equivcl (set us) then Some (explain us x y) else None
   \end{lstlisting}
-  \caption{A simple implementation of the \lstinline|explain| operation.\label{fig:explain}}
+  \caption{A simple implementation of the \lstinline|explain| operation. It operates on an arbitrary initial union-find data structure \lstinline|uf_init|.\label{fig:explain}}
 \end{figure*}
-Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with the union-find ADT \lstinline|uf| that results from applying \lstinline|us| as unions to an initial union-find data structure \lstinline|uf_init|.
+Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with an instance \lstinline|uf| of the union-find ADT that results from applying \lstinline|us| as unions to an initial union-find data structure \lstinline|uf_init|.
 Accordingly, we define
 \begin{lstlisting}
 definition ufa_unions =
   foldl ($\lambda$uf (x, y). ufa_union uf x y)
 \end{lstlisting}
-where we have \lstinline|uf = ufa_unions uf_init us| in terms of the constants above.
+so we have \lstinline|uf = ufa_unions uf_init us| in terms of the constants above.
+
 At last, we are ready to implement the \lstinline|explain| operation as depicted in \autoref{fig:explain}.\todo{explain with Cons instead of snoc}
 The algorithm works with the assumption that the given elements \lstinline|x| and \lstinline|y| are equal modulo \lstinline|us|.
-Furthermore, we assume that each element of the initial data structure \lstinline|uf_init| is equal to itself, i.e.\ it holds that \lstinline|ufa_$\alpha$ uf_init $\subseteq$ Id|.
+Furthermore, we assume that each element of the initial data structure \lstinline|uf_init| is equal to itself
+and that \lstinline|us| are valid unions with respect to \lstinline|uf_init|.
+In formulae, we assume
+\begin{itemize}
+  \item \lstinline|ufa_$\alpha$ uf_init $\subseteq$ Id|, and
+  \item \lstinline|valid_unions uf_init us|
+\end{itemize}
+in what follows.
 
 If the list of unions is empty, then \lstinline|x| and \lstinline|y| must actually be equal which we certify with \lstinline|ReflP x|.
 
@@ -282,14 +319,31 @@ We distinguish between two cases:
 \begin{itemize}
   \item The elements \lstinline|x| and \lstinline|y| are already equal modulo \lstinline|us|, so we proceed recursively with \lstinline|us|.
   \item In the case that the equation \lstinline|a = b| is necessary for \lstinline|x = y| to hold, we either have \lstinline|x = a| and \lstinline|b = y| or \lstinline|x = b| and \lstinline|a = y| modulo \lstinline|us|.
-    Assuming that the former holds --- the other case is analogous --- we recursively construct the certificates for \lstinline|x = a| and \lstinline|b = y|.
+    Assuming that the former holds --- the other case is similar --- we recursively construct the certificates for \lstinline|x = a| and \lstinline|b = y|.
     Together with the fact that \lstinline|a = b|, which we prove by assumption, we obtain \lstinline|x = y| by transitivity.
 \end{itemize}
 
-\begin{itemize}
-  \item Soundness of the proof system
-  \item Completeness of the algorithm
-\end{itemize}
+We condense the above intuition into the completeness theorem below.
+\begin{lstlisting}
+theorem explain_complete:
+assumes (x, y) $\in$ equivcl (set us)
+shows us $\vdash_=$ explain uf_init us x y : (x, y)
+\end{lstlisting}
+
+The \lstinline|explain| function is not sound, though.
+This is because it always returns a certificate, even if \lstinline|x| and \lstinline|y| are not equal modulo \lstinline|us|.
+To account for this case, we wrap \lstinline|explain| into a partial function \lstinline|explain_partial| (cf.\ \autoref{fig:explain}) that fails if \lstinline|x = y| is not provable.
+Soundness and completeness can then be lifted from the soundness of $\vdash_=$ and the completeness of \lstinline|explain|, respectively.
+At first glance, it might seem vacuous to define \lstinline|explain_partial| using \lstinline|equivcl|;
+however, \lstinline|equivcl| can actually be implemented using union-find operations as the following lemma demonstrated.
+\begin{lstlisting}
+lemma
+defines uf = ufa_unions uf_init us
+shows (x, y) $\in$ equivcl (set us) $\leftrightarrow$ x = y $\lor$
+  x $\in$ Field (ufa_$\alpha$ uf) $\land$ y $\in$ Field (ufa_$\alpha$ uf) $\land$
+  ufa_rep_of uf x = ufa_rep_of uf y
+\end{lstlisting}
+\todo[inline]{Improve explanation above? Segue?}
 
 \begin{itemize}
   \item Inspired by formalisation by Lammich~\cite{unionfind_isabelle}, in AFP~\cite{union_find_afp}
