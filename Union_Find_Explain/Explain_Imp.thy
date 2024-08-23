@@ -355,8 +355,8 @@ lemma (in ufe_invars) explain_imp_rule[sep_heap_rules]:
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp *
     \<up>(r = explain (ufe_ds.uf_ds ufe_init) (ufe_ds.unions ufe_ds) x y)>"
   unfolding explain_eq_explain'[OF assms]
-  using assms
-proof(induction rule: explain'_induct)
+  using explain'_dom_if_ufe_rep_of_eq[OF assms(1-3)] assms
+proof(induction rule: explain'_pinduct)
   case (eq x)
   then show ?case
     by (subst explain_imp.simps) sep_auto
@@ -364,11 +364,7 @@ next
   case (newest_x x y ax bx)
   then interpret ufe_tree where ufe_ds = ufe_ds and x = x
     by unfold_locales
-  from newest_x have
-    "find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
-      find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
-    by order
-  moreover from newest_x obtain px py where
+  from newest_x obtain px py where
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
@@ -377,7 +373,7 @@ next
     "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x)
       < length (ufe_ds.unions ufe_ds)"
     using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
-    by (metis less_option_None)     
+    by (metis less_eq_option_None_is_None)
   ultimately show ?case
     using newest_x.prems newest_x.hyps
     apply(subst explain_imp.simps)
@@ -391,11 +387,7 @@ next
   case (newest_y x y ay "by")
   then interpret ufe_tree where ufe_ds = ufe_ds and x = x
     by unfold_locales
-  from newest_y have
-    "\<not> find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y \<le>
-      find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x"
-    by order
-  moreover from newest_y obtain px py where
+  from newest_y obtain px py where
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
     "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
@@ -404,7 +396,7 @@ next
     "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y)
       < length (ufe_ds.unions ufe_ds)"
     using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
-    by (metis less_option_None)
+    by (metis less_eq_option_None)
   ultimately show ?case
     using newest_y.prems newest_y.hyps
     apply(subst explain_imp.simps)

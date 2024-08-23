@@ -26,6 +26,9 @@ definition "ufe_unions \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union ufe_ds 
 
 abbreviation "ufe_rep_of ufe_ds x \<equiv> ufa_rep_of (uf_ds ufe_ds) x"
 abbreviation "ufe_parent_of ufe_ds x \<equiv> ufa_parent_of (uf_ds ufe_ds) x"
+abbreviation "ufe_\<alpha> ufe_ds \<equiv> ufa_\<alpha> (uf_ds ufe_ds)"
+abbreviation "ufe_lca ufe_ds \<equiv> ufa_lca (uf_ds ufe_ds)"
+abbreviation "ufe_tree_of ufe_ds \<equiv> ufa_tree_of (uf_ds ufe_ds)"
 
 lemma uf_ds_ufe_union:
   "uf_ds (ufe_union ufe_ds x y) = ufa_union (uf_ds ufe_ds) x y"
@@ -50,15 +53,15 @@ lemma ufe_init_sel[simp]:
   unfolding ufe_init_def by simp_all
 
 lemma ufa_\<alpha>_uf_ds_ufe_union_eq_per_union:
-  assumes "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-  shows "ufa_\<alpha> (uf_ds (ufe_union ufe_ds x y)) = per_union (ufa_\<alpha> (uf_ds ufe_ds)) x y"
+  assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
+  shows "ufe_\<alpha> (ufe_union ufe_ds x y) = per_union (ufe_\<alpha> ufe_ds) x y"
   using assms per_union_cmp[OF part_equiv_ufa_\<alpha>, OF ufa_\<alpha>I]
   unfolding ufe_union_sel ufa_\<alpha>_ufa_union_eq_per_union_ufa_\<alpha>
   by simp
 
 lemma Field_ufa_\<alpha>_uf_ds_ufe_union:
-  assumes "x \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))" "y \<in> Field (ufa_\<alpha> (uf_ds ufe_ds))"
-  shows "Field (ufa_\<alpha> (uf_ds (ufe_union ufe_ds x y))) = Field (ufa_\<alpha> (uf_ds ufe_ds))"
+  assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
+  shows "Field (ufe_\<alpha> (ufe_union ufe_ds x y)) = Field (ufe_\<alpha> ufe_ds)"
   using assms
   by (simp add: ufa_\<alpha>_uf_ds_ufe_union_eq_per_union)
 
@@ -96,7 +99,7 @@ function (domintros) explain' :: "nat \<Rightarrow> nat \<Rightarrow> nat eq_prf
     (if x = y then ReflP x
     else 
       let
-        lca = ufa_lca (uf_ds ufe_ds) x y;
+        lca = ufe_lca ufe_ds x y;
         newest_x = find_newest_on_path lca x;
         newest_y = find_newest_on_path lca y
       in
