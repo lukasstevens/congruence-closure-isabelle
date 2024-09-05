@@ -25,6 +25,11 @@
 \usepackage{array}
 \usepackage{multirow}
 
+\usepackage[acronym]{glossaries}
+\newacronym{adt}{ADT}{Abstract Data Type}
+\newacronym{uf}{UF}{Union-Find}
+\newacronym{ufe}{UFE}{Union-Find-Explain}
+
 \usepackage{listings}
 \definecolor{isarblue}{HTML}{006699}
 \definecolor{isargreen}{HTML}{009966}
@@ -140,6 +145,7 @@ We use \lstinline!'a list! to describe the type of lists, which are constructed 
 The function \lstinline!set! converts a list into a set.
 \todo[inline]{Indexing operator}
 \todo[inline]{Relation type synonym, Field of a relation}
+\todo[inline]{Record notation}
 
 We remark that $\longleftrightarrow$ is equivalent to \lstinline!$=$! on the type of Booleans \lstinline!bool! and \lstinline!$\equiv$! is definitional equality of the meta-logic of Isabelle/HOL, which is called Isabelle/Pure.
 Meta-implication is denoted by \lstinline!$\Longrightarrow$! and a chain of implications
@@ -152,19 +158,19 @@ can be abbreviated by
 \end{lstlisting}
 
 \section{Basic Union-Find}
-\subsection{Background}
-Given a set of $n$ elements $A = \{a_1, \ldots, a_n\}$, the union-find data structure keeps track of a partition of $A$ into disjoint sets $A_1, \ldots, A_k$, i.e.\ $A = A_1 \uplus \cdots \uplus A_k$.
+\subsection{Background\label{sec:uf_background}}
+Given a set of $n$ elements $A = \{a_1, \ldots, a_n\}$, the \acrfull{uf} data structure keeps track of a partition of $A$ into disjoint sets $A_1, \ldots, A_k$, i.e.\ $A = A_1 \uplus \cdots \uplus A_k$.
 
 We initialise the data structure by partitioning $A$ into singleton sets of elements,
 so we have that $A = \{a_1\} \uplus \cdots \uplus \{a_n\}$.
-Those sets are merged by subsequent \lstinline!union! operations where \lstinline!union $a_i$ $a_j$! merges the set containing $a_i$ with the one that contains $a_j$.
+Those sets are merged by subsequent \lstinline!union! operations\todo{use italics for union operation?} where \lstinline!union $a_i$ $a_j$! merges the set containing $a_i$ with the one that contains $a_j$.
 Each set in the partition contains one particular element that serves as its representative.
-We will denote the representative of an element $a$ in the union-find data structure $l$ as \lstinline!rep_of $l$ $a$!.
+We will denote the representative of an element $a$ in the \acrshort{uf} data structure $l$ as \lstinline!rep_of $l$ $a$!.
 Accordingly, two elements have the same representative exactly when they belong to the same set in the partition.
 For any element $a_i$, the \lstinline!find! operation just returns its representative \lstinline!rep_of $l$ $a_i$!.
 
 One application of this algorithm is to maintain the equivalence closure of equations, which is the partial equivalence relation formed by those equations.
-To this end, we initialize the union-find data structure with $n$ elements for a given set of variables $v_1, \ldots, v_n$ and perform a \lstinline!union! between $v_i$ and $v_j$ for each equation $v_i = v_j$.
+To this end, we initialize the \acrshort{uf} data structure with $n$ elements for a given set of variables $v_1, \ldots, v_n$ and perform a \lstinline!union! between $v_i$ and $v_j$ for each equation $v_i = v_j$.
 This results in a partition of the variables into equivalence classes.
 
 According to \citeauthor{unionfind_tarjan}~\cite{unionfind_tarjan}, this data structure can be implemented as a forest of rooted trees where each tree represents an equivalence class.
@@ -178,7 +184,7 @@ If $a$ is a root and thus does not have a parent, then the list contains the ele
 \todo[inline]{Mention optimisations?}
 
 \subsection{In Isabelle/HOL}
-The union-find algorithm is formalised in Isabelle/HOL by \citeauthor{unionfind_isabelle}~\cite{unionfind_isabelle}.
+The \acrshort{uf} algorithm is formalised in Isabelle/HOL by \citeauthor{unionfind_isabelle}~\cite{unionfind_isabelle}.
 The code can be found in an entry~\cite{union_find_afp} of the \emph{Archive of Formal Proofs} (AFP).\footnote{The code is in the theory file \texttt{Examples/Union\_Find.thy}.}
 Later, \citeauthor{union_find_imp_hol}~\cite{union_find_imp_hol} also formalised the running time.\todo{Check citations}
 
@@ -202,11 +208,11 @@ ufa_invar l = $\forall$a < length l. rep_of_dom (l, a)
               $\land$ l ! a < length l
 \end{lstlisting}
 
-Building on this formalisation, we encapsulate this union-find data structure into an abstract data type (ADT) \lstinline|ufa| by defining
+Building on this formalisation, we encapsulate this \acrshort{uf} data structure into an \acrfull{adt} \lstinline|ufa| by defining
 \begin{lstlisting}
 typedef ufa = {uf. ufa_invar uf}
 \end{lstlisting}
-By lifting operations on the underlying list to the ADT using Isabelle's lifting infrastructure~\cite{lifting_transfer}, we obtain the operations
+By lifting operations on the underlying list to the \acrshort{adt} using Isabelle's lifting infrastructure~\cite{lifting_transfer}, we obtain the operations
 \begin{itemize}
   \item \lstinline!ufa_$\alpha$ :: ufa $\Rightarrow$ nat rel!,
   \item \lstinline!ufa_rep_of :: ufa $\Rightarrow$ nat $\Rightarrow$ nat!, and
@@ -217,7 +223,7 @@ The intended meaning of these operations is the following:
 \begin{itemize}
   \item \lstinline!ufa_$\alpha$ uf! is the partial equivalence relation represented by \lstinline!uf!,
   \item \lstinline!ufa_rep_of uf x! is the representative of the equivalence class that \lstinline!x! belongs to, and
-  \item \lstinline!ufa_union uf x y! returns a union-find data structure where the equivalence classes of \lstinline!x! and \lstinline!y! are merged.
+  \item \lstinline!ufa_union uf x y! returns a \acrshort{uf} data structure where the equivalence classes of \lstinline!x! and \lstinline!y! are merged.
     This is implemented by updating the underlying list at index \lstinline!rep_of l x! with \lstinline|rep_of l y|.
 \end{itemize}
 More rigorously, the above operations fulfil the following properties:\todo{Spacing between lemmas,defs}
@@ -232,7 +238,7 @@ where \lstinline!per_union R x y!\todo{Definition with \lstinline|trancl|?} is d
 
 But what happens if \lstinline!x! or \lstinline!y! is not an element of the partial equivalence relation \lstinline|R|?\todo{Define element of per.}
 In that case, the equivalence relation is unchanged, which means that \lstinline|per_union R x y = R|.
-This, however, can be seen as a misuse of the union-find data structure, since we initialise it with a fixed set of elements \lstinline|A| and expect the user to only work with these elements.
+This, however, can be seen as a misuse of the \acrshort{uf} data structure, since we initialise it with a fixed set of elements \lstinline|A| and expect the user to only work with these elements.
 Therefore, we introduce the following definitions that characterise valid union(s) with regard to the initial set \lstinline|A|.
 \begin{lstlisting}
 definition valid_union uf a b =
@@ -251,7 +257,7 @@ definition valid_unions uf us =
   \end{gather*}
   \caption{The data type \lstinline|eq_prf| of certificates and its corresponding system of inference rules $\vdash_=$.\label{fig:eq_prf}}
 \end{figure}
-Building on the union-find ADT from the previous section, we now develop a simple \lstinline|explain| operation that,
+Building on the \acrshort{uf} \acrshort{adt} from the previous section, we now develop a simple \lstinline|explain| operation that,
 for a given list of equations \lstinline|us|, takes two elements \lstinline|x| and \lstinline|y| and produces a certificate that \lstinline|x = y| modulo \lstinline|us|.
 The certificate is given in terms of a data type \lstinline|eq_prf| with its corresponding system $\vdash_=$ of inference rules as seen in \autoref{fig:eq_prf}.
 As expected, we have inference rules that utilise the reflexivity, symmetry, and transitivity of equality as well as an assumption rule.
@@ -291,9 +297,9 @@ function explain :: (nat $\times$ nat) list $\Rightarrow$ nat $\Rightarrow$ nat 
 definition explain_partial us x y =
   if (x, y) $\in$ equivcl (set us) then Some (explain us x y) else None
   \end{lstlisting}
-  \caption{A simple implementation of the \lstinline|explain| operation. It operates on an arbitrary initial union-find data structure \lstinline|uf_init|.\label{fig:explain}}
+  \caption{A simple implementation of the \lstinline|explain| operation. It operates on an arbitrary initial \acrshort{uf} data structure \lstinline|uf_init|.\label{fig:explain}}
 \end{figure*}
-Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with an instance \lstinline|uf| of the union-find ADT that results from applying \lstinline|us| as unions to an initial union-find data structure \lstinline|uf_init|.
+Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with an instance \lstinline|uf| of the \acrshort{uf} \acrshort{adt} that results from applying \lstinline|us| as unions to an initial \acrshort{uf} data structure \lstinline|uf_init|.
 Accordingly, we define
 \begin{lstlisting}
 definition ufa_unions =
@@ -335,7 +341,7 @@ This is because it always returns a certificate, even if \lstinline|x| and \lsti
 To account for this case, we wrap \lstinline|explain| into a partial function \lstinline|explain_partial| (cf.\ \autoref{fig:explain}) that fails if \lstinline|x = y| is not provable.
 Soundness and completeness can then be lifted from the soundness of $\vdash_=$ and the completeness of \lstinline|explain|, respectively.
 At first glance, it might seem vacuous to define \lstinline|explain_partial| using \lstinline|equivcl|;
-however, \lstinline|equivcl| can actually be implemented using union-find operations as the following lemma demonstrated.
+however, \lstinline|equivcl| can actually be implemented using \acrshort{uf} operations as the following lemma demonstrates.
 \begin{lstlisting}
 lemma
 defines uf = ufa_unions uf_init us
@@ -345,20 +351,161 @@ shows (x, y) $\in$ equivcl (set us) $\leftrightarrow$ x = y $\lor$
 \end{lstlisting}
 \todo[inline]{Improve explanation above? Segue?}
 
+\section{Efficient Certifying Union-Find Algorithm}
+In the previous section, we developed a simple certifying \acrfull{ufe} data structure whose \lstinline|explain| operation iterates through a list of equalities,
+identifying which of them are necessary in order to prove that its input values are equal.
+Nevertheless, iterating through all equalities seems to be inefficient and indeed \citeauthor{congcl_proofs}~\cite{congcl_proofs} propose a more targeted approach.
+Their approach adds two data structures to the list of equalities, which we collect into a record type \lstinline|ufe_ds|.
+We call this collection of data structures the \acrshort{ufe} data structure.
+For some fixed instance \lstinline|ufe_ds|, the purpose of the record members is as follows:
+\todo[inline]{Introduce \lstinline|ufa_parent_of|, explain abstraction leakage. intuition here?. Name for the union-find-explain data structure?}
+\begin{itemize}
+  \item The list \lstinline|unions ufe_ds :: (nat $\times$ nat) list| contains the input equalities.
+  \item The \acrshort{ufe} data structure \lstinline|uf_ds ufe_ds :: ufa| maintains the equivalence closure of the input equalities or, put differently, it is the result of applying \lstinline|unions ufe_ds| to an initial union find data structure.
+    We require this to be a forest of rooted trees as introduced in \autoref{sec:uf_background}.
+  \item The partial function \lstinline|au_ds ufe_ds :: nat $\Rightarrow$ nat option| associates an unique equality with each edge in the forest by indexing into \lstinline|unions ufe_ds|.
+    In other words, there exists an \lstinline|i| such that \lstinline|au_ds ufe_ds x $\neq$ Some i| if \lstinline|x| has a parent in the forest.
+    The associated union of the edge from \lstinline|x| to its parent is then \lstinline|unions ufe_ds ! i|.
+\end{itemize}
+For succinctness, we lift the operations \lstinline|ufa_rep_of|, \lstinline|ufa_parent_of|, and \lstinline|ufa_$\alpha$|\todo{Introduce \lstinline|ufa_parent_of|} from the record member \lstinline|uf_ds| to the record type \lstinline|ufe_ds|.
+The lifted operations use the prefix \lstinline|ufe| instead of \lstinline|ufa|, so \lstinline|ufa_rep_of| is lifted to \lstinline|ufe_rep_of|, for example.
+
+Similarly, we obtain the initial \acrshort{ufe} data structure by lifting \lstinline|ufa_init| while leaving the other two members empty as the following definition shows.
+\todo[inline]{Introduce \lstinline|ufa_init|}
+\begin{lstlisting}
+definition ufe_init :: nat $\Rightarrow$ ufe_ds where
+  ufe_init n = $\llparenthesis$ uf_ds = ufa_init n,
+    au_ds = ($\lambda$_. None), unions = [] $\rrparenthesis$
+\end{lstlisting}
+Continuing with the union operation, we lift \lstinline|ufa_union| to the \acrshort{ufe} data structure.
+For a union operation between \lstinline|x| and \lstinline|y|, we add \lstinline|(x, y)| to the list of unions and update the associated union of the representative of \lstinline|x| to \lstinline|(x, y)|.
+We need to use the representative here because \lstinline|ufa_union| adds an edge from the representative of \lstinline|x| to that of \lstinline|y|.
+As with the \acrshort{uf} data structure, we also define a function that applies a list of unions in consecutive order.
+\begin{lstlisting}
+fun ufe_union :: ufe_ds $\Rightarrow$ nat $\Rightarrow$ nat
+              $\Rightarrow$ ufe_ds where
+  ufe_union $\llparenthesis$ uf_ds = uf
+            , au_ds = au, unions = u $\rrparenthesis$ x y =
+    $\llparenthesis$ uf_ds = ufa_union uf x y
+    , au_ds = au(ufa_rep_of uf x $\mapsto$ length u)
+    , unions = u @ [(x, y)] $\rrparenthesis$
+
+definition ufe_unions = 
+  foldl ($\lambda$ufe_ds (x, y). ufe_union ufe_ds x y)
+\end{lstlisting}
+However, there is a catch in the definition of \lstinline|ufe_union|:
+specifically, it only makes sense to update the (associated) unions if the union in question actually introduces a new edge in the \acrshort{uf} data structure.
+In other words, the representatives of \lstinline|x| and \lstinline|y| of the union \lstinline|(x, y)| must not be equal.
+We call such a union \emph{effective} with respect to a given \acrshort{uf} data structure.
+This notion extends to lists of unions by checking if each consecutive union is effective with respect to the data structure that results from applying the preceeding unions.
+\begin{lstlisting}
+definition eff_union uf a b =
+  valid_union uf a b $\land$
+  ufa_rep_of uf a $\neq$ ufa_rep_of uf b
+
+fun eff_unions where
+  eff_unions uf [] $\leftrightarrow$ True
+| eff_unions uf ((a, b) # us) $\leftrightarrow$
+    eff_union uf a b $\land$
+    eff_unions (ufa_union uf a b) us
+\end{lstlisting}
+\todo[inline]{\lstinline|ufe_lca|}
+
+\begin{figure*}
+  \centering
+  \begin{lstlisting}
+definition combine_options where
+  combine_options f x y =
+    case x of None $\Rightarrow$ y | Some x $\Rightarrow$ (case y of None $\Rightarrow$ Some x | Some y $\Rightarrow$ Some (f x y))
+
+function find_newest_on_path where
+  find_newest_on_path y x =
+    if x = y then None
+    else combine_options max (au_ds ufe_ds x) (find_newest_on_path y (ufe_parent_of ufe_ds x))
+
+function explain' :: nat $\Rightarrow$ nat $\Rightarrow$ nat eq_prf where
+  explain' x y =
+    if x = y then ReflP x
+    else
+      let
+        lca = ufe_lca ufe_ds x y;
+        newest_x = find_newest_on_path lca x;
+        newest_y = find_newest_on_path lca y
+      in
+        if newest_y $\leq$ newest_x then
+          let (ax, bx) = unions ufe_ds ! the newest_x
+          in explain' x ax $\TransP$ AssmP (the newest_x) $\TransP$ explain' bx y
+        else
+          let (ay, by) = unions ufe_ds ! the newest_y
+          in explain' x by $\TransP$ SymP (AssmP (the newest_y)) $\TransP$ explain' ay y
+  \end{lstlisting}
+  \caption{Efficient version of \lstinline|explain|. The above functions work on a fixed \acrshort{ufe} data structure \lstinline|ufe_ds|.}
+\end{figure*}
+
+  
+We define a locale \lstinline|ufe_init_invars| that fixes an initial data structure \lstinline|ufe_init| and assumes
+\begin{itemize}
+  \item \lstinline|ufe_$\alpha$ ufe_init $\subseteq$ Id|,
+  \item \lstinline|au_ds ufe_init = ($\lambda$_. None)|,
+  \item \lstinline|unions ufe_init = []|.
+\end{itemize}
+We extend this locale in order to describe well-formed such data structures which are exactly does that arise from applying a sequence of unions to a well-formed initial data structure.
+More specifically, we fix a data structure \lstinline|ufe_ds| and assume
+\begin{itemize}
+  \item \lstinline|eff_unions (uf_ds ufe_init) (unions ufe_ds)|,
+  \item \lstinline|ufe_ds = ufe_unions ufe_init (unions ufe_ds)|.
+\end{itemize}
+We assume 
+\begin{itemize}
+  \item \lstinline|x,$\,$y $\in$ Field (ufe_$\alpha$ ufe_ds)| and
+  \item \lstinline|ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y|.
+\end{itemize}
+
+\begin{lstlisting}
+lemma explain'_dom_ufe_union:
+assumes explain_dom' ufe_ds (x, y)
+assumes eff_union (uf_ds ufe_ds) a b
+shows explain'_dom (ufe_union ufe_ds a b) (x, y)
+\end{lstlisting}
+
+\begin{lstlisting}
+lemma explain'_dom_if_ufe_rep_of_eq:
+shows explain'_dom ufe_ds (x, y)
+\end{lstlisting}
+
+\begin{lstlisting}
+lemma explain'_ufe_union:
+assumes eff_union (uf_ds ufe_ds) a b
+shows explain' (ufe_union ufe_ds a b) x y =
+  explain' ufe_ds x y
+\end{lstlisting}
+
+\begin{lstlisting}
+lemma explain_eq_explain':
+shows explain (uf_ds ufe_init) (unions ufe_ds x y) =
+  explain' ufe_ds x y
+\end{lstlisting}
+  
+\begin{itemize}
+  \item Abbreviations
+  \item \lstinline|awalk_verts_from_rep|
+  \item \lstinline|ufa_lca|
+  \item \lstinline|find_newest_on_path|
+  \item \lstinline|explain'|. Figure with schematic tree.
+  \item locales: \lstinline|ufe_invars|, \lstinline|ufa_tree|, \lstinline|ufe_tree|
+  \item \lstinline|awalk_from_rep_ufa_union|, \lstinline|ufa_lca_ufa_union|, \lstinline|find_newest_on_path_ufe_union|
+  \item \lstinline|ufe_ds_induct|
+  \item Invariance of helper functions if rep already equal before union
+  \item Union by rank
+\end{itemize}
+
+\section{Deriving an Efficient Implementation}
+
 \begin{itemize}
   \item Inspired by formalisation by Lammich~\cite{unionfind_isabelle}, in AFP~\cite{union_find_afp}
   \item Refinements with ranks and int ranks
 \end{itemize}
 
-\subsection{Data Structure to enable explain}
-
-\subsection{Union}
-
-\subsection{Explain}
-
-\subsection{Soundness and Completeness}
-
-\section{Deriving an Efficient Implementation}
 \begin{itemize}
   \item Refinements with ranks and ints
   \item Helper Functions
@@ -371,6 +518,7 @@ shows (x, y) $\in$ equivcl (set us) $\leftrightarrow$ x = y $\lor$
   \item Refining ufri
   \item Dynamic Array inspired by Auto2 Imperative HOL
   \item Refining explain operations
+  \item Union-by-rank also checks whether the union is effective
 \end{itemize}
 
 \section{Tactic}
@@ -381,6 +529,8 @@ Proof of concept tactic
 \begin{acks}
   TODO
 \end{acks}
+
+\printglossary[type=\acronymtype]
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sources}
