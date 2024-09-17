@@ -7,16 +7,7 @@
     year=2002
 }
 
-@Article{union_find_afp,
-  author  = {Peter Lammich and Rene Meis},
-  journal = {Archive of Formal Proofs},
-  title   = {A Separation Logic Framework for Imperative HOL},
-  year    = {2012},
-  issn    = {2150-914x},
-  note    = {\url{https://isa-afp.org/entries/Separation_Logic_Imperative_HOL.html}, Formal proof development},
-}
-
-@Article{unionfind-og,
+@Article{uf_by_size,
   author    = {Bernard A. Galler and Michael J. Fisher},
   journal   = {Communications of the {ACM}},
   title     = {An improved equivalence algorithm},
@@ -28,28 +19,92 @@
   publisher = {Association for Computing Machinery ({ACM})},
 }
 
-@Article{unionfind_tarjan,
-  author    = {Robert Endre Tarjan},
-  journal   = {Journal of Computer and System Sciences},
-  title     = {A class of algorithms which require nonlinear time to maintain disjoint sets},
-  year      = {1979},
-  number    = {2},
-  pages     = {110--127},
-  volume    = {18},
-  doi       = {10.1016/0022-0000(79)90042-4},
-  publisher = {Elsevier {BV}},
+@book{uf_compress,
+  author       = {Alfred V. Aho and
+                  John E. Hopcroft and
+                  Jeffrey D. Ullman},
+  title        = {The Design and Analysis of Computer Algorithms},
+  publisher    = {Addison-Wesley},
+  year         = {1974},
+  isbn         = {0-201-00029-6},
 }
 
-@InProceedings{unionfind-persistent,
-  author    = {Sylvain Conchon and Jean-Christophe Filli{\^{a}}tre},
-  booktitle = {Proceedings of the 2007 workshop on Workshop on {ML} - {ML} {\textquotesingle}07},
-  title     = {A persistent union-find data structure},
-  year      = {2007},
-  publisher = {{ACM} Press},
-  doi       = {10.1145/1292535.1292541},
+@Article{uf_ub,
+  author = {Tarjan, Robert Endre},
+  title = {Efficiency of a Good But Not Linear Set Union Algorithm},
+  year = {1975},
+  issue_date = {April 1975},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {22},
+  number = {2},
+  issn = {0004-5411},
+  url = {https://doi.org/10.1145/321879.321884},
+  doi = {10.1145/321879.321884},
+  journal = {J. ACM},
+  month = {apr},
+  pages = {215–225},
+  numpages = {11}
 }
 
-@Article{unionfind_isabelle,
+@article{uf_ub_improved,
+author = {Tarjan, Robert E. and van Leeuwen, Jan},
+title = {Worst-case Analysis of Set Union Algorithms},
+year = {1984},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {31},
+number = {2},
+issn = {0004-5411},
+doi = {10.1145/62.2160},
+journal = {J. ACM},
+month = {mar},
+pages = {245–281},
+numpages = {37}
+}
+
+@inproceedings{uf_coq,
+  author = {Conchon, Sylvain and Filli\^{a}tre, Jean-Christophe},
+  title = {A persistent union-find data structure},
+  year = {2007},
+  isbn = {9781595936769},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  doi = {10.1145/1292535.1292541},
+  booktitle = {Proceedings of the 2007 Workshop on Workshop on ML},
+  pages = {37–46},
+  numpages = {10},
+  series = {ML '07}
+}
+
+@article{uf_coq_time,
+	author = {Chargu{\'e}raud, Arthur and Pottier, Fran{\c c}ois},
+	doi = {10.1007/s10817-017-9431-7},
+	isbn = {1573-0670},
+	journal = {Journal of Automated Reasoning},
+	number = {3},
+	pages = {331--365},
+	title = {Verifying the Correctness and Amortized Complexity of a Union-Find Implementation in Separation Logic with Time Credits},
+	url = {https://doi.org/10.1007/s10817-017-9431-7},
+	volume = {62},
+	year = {2019},
+}
+
+@InProceedings{uf_isabelle_algebraic,
+  author="Guttmann, Walter",
+  editor="Fahrenberg, Uli
+  and Jipsen, Peter
+  and Winter, Michael",
+  title="Verifying the Correctness of Disjoint-Set Forests with Kleene Relation Algebras",
+  booktitle="Relational and Algebraic Methods in Computer Science",
+  year="2020",
+  publisher="Springer International Publishing",
+  address="Cham",
+  pages="134--151",
+  isbn="978-3-030-43520-2"
+}
+
+@Article{uf_isabelle,
   author    = {Peter Lammich},
   journal   = {Journal of Automated Reasoning},
   title     = {Refinement to Imperative {HOL}},
@@ -61,7 +116,124 @@
   publisher = {Springer Science and Business Media {LLC}},
 }
 
-@InProceedings{congruenceclosure-ac,
+@Article{uf_isabelle_afp,
+  author  = {Peter Lammich and Rene Meis},
+  journal = {Archive of Formal Proofs},
+  title   = {A Separation Logic Framework for Imperative HOL},
+  year    = {2012},
+  issn    = {2150-914x},
+  note    = {\url{https://isa-afp.org/entries/Separation_Logic_Imperative_HOL.html}, Formal proof development},
+}
+
+@InProceedings{uf_isabelle_time,
+  author =	{Maximilian P. L. Haslbeck and Peter Lammich},
+  title =	{{Refinement with Time - Refining the Run-Time of Algorithms in Isabelle/HOL}},
+  booktitle =	{10th International Conference on Interactive Theorem Proving (ITP 2019)},
+  pages =	{20:1--20:18},
+  ISBN =	{978-3-95977-122-1},
+  ISSN =	{1868-8969},
+  year =	{2019},
+  URL =		{http://drops.dagstuhl.de/opus/volltexte/2019/11075},
+  doi =		{10.4230/LIPIcs.ITP.2019.20},
+}
+
+@InCollection{imperative_hol,
+  author    = {Lukas Bulwahn and Alexander Krauss and Florian Haftmann and Levent Erkök and John Matthews},
+  booktitle = {Lecture Notes in Computer Science},
+  publisher = {Springer Berlin Heidelberg},
+  title     = {Imperative Functional Programming with Isabelle/{HOL}},
+  year      = {2008},
+  pages     = {134--149},
+  doi       = {10.1007/978-3-540-71067-7_14},
+}
+
+@InProceedings{imperative_hol_auto2,
+author="Zhan, Bohua",
+editor="Beyer, Dirk
+and Huisman, Marieke",
+title="Efficient Verification of Imperative Programs Using Auto2",
+booktitle="Tools and Algorithms for the Construction and Analysis of Systems",
+year="2018",
+publisher="Springer International Publishing",
+address="Cham",
+pages="23--40",
+}
+
+@article{imperative_hol_auto2_afp,
+  author  = {Bohua Zhan},
+  title   = {Verifying Imperative Programs using Auto2},
+  journal = {Archive of Formal Proofs},
+  month   = {December},
+  year    = {2018},
+  note    = {\url{https://isa-afp.org/entries/Auto2_Imperative_HOL.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@inproceedings{lifting_transfer,
+  author       = {Brian Huffman and
+                  Ondřej Kunčar},
+  editor       = {Georges Gonthier and
+                  Michael Norrish},
+  title        = {Lifting and Transfer: {A} Modular Design for Quotients in Isabelle/HOL},
+  booktitle    = {Certified Programs and Proofs - Third International Conference, {CPP}
+                  2013, Melbourne, VIC, Australia, December 11-13, 2013, Proceedings},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {8307},
+  pages        = {131--146},
+  publisher    = {Springer},
+  year         = {2013},
+  url          = {https://doi.org/10.1007/978-3-319-03545-1_9},
+  doi          = {10.1007/978-3-319-03545-1_9},
+}
+
+@article{graph_theory,
+  author       = {Lars Noschinski},
+  title        = {A Graph Library for Isabelle},
+  journal      = {Mathematics in Computer Science},
+  volume       = {9},
+  number       = {1},
+  pages        = {23--39},
+  year         = {2015},
+  url          = {https://doi.org/10.1007/s11786-014-0183-z},
+  doi          = {10.1007/S11786-014-0183-Z},
+}
+
+@article{graph_theory_afp,
+  author  = {Lars Noschinski},
+  title   = {Graph Theory},
+  journal = {Archive of Formal Proofs},
+  month   = {April},
+  year    = {2013},
+  note    = {\url{https://isa-afp.org/entries/Graph_Theory.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@article{query_optimization_afp,
+  author  = {Lukas Stevens and Bernhard Stöckl},
+  title   = {Verification of Query Optimization Algorithms},
+  journal = {Archive of Formal Proofs},
+  month   = {October},
+  year    = {2022},
+  note    = {\url{https://isa-afp.org/entries/Query_Optimization.html},
+             Formal proof development},
+  ISSN    = {2150-914x},
+}
+
+@InProceedings{transport,
+  author="Kappelmann, Kevin",
+  editor="Hur, Chung-Kil",
+  title="Transport via Partial Galois Connections and Equivalences",
+  booktitle="Programming Languages and Systems",
+  year="2023",
+  publisher="Springer Nature Singapore",
+  address="Singapore",
+  pages="225--245",
+  isbn="978-981-99-8311-7"
+}
+
+@InProceedings{congcl-ac,
   author    = {Kapur, Deepak},
   title     = {A Modular Associative Commutative (AC) Congruence Closure Algorithm},
   year      = {2021},
@@ -81,7 +253,7 @@
   doi       = {10.1007/978-3-540-32033-3_33},
 }
 
-@Article{congruenceclosure-og,
+@Article{congcl_nelson_oppen,
   author    = {Greg Nelson and Derek C. Oppen},
   journal   = {Journal of the {ACM}},
   title     = {Fast Decision Procedures Based on Congruence Closure},
@@ -93,7 +265,7 @@
   publisher = {Association for Computing Machinery ({ACM})},
 }
 
-@Article{congruenceclosure-og2,
+@Article{concl_shostak,
   author    = {Robert E. Shostak},
   journal   = {Communications of the {ACM}},
   title     = {An algorithm for reasoning about equality},
@@ -154,7 +326,7 @@
   year   = {2001},
 }
 
-@Article{congruenceclosure-og3,
+@Article{congcl_downey,
   author    = {Peter J. Downey and Ravi Sethi and Robert Endre Tarjan},
   journal   = {Journal of the {ACM}},
   title     = {Variations on the Common Subexpression Problem},
@@ -164,29 +336,6 @@
   volume    = {27},
   doi       = {10.1145/322217.322228},
   publisher = {Association for Computing Machinery ({ACM})},
-}
-
-
-@InProceedings{union_find_imp_hol,
-  author =	{Maximilian P. L. Haslbeck and Peter Lammich},
-  title =	{{Refinement with Time - Refining the Run-Time of Algorithms in Isabelle/HOL}},
-  booktitle =	{10th International Conference on Interactive Theorem Proving (ITP 2019)},
-  pages =	{20:1--20:18},
-  ISBN =	{978-3-95977-122-1},
-  ISSN =	{1868-8969},
-  year =	{2019},
-  URL =		{http://drops.dagstuhl.de/opus/volltexte/2019/11075},
-  doi =		{10.4230/LIPIcs.ITP.2019.20},
-}
-
-@InCollection{imperative_hol,
-  author    = {Lukas Bulwahn and Alexander Krauss and Florian Haftmann and Levent Erkök and John Matthews},
-  booktitle = {Lecture Notes in Computer Science},
-  publisher = {Springer Berlin Heidelberg},
-  title     = {Imperative Functional Programming with Isabelle/{HOL}},
-  year      = {2008},
-  pages     = {134--149},
-  doi       = {10.1007/978-3-540-71067-7_14},
 }
 
 @InCollection{congcl_ctors,
@@ -206,19 +355,112 @@
   label={WCoq},
 }
 
-@inproceedings{lifting_transfer,
-  author       = {Brian Huffman and
-                  Ondrej Kuncar},
-  editor       = {Georges Gonthier and
-                  Michael Norrish},
-  title        = {Lifting and Transfer: {A} Modular Design for Quotients in Isabelle/HOL},
-  booktitle    = {Certified Programs and Proofs - Third International Conference, {CPP}
-                  2013, Melbourne, VIC, Australia, December 11-13, 2013, Proceedings},
-  series       = {Lecture Notes in Computer Science},
-  volume       = {8307},
-  pages        = {131--146},
-  publisher    = {Springer},
-  year         = {2013},
-  url          = {https://doi.org/10.1007/978-3-319-03545-1\_9},
-  doi          = {10.1007/978-3-319-03545-1\_9},
+@article{mst,
+ ISSN = {00029939, 10886826},
+ URL = {http://www.jstor.org/stable/2033241},
+ author = {Joseph B. Kruskal},
+ journal = {Proceedings of the American Mathematical Society},
+ number = {1},
+ pages = {48--50},
+ publisher = {American Mathematical Society},
+ title = {On the Shortest Spanning Subtree of a Graph and the Traveling Salesman Problem},
+ urldate = {2024-09-17},
+ volume = {7},
+ year = {1956}
 }
+
+@inproceedings{cvc5,
+  author       = {Haniel Barbosa and
+                  Clark W. Barrett and
+                  Martin Brain and
+                  Gereon Kremer and
+                  Hanna Lachnitt and
+                  Makai Mann and
+                  Abdalrhman Mohamed and
+                  Mudathir Mohamed and
+                  Aina Niemetz and
+                  Andres N{\"{o}}tzli and
+                  Alex Ozdemir and
+                  Mathias Preiner and
+                  Andrew Reynolds and
+                  Ying Sheng and
+                  Cesare Tinelli and
+                  Yoni Zohar},
+  editor       = {Dana Fisman and
+                  Grigore Rosu},
+  title        = {cvc5: {A} Versatile and Industrial-Strength {SMT} Solver},
+  booktitle    = {Tools and Algorithms for the Construction and Analysis of Systems
+                  - 28th International Conference, {TACAS} 2022, Held as Part of the
+                  European Joint Conferences on Theory and Practice of Software, {ETAPS}
+                  2022, Munich, Germany, April 2-7, 2022, Proceedings, Part {I}},
+  series       = {Lecture Notes in Computer Science},
+  volume       = {13243},
+  pages        = {415--442},
+  publisher    = {Springer},
+  year         = {2022},
+  url          = {https://doi.org/10.1007/978-3-030-99524-9\_24},
+  doi          = {10.1007/978-3-030-99524-9\_24},
+}
+
+@InProceedings{verit,
+author="Bouton, Thomas
+and Caminha B. de Oliveira, Diego
+and D{\'e}harbe, David
+and Fontaine, Pascal",
+editor="Schmidt, Renate A.",
+title="veriT: An Open, Trustable and Efficient SMT-Solver",
+booktitle="Automated Deduction -- CADE-22",
+year="2009",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="151--156",
+isbn="978-3-642-02959-2"
+}
+
+@inproceedings{z3_proofs,
+  author       = {Leonardo Mendon{\c{c}}a de Moura and
+                  Nikolaj S. Bj{\o}rner},
+  editor       = {Piotr Rudnicki and
+                  Geoff Sutcliffe and
+                  Boris Konev and
+                  Renate A. Schmidt and
+                  Stephan Schulz},
+  title        = {Proofs and Refutations, and {Z3}},
+  booktitle    = {Proceedings of the {LPAR} 2008 Workshops, Knowledge Exchange: Automated
+                  Provers and Proof Assistants, and the 7th International Workshop on
+                  the Implementation of Logics, Doha, Qatar, November 22, 2008},
+  series       = {{CEUR} Workshop Proceedings},
+  volume       = {418},
+  publisher    = {CEUR-WS.org},
+  year         = {2008},
+  url          = {https://ceur-ws.org/Vol-418/paper10.pdf},
+}
+
+@InProceedings{eprover,
+  author =       {Stephan Schulz and Simon Cruanes and Petar Vukmirovi{\'c}},
+  title =        {Faster, Higher, Stronger: {E} 2.3},
+  year =         {2019},
+  booktitle =    {Proceedings of the 27th CADE},
+  location = {Natal, Brasil},
+  editor =       {Pascal Fontaine},
+  number =       {11716},
+  series =       {LNAI},
+  pages =        {495--507},
+  publisher =    {Springer},
+  OPTannote =    {StS},
+}
+
+@InProceedings{vampire,
+author="Kov{\'a}cs, Laura
+and Voronkov, Andrei",
+editor="Sharygina, Natasha
+and Veith, Helmut",
+title="First-Order Theorem Proving and Vampire",
+booktitle="Computer Aided Verification",
+year="2013",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="1--35",
+isbn="978-3-642-39799-8"
+}
+
