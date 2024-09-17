@@ -21,27 +21,27 @@ qed
 
 
 theorem (in ufa_tree) lca_ufa_lca:
-  assumes "y \<in> verts (ufa_tree_of uf x)"
-  assumes "z \<in> verts (ufa_tree_of uf x)"
-  shows "lca (ufa_lca uf y z) y z"
+  assumes "x \<in> verts (ufa_tree_of uf pivot)"
+  assumes "y \<in> verts (ufa_tree_of uf pivot)"
+  shows "lca (ufa_lca uf x y) x y"
 proof -
-  from assms have "ufa_rep_of uf y = ufa_rep_of uf z"
+  from assms have "ufa_rep_of uf x = ufa_rep_of uf y"
     by simp
   note assms[THEN awalk_awalk_from_rep, folded this]
   note lca_last_longest_common_prefix_awalk_verts[OF this]
-  with \<open>ufa_rep_of uf y = ufa_rep_of uf z\<close> show ?thesis
+  with \<open>ufa_rep_of uf x = ufa_rep_of uf y\<close> show ?thesis
     unfolding ufa_lca_def
     unfolding assms[THEN awalk_verts_from_rep_eq_awalk_verts]
     by simp
 qed
 
-theorem (in ufa_tree) ufa_rep_of_ufa_lca:
-  assumes "y \<in> verts (ufa_tree_of uf x)"
-  assumes "z \<in> verts (ufa_tree_of uf x)"
-  shows "ufa_rep_of uf (ufa_lca uf y z) = ufa_rep_of uf y"
+lemma (in ufa_tree) ufa_rep_of_ufa_lca:
+  assumes "x \<in> verts (ufa_tree_of uf pivot)"
+  assumes "y \<in> verts (ufa_tree_of uf pivot)"
+  shows "ufa_rep_of uf (ufa_lca uf x y) = ufa_rep_of uf x"
 proof -
   note lca_ufa_lca[OF assms]
-  then have "ufa_lca uf y z \<in> verts (ufa_tree_of uf x)"
+  then have "ufa_lca uf x y \<in> verts (ufa_tree_of uf pivot)"
     using lca_reachableD(2) reachable_in_verts(1) by blast
   with assms show ?thesis
     by simp
@@ -54,20 +54,20 @@ lemma ufa_lca_ufa_union:
   shows "ufa_lca (ufa_union uf a b) x y =
     (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y else ufa_rep_of uf b)"
 proof -
-  interpret ufa_tree_x: ufa_tree where x = x
+  interpret ufa_tree_x: ufa_tree where pivot = x
     using assms by unfold_locales
-  interpret ufa_tree_y: ufa_tree where x = y
+  interpret ufa_tree_y: ufa_tree where pivot = y
     using assms by unfold_locales
 
   note awalk_verts_from_rep_union_eq = 
-    assms(2,3)[THEN ufa_tree_x.awalk_verts_from_rep_union[OF eff_unionD[OF assms(1)]]]
+    assms(2,3)[THEN ufa_tree_x.awalk_verts_from_rep_ufa_union[OF eff_unionD[OF assms(1)]]]
   
   show ?thesis
   proof(cases "ufa_rep_of uf x = ufa_rep_of uf y")
     case True
     with \<open>x \<in> Field (ufa_\<alpha> uf)\<close> \<open>y \<in> Field (ufa_\<alpha> uf)\<close>
     have "x \<in> verts (ufa_tree_of uf x)" "y \<in> verts (ufa_tree_of uf x)"
-      using ufa_tree_x.in_verts_if_rep_of_eq by simp_all
+      using ufa_tree_x.in_verts_if_ufa_rep_of_eq by simp_all
     note this[THEN ufa_tree_x.awalk_verts_from_rep_eq_Cons]
     with True obtain px py where
       "awalk_verts_from_rep uf x = ufa_rep_of uf y # px"
@@ -76,7 +76,6 @@ proof -
     then have
       "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y) \<noteq> []"
       by simp
-  
     with True show ?thesis
       unfolding ufa_lca_def awalk_verts_from_rep_union_eq
       by auto
@@ -92,11 +91,11 @@ proof -
       case 1
       from 1 obtain px where awalk_verts_from_rep_x:
         "awalk_verts_from_rep uf x = ufa_rep_of uf a # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
+        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.pivot_in_verts]
         by metis
       from 1 obtain py where awalk_verts_from_rep_y:
         "awalk_verts_from_rep uf y = ufa_rep_of uf b # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
+        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.pivot_in_verts]
         by metis
 
       have "longest_common_prefix (awalk_verts_from_rep uf x) py = []"
@@ -106,8 +105,8 @@ proof -
           unfolding awalk_verts_from_rep_x by (cases py) force+
         then have "awalk_verts_from_rep uf y = ufa_rep_of uf b # ufa_rep_of uf a # py'"
           using awalk_verts_from_rep_y by blast
-        moreover note ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_y.x_in_verts]
-        moreover note ufa_tree_y.awalk_awalk_from_rep[OF ufa_tree_y.x_in_verts]
+        moreover note ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_y.pivot_in_verts]
+        moreover note ufa_tree_y.awalk_awalk_from_rep[OF ufa_tree_y.pivot_in_verts]
         ultimately have
           "ufa_rep_of uf a \<in> verts (ufa_tree_of uf y)"
           "ufa_rep_of uf b \<in> verts (ufa_tree_of uf y)"
@@ -128,11 +127,11 @@ proof -
       case 2
       from 2 obtain px where awalk_verts_from_rep_x:
         "awalk_verts_from_rep uf x = ufa_rep_of uf b # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.x_in_verts]
+        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.pivot_in_verts]
         by metis
       from 2 obtain py where awalk_verts_from_rep_y:
         "awalk_verts_from_rep uf y = ufa_rep_of uf a # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.x_in_verts]
+        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.pivot_in_verts]
         by metis
 
       have "longest_common_prefix px (awalk_verts_from_rep uf y) = []"
@@ -142,8 +141,8 @@ proof -
           unfolding awalk_verts_from_rep_y by (cases px) force+
         then have "awalk_verts_from_rep uf x = ufa_rep_of uf b # ufa_rep_of uf a # px'"
           using awalk_verts_from_rep_x by blast
-        moreover note ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_x.x_in_verts]
-        moreover note ufa_tree_x.awalk_awalk_from_rep[OF ufa_tree_x.x_in_verts]
+        moreover note ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_x.pivot_in_verts]
+        moreover note ufa_tree_x.awalk_awalk_from_rep[OF ufa_tree_x.pivot_in_verts]
         ultimately have
           "ufa_rep_of uf a \<in> verts (ufa_tree_of uf x)"
           "ufa_rep_of uf b \<in> verts (ufa_tree_of uf x)"

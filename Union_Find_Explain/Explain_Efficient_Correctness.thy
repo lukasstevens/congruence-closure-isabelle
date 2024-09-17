@@ -9,11 +9,11 @@ lemma (in ufe_invars) neq_find_newest_on_path_ufa_lca_if_neq:
   defines "lca_x_y \<equiv> ufe_lca ufe_ds x y"
   shows "find_newest_on_path ufe_ds lca_x_y x \<noteq> find_newest_on_path ufe_ds lca_x_y y"
 proof -
-  from assms interpret ufe_tree where x = x
+  from assms interpret ufe_tree where pivot = x
     by unfold_locales
   from assms have "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using in_verts_if_rep_of_eq by simp
-  note lca_ulca = lca_ufa_lca[OF x_in_verts this]
+    using in_verts_if_ufa_rep_of_eq by simp
+  note lca_ulca = lca_ufa_lca[OF pivot_in_verts this]
   then obtain px py where
     px: "awalk lca_x_y px x" and py: "awalk lca_x_y py y"
     unfolding lca_x_y_def by (meson lca_reachableD reachable_awalk)
@@ -92,12 +92,12 @@ lemma
       unions ufe_ds' ! the newest_y = unions ufe_ds ! the newest_y"
 proof -
   from assms interpret ufe_tree: ufe_tree
-    where ufe_ds = ufe_ds and x = x
+    where ufe_ds = ufe_ds and pivot = x
     by unfold_locales blast
   from eff_union assms interpret ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b"
     using ufe_invars_ufe_union by blast
   from assms interpret ufe_tree_union: ufe_tree
-    where ufe_ds = "ufe_union ufe_ds a b" and x = x
+    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
     by unfold_locales simp
 
   from eff_union assms show lca_eq:
@@ -109,8 +109,8 @@ proof -
     "ufe_rep_of ufe_ds' x = ufe_rep_of ufe_ds' y"
     using uf_ds_ufe_union ufa_rep_of_ufa_union by simp
   from assms have "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using ufe_tree.in_verts_if_rep_of_eq by metis
-  with assms ufe_tree.x_in_verts obtain px py where
+    using ufe_tree.in_verts_if_ufa_rep_of_eq by metis
+  with assms ufe_tree.pivot_in_verts obtain px py where
     px: "ufe_tree.awalk (ufe_lca ufe_ds' x y) px x" and
     py: "ufe_tree.awalk (ufe_lca ufe_ds' x y) py y"
     unfolding lca_eq
@@ -120,7 +120,7 @@ proof -
   moreover from assms ufe_rep_of_union_eq have
     "ufe_rep_of ufe_ds (ufe_lca ufe_ds' x y) = ufe_rep_of ufe_ds x"
     unfolding lca_eq
-    using ufe_tree.ufa_rep_of_ufa_lca ufe_tree.in_verts_if_rep_of_eq by metis
+    using ufe_tree.ufa_rep_of_ufa_lca ufe_tree.in_verts_if_ufa_rep_of_eq by metis
   ultimately show newest_eq:
     "find_newest_on_path ufe_ds' (ufe_lca ufe_ds x y) x = newest_x"
     "find_newest_on_path ufe_ds' (ufe_lca ufe_ds x y) y = newest_y"
@@ -177,13 +177,13 @@ lemma explain'_pinduct[consumes 4, case_names eq newest_x newest_y]:
   using assms(1-4)
 proof(induction rule: explain'.pinduct)
   case (1 x y)
-  then interpret ufe_tree where x = x
+  then interpret ufe_tree where pivot = x
     by unfold_locales
 
   from 1 have in_verts_ufe_tree:
     "x \<in> verts (ufe_tree_of ufe_ds x)"
     "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using in_verts_if_rep_of_eq by metis+
+    using in_verts_if_ufa_rep_of_eq by metis+
   then obtain px py where
     px: "awalk (ufe_lca ufe_ds x y) px x" and
     py: "awalk (ufe_lca ufe_ds x y) py y"
@@ -255,34 +255,34 @@ proof(induction rule: explain'_pinduct)
     using explain'.domintros by blast
 next
   case (newest_x x y ax bx)
-  moreover from this have
-    "explain'_dom (ufe_union ufe_ds a b) (x, ax)"
-    "explain'_dom (ufe_union ufe_ds a b) (bx, y)"
-    by metis+
-  moreover note
+  note
+    ufe_lca_ufe_union_eq_if_ufe_rep_of_eq
     find_newest_on_path_ufe_union_ufe_lca
     find_newest_on_path_ufe_union_ufe_lca_neq
-    ufe_lca_ufe_union_eq_if_ufe_rep_of_eq
     unions_nth_find_newest_on_path_ufe_union_ufe_lca
-  note * = this[OF newest_x.prems]
-  ultimately show ?case
-    apply (intro explain'.domintros[where x = x and y = y])
-    by (metis Pair_inject antisym_conv1)+
+  note [simp] = this[OF newest_x.prems]
+  from newest_x have
+    "find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) x >
+      find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) y"
+    using neq_find_newest_on_path_ufa_lca_if_neq by (metis less_le)
+  with newest_x show ?case
+    by (intro explain'.domintros[where x = x and y = y])
+      (simp_all del: ufe_union_sel)
 next
   case (newest_y x y ay "by")
-  moreover from this have
-    "explain'_dom (ufe_union ufe_ds a b) (x, by)"
-    "explain'_dom (ufe_union ufe_ds a b) (ay, y)"
-    by metis+
-  moreover note
+  note
+    ufe_lca_ufe_union_eq_if_ufe_rep_of_eq
     find_newest_on_path_ufe_union_ufe_lca
     find_newest_on_path_ufe_union_ufe_lca_neq
-    ufe_lca_ufe_union_eq_if_ufe_rep_of_eq
     unions_nth_find_newest_on_path_ufe_union_ufe_lca
-  note * = this[OF newest_y.prems]
-  ultimately show ?case
-    apply (intro explain'.domintros[where x = x and y = y])
-    by (metis Pair_inject leI)+
+  note [simp] = this[OF newest_y.prems]
+  from newest_y have
+    "find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) x <
+      find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) y"
+    by order
+  with newest_y show ?case
+    by (intro explain'.domintros[where x = x and y = y])
+      (simp_all del: ufe_union_sel)
 qed
 
 lemma leq_Some_if_lt_Suc_Some:
@@ -308,13 +308,13 @@ next
   interpret ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b"
     by (intro ufe_invars_ufe_union ufe_union.hyps)
   from ufe_union.prems interpret ufe_tree_union: ufe_tree
-    where ufe_ds = "ufe_union ufe_ds a b" and x = x
+    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
     by unfold_locales
 
   from ufe_union.prems have in_verts_ufe_tree_union:
     "x \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
     "y \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-    using ufe_tree_union.in_verts_if_rep_of_eq by metis+
+    using ufe_tree_union.in_verts_if_ufa_rep_of_eq by metis+
 
   then obtain px py where
     px: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
@@ -352,7 +352,7 @@ next
     qed
     ultimately show ?thesis
       using 2 in_Field_ufe_\<alpha> ufe_union.hyps(2)
-      apply(intro explain'.domintros[where x = x and y = y] explain'_dom_ufe_union ufe_union.IH)
+      apply(intro explain'.domintros[where x = x and y = y] ufe_union.IH[THEN explain'_dom_ufe_union])
       by fastforce+
   next
     case 3
@@ -431,7 +431,6 @@ next
     by (auto simp: explain'.psimps Let_def)
 qed
 
-
 lemma explain_eq_explain':
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
   assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
@@ -451,7 +450,7 @@ next
   from ufe_union have in_Field_ufe_\<alpha>:
     "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
     by simp_all
-  then interpret ufe_tree: ufe_tree where ufe_ds = ufe_ds and x = x
+  then interpret ufe_tree: ufe_tree where ufe_ds = ufe_ds and pivot = x
     by unfold_locales
 
   let ?ufe_ds' = "ufe_union ufe_ds a b"
@@ -459,12 +458,13 @@ next
   let ?newest_y = "find_newest_on_path ?ufe_ds' (ufe_lca ?ufe_ds' x y) y"
   from ufe_union interpret ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b"
     using ufe_invars.ufe_invars_ufe_union by metis
-  from ufe_union interpret ufe_tree_union: ufe_tree where ufe_ds = "ufe_union ufe_ds a b" and x = x
+  from ufe_union interpret ufe_tree_union: ufe_tree
+    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
     by unfold_locales
-  from ufe_union.prems(2,3) ufe_tree_union.x_in_verts have
+  from ufe_union.prems(2,3) ufe_tree_union.pivot_in_verts have
     "y \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-    using ufe_tree_union.in_verts_if_rep_of_eq by metis
-  with ufe_tree_union.x_in_verts obtain px py where
+    using ufe_tree_union.in_verts_if_ufa_rep_of_eq by metis
+  with ufe_tree_union.pivot_in_verts obtain px py where
     px: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
     py: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) py y"
     using ufe_tree_union.lca_ufa_lca ufe_tree_union.lca_reachableD ufe_tree_union.reachable_awalk
@@ -568,53 +568,46 @@ next
   qed
 qed
 
-lemma proves_eq_explain:
-  assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
-  assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
-  shows "unions ufe_ds \<turnstile>\<^sub>= explain (uf_ds ufe_init) (unions ufe_ds) x y : (x, y)"
-  using assms proves_eq_explain[OF eff_unions]
-  by (metis uf_ds_ufe_ds_eq_ufa_unions ufa_\<alpha>_uf_ds_ufe_init)
-
 end
 
-definition ufe_union_rank where
-  "ufe_union_rank ufe_ds x y \<equiv>
+definition ufe_union_size where
+  "ufe_union_size ufe_ds x y \<equiv>
     let
       rep_x = ufe_rep_of ufe_ds x;
       rep_y = ufe_rep_of ufe_ds y
     in
       if rep_x \<noteq> rep_y then
-        if ufa_rank (uf_ds ufe_ds) rep_x < ufa_rank (uf_ds ufe_ds) rep_y
+        if ufa_size (uf_ds ufe_ds) rep_x < ufa_size (uf_ds ufe_ds) rep_y
           then ufe_union ufe_ds x y
           else ufe_union ufe_ds y x
       else ufe_ds"
 
-definition "ufe_unions_rank \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union_rank ufe_ds x y)"
+definition "ufe_unions_size \<equiv> foldl (\<lambda>ufe_ds (x, y). ufe_union_size ufe_ds x y)"
 
-lemma (in ufe_invars) ufe_invars_ufe_union_rank:
+lemma (in ufe_invars) ufe_invars_ufe_union_size:
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
-  defines "ufe_ds' \<equiv> ufe_union_rank ufe_ds x y"
+  defines "ufe_ds' \<equiv> ufe_union_size ufe_ds x y"
   shows "ufe_invars ufe_init ufe_ds'"
-  using assms(1,2) unfolding ufe_ds'_def ufe_union_rank_def
+  using assms(1,2) unfolding ufe_ds'_def ufe_union_size_def
   by (auto simp: Let_def ufe_invars_axioms intro!: ufe_invars_ufe_union)
 
-lemma (in ufe_init_invars) ufe_invars_ufe_unions_rank:
+lemma (in ufe_init_invars) ufe_invars_ufe_unions_size:
   assumes "valid_unions (uf_ds ufe_init) us"
-  shows "ufe_invars ufe_init (ufe_unions_rank ufe_init us)"
+  shows "ufe_invars ufe_init (ufe_unions_size ufe_init us)"
   using assms
 proof(induction us rule: rev_induct)
   case Nil
   have "ufe_invars ufe_init ufe_init"
     by (unfold_locales) simp_all
   with Nil show ?case
-    unfolding ufe_unions_rank_def ufe_union_rank_def by simp
+    unfolding ufe_unions_size_def ufe_union_size_def by simp
 next
   case (snoc u us)
-  then interpret ufe_invars ufe_init "ufe_unions_rank ufe_init us"
+  then interpret ufe_invars ufe_init "ufe_unions_size ufe_init us"
     by simp
    
   from snoc show ?case
-    using ufe_invars_ufe_union_rank unfolding ufe_unions_rank_def
+    using ufe_invars_ufe_union_size unfolding ufe_unions_size_def
     by (auto simp: case_prod_beta ufe_invars.in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init)
 qed
 

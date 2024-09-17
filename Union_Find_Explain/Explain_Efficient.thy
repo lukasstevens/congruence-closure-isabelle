@@ -12,7 +12,7 @@ record ufe_ds =
   au_ds :: "nat \<rightharpoonup> nat"
   unions :: "(nat \<times> nat) list"
 
-fun ufe_union where
+fun ufe_union :: "ufe_ds \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufe_ds" where
   "ufe_union \<lparr> uf_ds = uf, au_ds = au, unions = u \<rparr> x y =
     \<lparr> uf_ds = ufa_union uf x y
     , au_ds = au(ufa_rep_of uf x \<mapsto> length u)
@@ -84,10 +84,7 @@ begin
 function (domintros) find_newest_on_path :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
   "find_newest_on_path y x =
     (if y = x then None
-    else 
-      combine_options max 
-        (au_ds ufe_ds x)
-        (find_newest_on_path y (ufe_parent_of ufe_ds x)))"
+    else max (au_ds ufe_ds x) (find_newest_on_path y (ufe_parent_of ufe_ds x)))"
   by pat_completeness auto
 
 lemma find_newest_on_path_if_eq[simp]:

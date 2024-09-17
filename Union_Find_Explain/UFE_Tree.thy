@@ -1,8 +1,8 @@
 theory UFE_Tree
   imports Explain_Simple Explain_Efficient
-begin
+    begin
 
-lemma ufa_\<alpha>_uf_ds_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds:
+lemma ufe_\<alpha>_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds:
   assumes "eff_unions (uf_ds ufe_ds) us"
   shows "ufe_\<alpha> (ufe_unions ufe_ds us) = ufa_\<alpha> (ufa_unions (uf_ds ufe_ds) us)"
   using assms
@@ -31,6 +31,10 @@ lemma ufe_rep_of_ufe_init:
 
 end
 
+lemma ufe_init_invars_ufe_init:
+  "ufe_init_invars (ufe_init n)"
+  by unfold_locales (auto simp: ufa_\<alpha>_ufa_init)
+
 locale ufe_invars = ufe_init_invars +
   fixes ufe_ds
 
@@ -52,7 +56,7 @@ proof(induction "unions ufe_ds" arbitrary: ufe_ds rule: rev_induct)
   let ?ufe_ds0 = "ufe_unions ufe_init us"
 
   from snoc have "ufe_\<alpha> ?ufe_ds0 = ufa_\<alpha> (ufa_unions (uf_ds ufe_init) us)"
-    by (metis ufa_\<alpha>_uf_ds_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds eff_unions_append)
+    by (metis ufe_\<alpha>_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds eff_unions_append)
   moreover from this have u_in_Field_ufa_\<alpha>:
     "fst u \<in> Field (ufe_\<alpha> (ufe_unions ufe_init us))"
     "snd u \<in> Field (ufe_\<alpha> (ufe_unions ufe_init us))"
@@ -241,12 +245,12 @@ qed simp
 end
 
 locale ufe_tree = ufe_invars +
-  fixes x
-  assumes x_in_Field_\<alpha>[simp, intro]: "x \<in> Field (ufe_\<alpha> ufe_ds)"
+  fixes pivot
+  assumes pivot_in_Field_ufe_\<alpha>[simp, intro]: "pivot \<in> Field (ufe_\<alpha> ufe_ds)"
 begin
 
-sublocale ufa_tree where uf = "uf_ds ufe_ds" and x = x
-  using x_in_Field_\<alpha> eff_unions
+sublocale ufa_tree where uf = "uf_ds ufe_ds" and pivot = pivot
+  using pivot_in_Field_ufe_\<alpha> eff_unions
   by unfold_locales
 
 context
@@ -258,47 +262,47 @@ interpretation ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b
   using eff_union ufe_invars_ufe_union by blast
 
 interpretation ufe_tree_union: ufe_tree where
-  ufe_ds = "ufe_union ufe_ds a b" and x = x
+  ufe_ds = "ufe_union ufe_ds a b" and pivot = pivot
   by unfold_locales simp
 
-lemma in_verts_ufa_tree_of_ufe_union_if_in_verts[simp, intro]:
-  assumes "y \<in> verts (ufe_tree_of ufe_ds x)"
-  shows "y \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-  using assms eff_union 
-  using in_verts_ufa_tree_of_union_if_in_verts
+lemma in_verts_ufe_tree_of_ufe_union_if_in_verts[simp, intro]:
+  assumes "x \<in> verts (ufe_tree_of ufe_ds pivot)"
+  shows "x \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
+  using assms eff_union
+  using in_verts_ufa_tree_of_ufa_union_if_in_verts
   by auto
 
-lemma in_arcs_ufa_tree_of_ufe_union_if_in_arcs[simp, intro]:
-  assumes "e \<in> arcs (ufe_tree_of ufe_ds x)"
-  shows "e \<in> arcs (ufe_tree_of (ufe_union ufe_ds a b) x)"
+lemma in_arcs_ufe_tree_of_ufe_union_if_in_arcs[simp, intro]:
+  assumes "e \<in> arcs (ufe_tree_of ufe_ds pivot)"
+  shows "e \<in> arcs (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
   using assms eff_unionD[OF eff_union]
-  using in_arcs_ufa_tree_of_union_if_in_arcs
+  using in_arcs_ufa_tree_of_ufa_union_if_in_arcs
   by auto
 
 lemma ufe_union_awalk_if_awalk:
-  assumes "awalk y p z"
-  shows "ufe_tree_union.awalk y p z"
-  using assms eff_union union_awalk_if_awalk
+  assumes "awalk x p y"
+  shows "ufe_tree_union.awalk x p y"
+  using assms eff_union ufa_union_awalk_if_awalk
   by auto
 
 lemma awalk_if_ufe_union_awalk:
-  assumes "ufe_tree_union.awalk x p y"
-  assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
-  shows "awalk x p y"
-  using awalk_if_union_awalk[OF _ _ _ assms(2)] assms(1) eff_union
+  assumes "ufe_tree_union.awalk pivot p x"
+  assumes "ufe_rep_of ufe_ds pivot = ufe_rep_of ufe_ds x"
+  shows "awalk pivot p x"
+  using awalk_if_ufa_union_awalk[OF _ _ _ assms(2)] assms(1) eff_union
   by auto
 
 end
 
-definition "au_of a \<equiv> the (au_ds ufe_ds (head (ufe_tree_of ufe_ds x) a))"
+definition "au_of a \<equiv> the (au_ds ufe_ds (head (ufe_tree_of ufe_ds pivot) a))"
 
 lemma head_in_dom_lookup_if_in_arcs:
-  assumes "e \<in> arcs (ufe_tree_of ufe_ds x)"
-  shows "head (ufe_tree_of ufe_ds x) e \<in> dom (au_ds ufe_ds)"
+  assumes "e \<in> arcs (ufe_tree_of ufe_ds pivot)"
+  shows "head (ufe_tree_of ufe_ds pivot) e \<in> dom (au_ds ufe_ds)"
   using assms
 proof -
   from assms have
-    "head (ufe_tree_of ufe_ds x) e \<in> Field (ufe_\<alpha> ufe_ds)" (is "?a \<in> _")
+    "head (ufe_tree_of ufe_ds pivot) e \<in> Field (ufe_\<alpha> ufe_ds)" (is "?a \<in> _")
     using head_in_verts by blast
   moreover from assms have "ufe_rep_of ufe_ds ?a \<noteq> ?a"
     using adj_in_verts(2) not_root_if_dominated by (cases e) fastforce
@@ -309,32 +313,32 @@ proof -
 qed
 
 lemma au_of_lt_length_unions:
-  assumes "e \<in> arcs (ufe_tree_of ufe_ds x)"
+  assumes "e \<in> arcs (ufe_tree_of ufe_ds pivot)"
   shows "au_of e < length (unions ufe_ds)"
   using head_in_dom_lookup_if_in_arcs[OF assms]
   using lookup_au_ds_lt_length_unions
   unfolding au_of_def by force
 
-lemma rep_of_eq_au_of:
-  assumes "e \<in> arcs (ufe_tree_of ufe_ds x)"
+lemma ufe_rep_of_eq_au_of:
+  assumes "e \<in> arcs (ufe_tree_of ufe_ds pivot)"
   assumes "unions ufe_ds ! au_of e = (a, b)"
   shows
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds pivot"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds pivot"
 proof -
   from head_in_dom_lookup_if_in_arcs[OF assms(1)] have
-    "au_ds ufe_ds (head (ufe_tree_of ufe_ds x) e) = Some (au_of e)"
+    "au_ds ufe_ds (head (ufe_tree_of ufe_ds pivot) e) = Some (au_of e)"
     unfolding au_of_def by auto
   from ufe_rep_of_eq_if_au[OF this assms(2)] assms(1) show
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds pivot"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds pivot"
     using head_in_verts by auto
 qed
 
 lemma inj_on_au_of_arcs:
-  "inj_on au_of (arcs (ufe_tree_of ufe_ds x))"
+  "inj_on au_of (arcs (ufe_tree_of ufe_ds pivot))"
 proof(intro inj_onI)
-  let ?T = "ufe_tree_of ufe_ds x"
+  let ?T = "ufe_tree_of ufe_ds pivot"
   fix y z
   assume
     "y \<in> arcs ?T"
@@ -348,24 +352,24 @@ proof(intro inj_onI)
 qed
 
 lemma inj_on_au_of_awalk:
-  assumes "awalk y p z"
+  assumes "awalk x p y"
   shows "inj_on au_of (set p)"
   using assms inj_on_au_of_arcs
   by (meson awalkE' inj_on_subset)
 
-definition "newest_on_path newest y p z \<equiv> awalk y p z \<and> newest = Max (au_of ` set p)"
+definition "newest_on_path newest x p y \<equiv> awalk x p y \<and> newest = Max (au_of ` set p)"
 
 lemma newest_on_path_awalkD[simp]:
-  assumes "newest_on_path newest y p z"
-  shows "awalk y p z"
+  assumes "newest_on_path newest x p y"
+  shows "awalk x p y"
   using assms unfolding newest_on_path_def by simp
 
 lemma newest_on_pathE:
-  assumes "newest_on_path newest y p z"
-  assumes "y \<noteq> z" 
+  assumes "newest_on_path newest x p y"
+  assumes "x \<noteq> y" 
   obtains i where
     "i \<in> set p"
-    "awalk y p z" "newest = au_of i"
+    "awalk x p y" "newest = au_of i"
 proof -
   from assms have "au_of ` set p \<noteq> {}"
     unfolding newest_on_path_def by auto
@@ -376,20 +380,20 @@ proof -
 qed
 
 lemma newest_on_path_lt_length_unions:
-  assumes "newest_on_path newest y p z"
-  assumes "y \<noteq> z"
+  assumes "newest_on_path newest x p y"
+  assumes "x \<noteq> y"
   shows "newest < length (unions ufe_ds)"
 proof -
   from newest_on_pathE[OF assms] obtain i where i:
-    "awalk y p z" "i \<in> set p" "newest = au_of i"
+    "awalk x p y" "i \<in> set p" "newest = au_of i"
     by blast
   then show ?thesis
     using au_of_lt_length_unions by blast
 qed
 
 lemma newest_on_path_valid_union:
-  assumes "newest_on_path newest y p z"
-  assumes "y \<noteq> z"
+  assumes "newest_on_path newest x p y"
+  assumes "x \<noteq> y"
   assumes "unions ufe_ds ! newest = (a, b)"
   shows "a \<in> Field (ufe_\<alpha> ufe_ds)" "b \<in> Field (ufe_\<alpha> ufe_ds)"
 proof -
@@ -400,22 +404,22 @@ proof -
 qed
 
 lemma ufe_rep_of_eq_if_newest_on_path:
-  assumes "newest_on_path newest y p z"
-  assumes "y \<noteq> z"
+  assumes "newest_on_path newest x p y"
+  assumes "x \<noteq> y"
   assumes "unions ufe_ds ! newest = (a, b)"
   shows
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds pivot"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds pivot"
 proof -
   from newest_on_pathE[OF assms(1,2)] obtain i where
-    "i \<in> set p" "awalk y p z" "newest = au_of i"
+    "i \<in> set p" "awalk x p y" "newest = au_of i"
     by blast
-  moreover note rep_of_eq_au_of[OF _ assms(3)[unfolded this]]
-  moreover have "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds x"
-    using \<open>awalk y p z\<close> awalk_def by force
+  moreover note ufe_rep_of_eq_au_of[OF _ assms(3)[unfolded this]]
+  moreover have "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds pivot"
+    using \<open>awalk x p y\<close> awalk_def by force
   ultimately show
-    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
-    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
+    "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds pivot"
+    "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds pivot"
     by (metis (no_types, lifting) awalkE' subsetD)+
 qed
 

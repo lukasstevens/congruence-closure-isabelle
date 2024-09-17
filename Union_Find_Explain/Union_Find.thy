@@ -391,7 +391,7 @@ lemma ufa_rep_of_ufa_compress[simp]:
 
 definition "ufa_eq_class uf i \<equiv> ufa_\<alpha> uf `` {i}"
 
-definition "ufa_rank uf i \<equiv> card (ufa_eq_class uf i)"
+definition "ufa_size uf i \<equiv> card (ufa_eq_class uf i)"
 
 lemma ufa_eq_class_transfer[transfer_rule]:
   includes lifting_syntax
@@ -399,34 +399,34 @@ lemma ufa_eq_class_transfer[transfer_rule]:
   unfolding ufa_eq_class_def
   using rel_funD ufa_\<alpha>.transfer by fastforce
 
-lemma ufa_rank_transfer[transfer_rule]:
+lemma ufa_size_transfer[transfer_rule]:
   includes lifting_syntax
-  shows "(pcr_ufa ===> (=) ===> (=)) (\<lambda>uf x. card (Union_Find.\<alpha> uf `` {x})) ufa_rank"
-  unfolding ufa_rank_def using ufa_eq_class_transfer
+  shows "(pcr_ufa ===> (=) ===> (=)) (\<lambda>uf x. card (Union_Find.\<alpha> uf `` {x})) ufa_size"
+  unfolding ufa_size_def using ufa_eq_class_transfer
   by (intro rel_funI) (metis (mono_tags, lifting) rel_funD)
 
 lemma ufa_eq_class_ufa_init:
   "ufa_eq_class (ufa_init n) i = (if i < n then {i} else {})"
   unfolding ufa_eq_class_def ufa_\<alpha>_ufa_init by auto
 
-lemma ufa_rank_ufa_init:
-  "ufa_rank (ufa_init n) i = (if i < n then 1 else 0)"
-  unfolding ufa_rank_def ufa_eq_class_ufa_init by simp
+lemma ufa_size_ufa_init:
+  "ufa_size (ufa_init n) i = (if i < n then 1 else 0)"
+  unfolding ufa_size_def ufa_eq_class_ufa_init by simp
 
 lemma finite_ufa_eq_class[simp, intro!]:
   "finite (ufa_eq_class uf i)"
   unfolding ufa_eq_class_def
   by transfer (auto simp: Union_Find.\<alpha>_def)
 
-lemma ufa_rank_neq_0:
+lemma ufa_size_neq_0:
   assumes "x \<in> Field (ufa_\<alpha> uf)"
-  shows "ufa_rank uf x \<noteq> 0"
+  shows "ufa_size uf x \<noteq> 0"
   using assms finite_ufa_eq_class
   by transfer auto
 
-lemma ufa_rank_ufa_compress[simp]:
-  "ufa_rank (ufa_compress uf x) = ufa_rank uf"
-  unfolding ufa_rank_def ufa_eq_class_def by simp
+lemma ufa_size_ufa_compress[simp]:
+  "ufa_size (ufa_compress uf x) = ufa_size uf"
+  unfolding ufa_size_def ufa_eq_class_def by simp
 
 lemma ufa_eq_class_ufa_rep_of[simp]:
   assumes "x \<in> Field (ufa_\<alpha> uf)"
@@ -445,10 +445,10 @@ lemma self_in_ufa_eq_class[simp, intro]:
   shows "x \<in> ufa_eq_class uf x"
   using assms ufa_\<alpha>I unfolding ufa_eq_class_def by force
 
-lemma ufa_rank_ufa_rep_of[simp]:
+lemma ufa_size_ufa_rep_of[simp]:
   assumes "x \<in> Field (ufa_\<alpha> uf)"
-  shows "ufa_rank uf (ufa_rep_of uf x) = ufa_rank uf x"
-  using assms unfolding ufa_rank_def by simp
+  shows "ufa_size uf (ufa_rep_of uf x) = ufa_size uf x"
+  using assms unfolding ufa_size_def by simp
 
 lemma ufa_eq_class_ufa_union:
   assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
@@ -458,21 +458,21 @@ lemma ufa_eq_class_ufa_union:
   unfolding ufa_eq_class_def ufa_\<alpha>_ufa_union_eq_per_union_ufa_\<alpha> per_union_def
   using part_equiv_ufa_\<alpha> by (auto dest: part_equiv_sym part_equiv_trans)
 
-lemma ufa_rank_ufa_union_if_ufa_rep_of_neq:
+lemma ufa_size_ufa_union_if_ufa_rep_of_neq:
   assumes "ufa_rep_of uf x \<noteq> ufa_rep_of uf y"
   assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)"
   assumes "i \<in> Field (ufa_\<alpha> uf)"
-  shows "ufa_rank (ufa_union uf x y) i =
+  shows "ufa_size (ufa_union uf x y) i =
     (if ufa_rep_of uf i = ufa_rep_of uf x \<or> ufa_rep_of uf i = ufa_rep_of uf y
-      then ufa_rank uf x + ufa_rank uf y
-    else ufa_rank uf i)"
+      then ufa_size uf x + ufa_size uf y
+    else ufa_size uf i)"
 proof(cases "ufa_rep_of uf i = ufa_rep_of uf x \<or> ufa_rep_of uf i = ufa_rep_of uf y")
   case True
   with assms have "i \<in> ufa_eq_class uf x \<or> i \<in> ufa_eq_class uf y"
     by (auto intro: ufa_\<alpha>I simp: ufa_eq_class_def)
   with assms True show ?thesis
     using disjoint_ufa_eq_class_if_ufa_rep_of_neq[OF assms(1)]
-    unfolding ufa_rank_def
+    unfolding ufa_size_def
     by (auto simp: ufa_eq_class_ufa_union card_Un_disjoint)
 next
   case False
@@ -480,15 +480,15 @@ next
     using ufa_rep_of_eq_if_in_ufa_\<alpha>
     by (auto intro: ufa_\<alpha>I simp: ufa_eq_class_def)
   with assms False show ?thesis
-    unfolding ufa_rank_def by (auto simp: ufa_eq_class_ufa_union)
+    unfolding ufa_size_def by (auto simp: ufa_eq_class_ufa_union)
 qed
 
-definition "ufa_union_rank ufa x y \<equiv>
+definition "ufa_union_size ufa x y \<equiv>
   let
     rep_x = ufa_rep_of ufa x;
     rep_y = ufa_rep_of ufa y
   in
-    if ufa_rank ufa rep_x < ufa_rank ufa rep_y then ufa_union ufa x y
+    if ufa_size ufa rep_x < ufa_size ufa rep_y then ufa_union ufa x y
     else ufa_union ufa y x"
 
 
