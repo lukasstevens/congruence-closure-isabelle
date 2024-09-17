@@ -1,6 +1,6 @@
 theory UFA_Tree
   imports
-    Union_Find
+    "Union_Find.Union_Find"
     "Tree_Theory.LCA_Directed_Tree"
 begin
 

@@ -1,6 +1,6 @@
 theory Explain_Simple
   imports
-    "Union_Find"
+    "Union_Find.Union_Find"
     "Equality_Proof"
 begin
 

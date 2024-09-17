@@ -1,6 +1,6 @@
 theory UFE_Tree
   imports Explain_Simple Explain_Efficient
-    begin
+begin
 
 lemma ufe_\<alpha>_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds:
   assumes "eff_unions (uf_ds ufe_ds) us"

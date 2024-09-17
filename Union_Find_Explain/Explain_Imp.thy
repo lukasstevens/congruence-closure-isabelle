@@ -1,7 +1,7 @@
 theory Explain_Imp
   imports
     Explain_Efficient_Correctness
-    Union_Find_Size_Int_Imp
+    "Union_Find.Union_Find_Size_Int_Imp"
     Dynamic_Array
 begin
 
