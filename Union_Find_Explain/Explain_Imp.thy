@@ -327,7 +327,7 @@ lemma (in ufe_tree) find_newest_on_path_imp_rule[sep_heap_rules]:
   by sep_auto
 
 partial_function (heap) explain_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat eq_prf Heap" where
-  "explain_imp ufe_ds_imp x y =
+  [code]: "explain_imp ufe_ds_imp x y =
     (if x = y then return (ReflP x)
     else do {
       lca \<leftarrow> ufsi_imp_lca (uf_ds ufe_ds_imp) x y;
@@ -424,7 +424,7 @@ definition "explain_partial_imp ufe_ds_imp x y \<equiv>
     else return None
   }"
 
-lemma (in ufe_invars) explain_partial_imp_rule[sep_heap_rules]:
+theorem (in ufe_invars) explain_partial_imp_rule[sep_heap_rules]:
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
       explain_partial_imp ufe_ds_imp x y
@@ -460,5 +460,7 @@ proof -
     unfolding explain_partial_imp_def explain_partial_def
     by sep_auto
 qed
+
+export_code explain_partial_imp in SML_imp module_name UFE
 
 end
