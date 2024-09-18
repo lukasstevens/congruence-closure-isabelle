@@ -33,9 +33,9 @@
 \definecolor{isarblue}{HTML}{006699}
 \definecolor{isargreen}{HTML}{009966}
 \lstdefinelanguage{isabelle}{%
-    keywords=[1]{type_synonym,typedef,datatype,fun,function,abbreviation,definition,proof,lemma,theorem,corollary,inductive,record},
+    keywords=[1]{context,type_synonym,typedef,datatype,fun,function,abbreviation,definition,proof,lemma,theorem,corollary,inductive,record},
     keywordstyle=[1]\bfseries\color{isarblue},
-    keywords=[2]{where,assumes,shows,and,fixes,defines},
+    keywords=[2]{where,assumes,shows,and,fixes,defines,begin,end},
     keywordstyle=[2]\bfseries\color{isargreen},
     keywords=[3]{if,then,else,case,of,SOME,let,in,O},
     keywordstyle=[3]\color{isarblue},
@@ -95,7 +95,7 @@
 \newacronym{ufe}{UFE}{Union-Find-Explain}
 \newacronym{lca}{LCA}{lowest common ancestor}
 \newacronym{afp}{AFP}{Archive of Formal Proofs}
-\newacronym{smt}{SMT}{Satisfiability Modulu Theories}
+\newacronym{smt}{SMT}{Satisfiability Modulo Theories}
 
 
 % Notation
@@ -139,42 +139,58 @@
 \email{rebecca.ghidini@tum.de}
 
 \begin{abstract}
-  TODO
+Using Isabelle/HOL, we verify an Union-Find data structure with an explain operation due to \citeauthor{congcl_proofs}.
+We devise a simpler, more naive version of the explain operation whose soundness and completeness is easy to verify.
+Then, we prove the original formulation of the explain operation to be equal to our version.
+Finally, we refine this data structure to Imperative HOL, enabling us to export efficient imperative code.
+The formalisation provides a stepping stone towards the verification of proof-producing congruence closure algorithms which are a core ingredient of \acrfull{smt} solvers.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
-The \acrfull{uf} data structure maintains the equivalence closure of a relation, where the relation is given as a sequence of pairs or, in terms of the \acrshort{uf} data structure, \opunion operations.
+The \acrfull{uf} data structure maintains the equivalence closure of a relation, where the relation is given as a sequence of pairs or, in terms of the \acrshort{uf} data structure, \opunion{} operations.
 It is fundamental to efficiently implement well-known graph algorithms such as \citeauthor{mst}'s~\cite{mst} minimum spanning tree algorithm. 
 There it tracks which vertices belong to the same connected component and are, in that sense, equivalent.
 Beyond graph algorithms, its applicability extends to the domain of theorem proving as it routinely forms the basis of congruence closure algorithms, which are widely used by \acrfull{smt} solvers.
-In order to increase their trustworthiness, current \acrshort{smt} solvers such as CVC5~\cite{cvc5}, E~\cite{eprover}, Vampire~\cite{vampire}, VeriT~\cite{verit}, and Z3~\cite{z3_proofs} are able to output detailed proofs if they determine their input formula to be unsatisfiable.
-
-\begin{itemize}
-  \item Based on \cite{congcl_proofs}
-  \item Especially in the context of theorem proving certificates are useful
-  \item Maybe cite order paper
-\end{itemize}
+In order to increase their trustworthiness, current \acrshort{smt} solvers such as CVC5~\cite{cvc5}, E~\cite{eprover}, Vampire~\cite{vampire}, VeriT~\cite{verit}, and Z3~\cite{z3_proofs} are able to output detailed proofs when they determine their input formula to be unsatisfiable.
+To produce these proofs, it is crucial to have congruence closure algorithms that can efficiently explain why they consider two terms to be equal.
+The first such algorithm was presented by \citeauthor{congcl_proofs}~\cite{congcl_proofs,congcl_fast_extensions}, 
+who also extend the \acrshort{uf} data structure with an \opexplain{} operation to obtain an \acrfull{ufe} data structure as part of their work.
+Verifying this data structure is the focus of our paper.
 
 \subsection{Contributions}
+The contributions of this paper are the following:
 \begin{itemize}
-  \item Formalisation of \acrshort{ufe} data structure
-  \item Reduction of the complex recursion scheme to a simpler one that produces the same output
-  \item Proof of soundness, completeness, and termination
-  \item Abstract formalisation of union-find and union-find with size information hiding implementation details behind type definition
-  \item Refinement of the \acrshort{ufe} to Imperative HOL to be able to export efficient code
+  \item We present, to our knowledge, the first formalisation of the \acrshort{ufe} data structure as introduced by \citeauthor{congcl_proofs}.
+    In their work, they present two variants of this data structure.
+    Here, we only formalise the first variant, leaving the other for future work.
+  \item We devise a simpler, more naive version of the \opexplain{} operation, for which soundness and completeness is easier to prove. 
+  \item Then, we prove the original version of the \opexplain{} operation to be extensionally equal to the simple one.
+  \item Based on an existing formalisation of the \acrshort{uf} data structure by \citeauthor{uf_isabelle}~\cite{uf_isabelle},
+    we develop a more abstract formalisation of the data structure hiding implementation details. 
+  \item Finally, we refine the \acrshort{ufe} data structure to Imperative HOL~\cite{imperative_hol} using \citeauthor{uf_isabelle}'s~\cite{uf_isabelle} separation logic framework.
+    This enables us to export efficient imperative code.
 \end{itemize}
-\todo[inline]{We only show proof sketches, details in the formalisation}
+The formalisation is available as supplementary material to this paper.
+As everything is verified, we largely skip over the proofs in this paper and only sometimes provide proof sketches in order to illustrate the structure of the formalisation.
 
 \subsection{Related Work}
-\begin{itemize}
-  \item Union-Find as forest and union-by-size \cite{uf_by_size}
-  \item Path compression \cite{uf_compress}
-  \item Analysis of the run-time: $\mathcal{O}(n + m \alpha(m + n, n))$ for a sequence of at most $n - 1$ unions and $m$ finds \cite{uf_ub_improved}
-  \item In Coq \cite{uf_coq} with time \cite{uf_coq_time}
-  \item In Isabelle \cite{uf_isabelle} with time \cite{uf_isabelle} more recently viewed algebraically \cite{uf_isabelle_algebraic}.
-\end{itemize}
+Efficient implementations of the \acrshort{uf} data structure have been known for a long time.
+In particular, \citeauthor{uf_by_size} represent the data structure as a forest of rooted trees and propose the union-by-size heuristic, which gives $\mathcal{O}(\log n)$ running time for \opunion{} and \opfind{} for a data struture over $n$ elements.
+Another heuristic, called path compression, was presented by \citeauthor{uf_compress}~\cite{uf_compress}.
+Analysing the complexity of the data structure when combining both heuristics turned to be challenging but \citeauthor{uf_ub}~\cite{uf_ub} and \citeauthor{uf_ub_improved}~\cite{uf_ub_improved} eventually proved an amortised running time of $\mathcal{O}(n + m\, \alpha(m + n, n))$ for a sequence of at most $n - 1$ unions and $m$ finds where $\alpha$ is the inverse Ackermann function. 
+This means that any one operation runs in almost constant time, amortised.
+
+The \acrshort{ufe} data structure~\cite{congcl_proofs} itself has received limited attention in the literature.
+It does, however, form the basis of proof-producing congruence closure algorithms, which are crucial in the field of \acrshort{smt} solving.
+There, they remain an active area of research;
+for example, when we are interested in efficiently finding small proofs~\cite{congcl_small_proofs}.
+
+In the context of interactive theorem proving, there is a formalisation of the \acrshort{uf} data structure in Coq~\cite{uf_coq}.
+Its amortised complexity is analysed by \citeauthor{uf_coq_time}~\cite{uf_coq_time} in a separation logic with time credits.
+Similarly, in Isabelle, there is a formalisation of the data structure~\cite{uf_isabelle} that was later extended with a complexity analysis by \citeauthor{uf_isabelle_time}~\cite{uf_isabelle_time}.
+More recently, there is formalisation by \citeauthor{uf_isabelle_algebraic}~\cite{uf_isabelle_algebraic} taking a relation-algebraic view.
 
 \subsection{Notation}
 Isabelle/HOL~\cite{isabelle} conforms to everyday mathematical notation for the most part.
@@ -183,26 +199,34 @@ We establish notation and in particular some essential data types together with 
 We write \lstinline!t :: 'a! to specify that the term \lstinline!t! has the type \lstinline!'a! and \lstinline!'a $\Rightarrow$ 'b! for the space of total functions from type \lstinline!'a! to type \lstinline!'b!.
 
 Sets with elements of type \lstinline!'a! have the type \lstinline!'a set!.
-The cardinality of a set \lstinline!A! is denoted by \lstinline!card A! and the image of \lstinline!A! under \lstinline!f! by \lstinline!f ` A!.
+The cardinality of a set \lstinline!A! is denoted by \lstinline!card A!.
 
 We use \lstinline!'a list! to describe the type of lists, which are constructed using the empty list \lstinline![]! constructor or the infix cons constructor \lstinline!#!, and are appended with the infix operator \lstinline!@!.
 The function \lstinline!set! converts a list into a set.
-\todo[inline]{Indexing operator}
-\todo[inline]{Relation type synonym, Field of a relation}
-\todo[inline]{Record notation}
-\todo[inline]{Order on options}
-\todo[inline]{Locale notation}
-\todo[inline]{Lemma numbering}
+We write \lstinline|xs ! i| to access the \lstinline|i|-th element of the list \lstinline|xs|.
+
+To represent partial values of type \lstinline|'a|, we use the type \lstinline|'a option| with the constructors \lstinline|None| and \lstinline|Some|.
+We also define an order on this type by letting \lstinline|None| be smaller than \lstinline|Some a| and lifting the order on the underlying type \lstinline|'a|, i.e.\ we have that
+\begin{lstlisting}
+Some x $\leq$ Some y $\longleftrightarrow$ x $\leq$ y.
+\end{lstlisting}
+
+Relations are denoted with the type synonym \lstinline|'a rel|, which expands to \lstinline|('a $\times$ 'a) set|.
+For a relation \lstinline|r|, \lstinline|Field r| are those elements that occur as a component of a pair \lstinline|p $\in$ r|.
+Furthermore, we use \lstinline|r$^{-1}$| to denote the inverse and \lstinline|r$^*$| to denote the reflexive transitive closure of \lstinline|r|.
 
 We remark that $\longleftrightarrow$ is equivalent to \lstinline!$=$! on the type of Booleans \lstinline!bool! and \lstinline!$\equiv$! is definitional equality of the meta-logic of Isabelle/HOL, which is called Isabelle/Pure.
-Meta-implication is denoted by \lstinline!$\Longrightarrow$! and a chain of implications
-\begin{lstlisting}
-  A$_\text{1}$ $\Longrightarrow$ $\cdots$ $\Longrightarrow$ A$_\text{k}$ $\Longrightarrow$ C
-\end{lstlisting}
-can be abbreviated by 
-\begin{lstlisting}
-  $\llbracket$ A$_\text{1}$;$\,\ldots\,$;A$_\text{k}$ $\rrbracket$ $\Longrightarrow$ C.
-\end{lstlisting}
+%\todo[inline]{Record notation}
+%\todo[inline]{Locale notation}
+%\todo[inline]{Lemma numbering}
+%Meta-implication is denoted by \lstinline!$\Longrightarrow$! and a chain of implications
+%\begin{lstlisting}
+%  A$_\text{1}$ $\Longrightarrow$ $\cdots$ $\Longrightarrow$ A$_\text{k}$ $\Longrightarrow$ C
+%\end{lstlisting}
+%can be abbreviated by 
+%\begin{lstlisting}
+%  $\llbracket$ A$_\text{1}$;$\,\ldots\,$;A$_\text{k}$ $\rrbracket$ $\Longrightarrow$ C.
+%\end{lstlisting}
 
 \section{Basic Union-Find}
 \subsection{Background\label{sec:uf_background}}
@@ -210,7 +234,7 @@ Given a set of $n$ elements $A = \{a_1, \ldots, a_n\}$, the \acrfull{uf} data st
 
 We initialise the data structure by partitioning $A$ into singleton sets of elements,
 so we have that $A = \{a_1\} \uplus \cdots \uplus \{a_n\}$.
-Those sets are merged by subsequent \lstinline!union! operations\todo{use italics for union operation?} where \lstinline!union $a_i$ $a_j$! merges the set containing $a_i$ with the one that contains $a_j$.
+Those sets are merged by subsequent \opunion{} operations where \lstinline!union $a_i$ $a_j$! merges the set containing $a_i$ with the one that contains $a_j$.
 Each set in the partition contains one particular element that serves as its representative.
 We will denote the representative of an element $a$ in the \acrshort{uf} data structure $l$ as \lstinline!rep_of $l$ $a$!.
 Accordingly, two elements have the same representative exactly when they belong to the same set in the partition.
@@ -231,7 +255,6 @@ If $a$ is a root and thus does not have a parent, then the list contains the ele
 \subsection{In Isabelle/HOL\label{sec:uf_hol}}
 The \acrshort{uf} algorithm is formalised in Isabelle/HOL by \citeauthor{uf_isabelle}~\cite{uf_isabelle}.
 The code can be found in an entry~\cite{uf_isabelle_afp} of the \acrfull{afp}.\footnote{The code is in the theory file \texttt{Examples/Union\_Find.thy}.}
-Later, \citeauthor{uf_isabelle}~\cite{uf_isabelle} also formalised the running time.\todo{Check citations}
 
 The formalisation defines a function \lstinline|rep_of|, which, as described in the previous section, follows the parent pointers until we arrive the root, where the parent pointer is self-referential.
 \begin{lstlisting}[columns=fullflexible]
@@ -260,13 +283,15 @@ By lifting operations on the underlying list to the \acrshort{adt} using Isabell
 \begin{itemize}
   \item \lstinline!ufa_$\alpha$ :: ufa $\Rightarrow$ nat rel!,
   \item \lstinline!ufa_rep_of :: ufa $\Rightarrow$ nat $\Rightarrow$ nat!, and
+  \item \lstinline|ufa_init :: nat $\Rightarrow$ ufa|,
   \item \lstinline!ufa_union :: ufa $\Rightarrow$ nat $\Rightarrow$ nat $\Rightarrow$ ufa!,
 \end{itemize}
 where \lstinline!nat rel = (nat $\times$ nat) set!.
 The intended meaning of these operations is the following:
 \begin{itemize}
   \item \lstinline!ufa_$\alpha$ uf! is the partial equivalence relation represented by \lstinline!uf!,
-  \item \lstinline!ufa_rep_of uf x! is the representative of the equivalence class that \lstinline!x! belongs to, and
+  \item \lstinline!ufa_rep_of uf x! is the representative of the equivalence class that \lstinline!x! belongs to,
+  \item \lstinline|ufa_init n| initialises the data structure with \lstinline|n| elements with each element being its own representative, and
   \item \lstinline!ufa_union uf x y! returns a \acrshort{uf} data structure where the equivalence classes of \lstinline!x! and \lstinline!y! are merged.
     This is implemented by updating the underlying list at index \lstinline!rep_of l x! to \lstinline|rep_of l y|.
 \end{itemize}
@@ -291,7 +316,7 @@ definition valid_unions uf us =
   $\forall$(x, y) $\in$ set us. valid_union uf x y
 \end{lstlisting}
 
-\section{Simple Certifying Union-Find Algorithm}
+\section{Simple Certifying Union-Find Algorithm\label{sec:ufe_simple}}
 \begin{figure}
   \begin{gather*}
     \inferrule*[right=Assm]{\hbox{\lstinline|i < length us|} \\ \hbox{\lstinline|us ! i = (x, y)|}}{\hbox{\lstinline|us $\ \vdash_=\ $ AssmP i : (x, y)|}} \\[0.5em]
@@ -301,7 +326,6 @@ definition valid_unions uf us =
   \end{gather*}
   \caption{The data type \lstinline|eq_prf| of certificates and its corresponding system of inference rules $\vdash_=$.\label{fig:eq_prf}}
 \end{figure}
-\todo[inline]{Use equivalence instead of equality, Use equivalence operator instead of pairs, Maybe use cong symbol}
 Building on the \acrshort{uf} \acrshort{adt} from the previous section, we now develop a simple \lstinline|explain| operation that,
 for a given list of equations \lstinline|us|, takes two elements \lstinline|x| and \lstinline|y| and produces a certificate that \lstinline|x = y| modulo \lstinline|us|.
 The certificate is given in terms of a data type \lstinline|eq_prf| with its corresponding system $\vdash_=$ of inference rules as seen in \autoref{fig:eq_prf}.
@@ -312,7 +336,7 @@ We remark that one can not prove disequality with this proof system.
 In that sense, we are working with an open-world assumption. 
 
 We prove that $\vdash_=$ is sound and complete with respect to the equivalence relation induced by \lstinline|us|, i.e.\ the equivalence closure of \lstinline|us|.
-In Isabelle, we define\todo{Introduce inverse and rtrancl?}
+In Isabelle, we define
 \begin{lstlisting}
 definition symcl r = r $\cup$ r$^{-1}$
 definition equivcl r = (symcl r)$^*$
@@ -331,20 +355,24 @@ shows $\exists$p. as $\vdash_=$ p : (x, y)
 \begin{figure*}
   \centering
   \begin{lstlisting}
+context fixes uf_init :: ufa
+begin
+
 function explain :: (nat $\times$ nat) list $\Rightarrow$ nat $\Rightarrow$ nat $\Rightarrow$ nat eq_prf where
   explain [] x _ = ReflP x
 | explain (us @ [(a, b)]) x y =
     let uf = ufa_unions uf_init us; a_b_P = AssmP (length us)
     in if ufa_rep_of uf x = ufa_rep_of uf y then explain us x y
-      else if ufa_rep_of uf x = ufa_rep_of uf a then explain us x a $\TransP$ a_b_P $\TransP$ explain us y b
-      else explain us x b $\TransP$ SymP a_b_P $\TransP$ explain us a y
+       else if ufa_rep_of uf x = ufa_rep_of uf a then explain us x a $\TransP$ a_b_P $\TransP$ explain us y b
+       else explain us x b $\TransP$ SymP a_b_P $\TransP$ explain us a y
 
 definition explain_partial us x y =
   if (x, y) $\in$ equivcl (set us) then Some (explain us x y) else None
+
+end
   \end{lstlisting}
-  \caption{A simple implementation of the \lstinline|explain| operation. It operates on an arbitrary initial \acrshort{uf} data structure \lstinline|uf_init|.\label{fig:explain}}
+  \caption{A simple implementation of the \lstinline|explain| operation. We fix an arbitrary initial \acrshort{uf} data structure \lstinline|uf_init| that the operation works on.\label{fig:explain}}
 \end{figure*}
-\todo[inline]{termination of \lstinline|explain|}
 Although \lstinline|explain| takes a list of equations \lstinline|us|, its implementation actually works with an instance \lstinline|uf| of the \acrshort{uf} \acrshort{adt} that results from applying \lstinline|us| as unions to an initial \acrshort{uf} data structure \lstinline|uf_init|.
 Accordingly, we define
 \begin{lstlisting}
@@ -366,14 +394,15 @@ in the remainder of this section.
 
 If the list of unions is empty, then \lstinline|x| and \lstinline|y| must actually be equal which we certify with \lstinline|ReflP x|.
 
-Otherwise, the list of unions must be equal to \lstinline|us @ [(a, b)]| for some \lstinline|us|, \lstinline|a|, and \lstinline|b|.
+Otherwise, the list of unions is equal to \lstinline|us @ [(a, b)]| for some \lstinline|us|, \lstinline|a|, and \lstinline|b|.
 We distinguish between two cases:
 \begin{itemize}
   \item The elements \lstinline|x| and \lstinline|y| are already equal modulo \lstinline|us|, so we proceed recursively with \lstinline|us|.
   \item In the case that the equation \lstinline|a = b| is necessary for \lstinline|x = y| to hold, we either have \lstinline|x = a| and \lstinline|b = y| or \lstinline|x = b| and \lstinline|a = y| modulo \lstinline|us|.
-    Assuming that the former holds --- the other case is symmetric --- we recursively construct the certificates for \lstinline|x = a| and \lstinline|b = y|.
+    Assuming the former holds --- the other case is symmetric --- we recursively construct the certificates for \lstinline|x = a| and \lstinline|b = y|.
     Together with the assumption that \lstinline|a = b|, we obtain \lstinline|x = y| by transitivity.
 \end{itemize}
+The termination of \lstinline|explain| is easily proven as the length of the list of unions decreases in each call.
 
 We condense the above intuition into the completeness theorem below.
 \begin{lstlisting}
@@ -395,26 +424,25 @@ shows (x, y) $\in$ equivcl (set us) $\leftrightarrow$ x = y $\lor$
   x $\in$ Field (ufa_$\alpha$ uf) $\land$ y $\in$ Field (ufa_$\alpha$ uf) $\land$
   ufa_rep_of uf x = ufa_rep_of uf y
 \end{lstlisting}
-\todo[inline]{Improve explanation above? Segue?}
 
-\section{Efficient Certifying Union-Find Algorithm}
+\section{Efficient Certifying Union-Find Algorithm\label{sec:ufe_efficient}}
 In the previous section, we developed a simple certifying \acrfull{ufe} data structure whose \lstinline|explain| operation iterates through a list of equalities,
-identifying which of them are necessary in order to prove that the inputs are equal.
-Nevertheless, iterating through all equalities seems inefficient and indeed \citeauthor{congcl_proofs}~\cite{congcl_proofs} propose a more focused approach.
-Specifically, they use a \acrshort{uf} data structure represented as forest of rooted trees as described in \autoref{sec:uf_background}.
-They modify the data structure such that, for each union between \lstinline|a| and \lstinline|b|, the newly added edge gets annotated with \lstinline|(a, b)|.\todo{Direction of union! Explain sides of the union!}
-To understand why this allows for a more efficient implementation of the explain operation, suppose that we want to certify that \lstinline|x| is equal to \lstinline|y|.
+identifying which of them are necessary in order to prove that the input arguments are equal.
+Iterating through all equalities seems inefficient, though.
+Intuitively, we just want to return those equalities that lie on the path between the arguments where we consider the list of equalities as an undirected graph.
+To realise this, \citeauthor{congcl_proofs}~\cite{congcl_proofs} use a \acrshort{uf} data structure represented as forest of rooted trees as described in \autoref{sec:uf_background}.
+They modify the data structure such that, for each union between \lstinline|a| and \lstinline|b|, the newly added edge gets annotated with \lstinline|(a, b)|.
+To understand why this allows for a more efficient implementation of the \opexplain{} operation, suppose that we want to certify that \lstinline|x| is equal to \lstinline|y|.
 Clearly, only the edges of the subtree rooted at the \acrfull{lca} of \lstinline|x| and \lstinline|y|, as illustrated in \autoref{fig:explain'_abs}, are relevant to explain why \lstinline|x| is equal to \lstinline|y|.
 Furthermore, let \lstinline|(a, b)| be the most recent union on either of the paths between the \acrshort{lca} and \lstinline|x| and \lstinline|y|, respectively.
-\todo[inline]{Intuition: path from x to y}
 Here, we assume w.l.o.g.\ that \lstinline|(a, b)| is on the path to \lstinline|x|.
 The corresponding edge separates the tree rooted at the \acrshort{lca} into two subtrees as indicated by the patterns,  one containing \lstinline|a| and the other one \lstinline|b|.
 Moreover, the paths from the \acrshort{lca} can't overlap, so \lstinline|x| and \lstinline|y| also belong to different subtrees.
 Ultimately, to certify the equality of \lstinline|x| and \lstinline|y|, we recursively prove that \lstinline|x| is equal to \lstinline|a| and \lstinline|y| to \lstinline|b|.
 Then, we put everything together using transitivity and the equality of \lstinline|a| and \lstinline|b|.
 This terminates since \lstinline|(a, b)| is the most recent union and we only consider less recent unions in the recursive steps.
-All in all, this gives a $\mathcal{O}(k \log n)$ explain operation where $k$ is the number of unions required for an explanation~\cite{congcl_proofs}.
-\todo[inline]{Running time of naive algorithm}
+All in all, this gives a $\mathcal{O}(k \log n)$ \opexplain{} operation where $k$ is the number of unions required for an explanation~\cite{congcl_proofs}.
+This is an improvement over the naive algorithm where we always iterate over all unions.
 \begin{figure}
   \centering
   \begin{tikzpicture}[
@@ -447,20 +475,25 @@ All in all, this gives a $\mathcal{O}(k \log n)$ explain operation where $k$ is 
 \subsection{Implementation}
 We implement this \acrshort{ufe} data structure as a record type \lstinline|ufe_ds|.
 For some fixed instance \lstinline|ufe_ds| of this type, the purpose of the record members is as follows:
-\todo[inline]{Introduce \lstinline|ufa_parent_of|, explain abstraction leakage.}
 \begin{itemize}
   \item The list \lstinline|unions ufe_ds :: (nat $\times$ nat) list| contains the input equalities.
-  \item The \acrshort{ufe} data structure \lstinline|uf_ds ufe_ds :: ufa| maintains the equivalence closure of the input equalities or, put differently, it is the result of applying \lstinline|unions ufe_ds| to an initial union find data structure.
+  \item The \acrshort{uf} data structure \lstinline|uf_ds ufe_ds :: ufa| maintains the equivalence closure of the input equalities;
+  put differently, it is the result of seqeuentially applying \lstinline|unions ufe_ds| to an initial union find data structure.
     We require this to be a forest of rooted trees as introduced in \autoref{sec:uf_background}.
-  \item The partial function \lstinline|au_ds ufe_ds :: nat $\Rightarrow$ nat option| associates an unique equality with each edge in the forest by indexing into \lstinline|unions ufe_ds|.
+  \item The \lstinline|au_ds ufe_ds :: nat $\Rightarrow$ nat option| associates an unique equality with each edge in the forest by indexing into \lstinline|unions ufe_ds|.
     In other words, there exists an \lstinline|i| such that \lstinline|au_ds ufe_ds x = Some i| if \lstinline|x| has a parent in the forest.
     The associated union of the edge from \lstinline|x| to its parent is then \lstinline|unions ufe_ds ! i|.
 \end{itemize}
-For succinctness, we lift the operations \lstinline|ufa_rep_of|, \lstinline|ufa_parent_of|, and \lstinline|ufa_$\alpha$| from the record member \lstinline|uf_ds| to the record type \lstinline|ufe_ds|.
+As the associated unions work with the parent of an element in the \acrshort{uf} data structure, we define a function
+\begin{lstlisting}
+ufa_parent_of :: ufa $\Rightarrow$ nat $\Rightarrow$ nat
+\end{lstlisting}
+by lifting that retrieves the parent of an element in the \acrshort{uf} data structure.
+
+Then, we lift the operations \lstinline|ufa_$\alpha$|, \lstinline|ufa_rep_of|, as well as \lstinline|ufa_parent_of| from the record member \lstinline|uf_ds| to the record type \lstinline|ufe_ds|.
 The lifted operations use the prefix \lstinline|ufe| instead of \lstinline|ufa|, so \lstinline|ufa_rep_of| is lifted to \lstinline|ufe_rep_of|, for example.
 
 Similarly, we obtain the initial \acrshort{ufe} data structure by lifting \lstinline|ufa_init| while leaving the other two members empty as the following definition shows.
-\todo[inline]{Introduce \lstinline|ufa_init|. Say that this is the init operation?}
 \begin{lstlisting}
 definition ufe_init :: nat $\Rightarrow$ ufe_ds where
   ufe_init n = $\llparenthesis$ uf_ds = ufa_init n,
@@ -468,8 +501,8 @@ definition ufe_init :: nat $\Rightarrow$ ufe_ds where
 \end{lstlisting}
 
 \subsubsection{Union}
-Continuing with the union operation, we lift \lstinline|ufa_union| to the \acrshort{ufe} data structure.
-For a union operation between \lstinline|x| and \lstinline|y|, we add \lstinline|(x, y)| to the list of unions and update the associated union of the representative of \lstinline|x| to \lstinline|(x, y)|.
+Continuing with the \opunion{} operation, we lift \lstinline|ufa_union| to the \acrshort{ufe} data structure.
+For a \opunion{} operation between \lstinline|x| and \lstinline|y|, we add \lstinline|(x, y)| to the list of unions and update the associated union of the representative of \lstinline|x| to \lstinline|(x, y)|.
 We need to use the representative here because \lstinline|ufa_union| adds an edge from the representative of \lstinline|x| to that of \lstinline|y|.
 As with the \acrshort{uf} data structure, we also define a function that applies a list of unions in consecutive order.
 \begin{lstlisting}
@@ -488,7 +521,7 @@ The definition of \lstinline|ufe_union| comes with a caveat:
 specifically, it only makes sense to update the (associated) unions if the union in question actually introduces a new edge in the \acrshort{uf} data structure.
 In other words, the representatives of \lstinline|x| and \lstinline|y| of the union \lstinline|(x, y)| must not be equal.
 We call such a union \emph{effective} with respect to a given \acrshort{uf} data structure.
-This notion extends to lists of unions by checking if each consecutive union is effective with respect to the data structure that results from applying the preceeding unions.
+This notion extends to lists of unions by checking if each consecutive union is effective with respect to the data structure that results from applying the preceding unions.
 \begin{lstlisting}
 definition eff_union uf a b =
   valid_union uf a b $\land$
@@ -503,9 +536,9 @@ fun eff_unions where
 
 \subsubsection{Well-formed \acrshort{ufe} data structures}
 In the previous sections, we have introduced the prerequisites for creating \acrshort{ufe} data structures,
-namely a way to initialise the data structure and the union operation.
+namely a way to initialise the data structure and the \opunion{} operation.
 We refer to data structures created in this way as well-formed.
-In order to characterise well-formedness, we employ a feature of Isabelle called \emph{locales}\todo{citation}, which is a named context that is paramatrised by a collection of types and constants, as well as assumptions about them.
+In order to characterise well-formedness, we employ a feature of Isabelle called \emph{locales}~\cite{locales}, which is a named context that is parametrised by a collection of types and constants, as well as assumptions about them.
 To begin with, we introduce a locale \lstinline|ufe_init_invars| that fixes an initial data structure \lstinline|ufe_init| and assumes the following well-formedness conditions
 \begin{itemize}
   \item \lstinline|ufe_$\alpha$ ufe_init $\subseteq$ Id|,
@@ -517,7 +550,6 @@ The advantage of the locale is that we abstract over the concrete number of elem
 
 We extend this locale to obtain the locale \lstinline|ufe_invars| that describes well-formed \acrshort{ufe} data structures, that is, exactly those data structures that arise from applying a sequence of effective unions to a well-formed initial data structure.
 More specifically, we fix a data structure \lstinline|ufe_ds| and assume
-\todo[inline]{induction principle}
 \begin{itemize}
 \item \lstinline|eff_unions (uf_ds ufe_init) (unions ufe_ds)|\\and
 \item \lstinline|ufe_ds =|\\\lstinline|  ufe_unions ufe_init (unions ufe_ds)|.
@@ -554,7 +586,7 @@ In terms of Isabelle, we say that \lstinline|ufa_tree| is a sublocale of \lstinl
 
 \subsubsection{Auxiliary functions}
 We have established the definition of well-formed \acrshort{ufe} data structures, on which the explain function operates;
-however, before we can proceed with the definition of explain, we first need implement two auxiliary functions as described in \autoref{fig:explain'_abs}\todo{Use section?}:
+however, before we can proceed with the definition of explain, we first need implement two auxiliary functions as alluded to in \autoref{sec:ufe_efficient}:
 one determines the \acrshort{lca} of two nodes in the \acrshort{uf} forest, while 
 the other finds the most recent union on the path between two nodes.
 
@@ -563,7 +595,6 @@ Similarly to \lstinline|ufa_rep_of|, this function is only well-defined for elem
 Now, let \lstinline|px| be the path from the representative of to \lstinline|x| and \lstinline|py| be the path from \lstinline|y|'s representative to \lstinline|y|.
 Then, every element of a common prefix of \lstinline|px| and \lstinline|py| is a common ancestor of \lstinline|x| and \lstinline|y| and
 the \acrshort{lca} is exactly the last element of the longest common prefix of \lstinline|px| and \lstinline|py|. 
-\todo[inline]{Domain of the function}
 \begin{lstlisting}
 function awalk_verts_from_rep where
   awalk_verts_from_rep uf x =
@@ -590,12 +621,12 @@ assumes x $\in$ verts (ufa_tree_of uf pivot)
 assumes y $\in$ verts (ufa_tree_of uf pivot)
 shows lca (ufa_lca uf x y) x y
 \end{lstlisting}
-Later down the line, we prove key properties of the explain operation by induction on well-formed \acrshort{ufe} data structures, so it is relevant how the auxiliary functions behave with respect to effective unions.
+Later down the line, we prove key properties of the \opexplain{} operation by induction on well-formed \acrshort{ufe} data structures, so it is relevant how the auxiliary functions behave with respect to effective unions.
 The lemma below shows that \lstinline|ufa_lca| is invariant if its argument were already in the same equivalence class before the union \lstinline|(a, b)|.
 Otherwise, the union introduces an edge from the representative of \lstinline|a| to that of \lstinline|b|, connecting the trees that \lstinline|x| and \lstinline|y| belong to at their respective roots.
 Due to the orientation of this new edge, we know that the \acrshort{lca} of \lstinline|x| and \lstinline|y| must be the representative of \lstinline|b| after performing the union.
-\begin{lstlisting}
-lemma (&\textcolor{isargreen}{\textbf{in}}& ufa_tree) ufa_lca_ufa_union:
+\begin{lstlisting}[caption={[empty]}, label={lst:ufa_lca_ufa_union}]
+lemma (&\textcolor{isargreen}{\textbf{in}}& ufa_tree) ufa_lca_ufa_union: &\hfill\textnormal{(\ref{lst:ufa_lca_ufa_union})}&
 assumes eff_union uf a b
 assumes x $\in$ Field (ufa_$\alpha$ uf) 
 assumes y $\in$ Field (ufa_$\alpha$ uf)
@@ -607,22 +638,30 @@ shows ufa_lca (ufa_union ufa a b) x y =
   else ufa_rep_of uf b
 \end{lstlisting}
 
-For the second auxiliary function as seen in \autoref{fig:find_newest},\todo{Argument names?} we walk the path from the second argument \lstinline|x| to the first argument \lstinline|y| and return the most recent associated union, i.e.\ the union with maximum index on that path.
+For the second auxiliary function as seen in \autoref{fig:find_newest}, we walk the path from the second argument \lstinline|x| to the first argument \lstinline|y| and return the most recent associated union, i.e.\ the union with maximum index on that path.
 As explained earlier, we only use this function on an element in conjunction with its \acrshort{lca} relative to another element.
 Thus, there is a path between the two arguments and the function is well-defined for such inputs.
 The path, however, can be empty, for which we account by returning \lstinline|None|, making the function partial.
-\todo[inline]{Domain of the function! Abbreviations!}
+Furthermore, the function only terminates for some inputs, namely those where \lstinline|y| is an ancestor of \lstinline|y| or, in other words, there is a path from \lstinline|y| to \lstinline|x| in the \acrshort{uf} data structure.
+Furthermore, we define abbreviations to account for the fact that we are only using the function with an \acrshort{lca} as the first argument,
+giving us a more succinct notation for the upcoming proofs.
 \begin{figure*}
   \begin{lstlisting}
+context fixes ufe_ds :: ufe_ds
+begin
+
 function find_newest_on_path :: nat $\Rightarrow$ nat $\Rightarrow$ nat option where
-  find_newest_on_path ufe_ds y x =
+  find_newest_on_path y x =
     if x = y then None
-    else max (au_ds ufe_ds x) (find_newest_on_path ufe_ds y (ufe_parent_of ufe_ds x))
+    else max (au_ds ufe_ds x) (find_newest_on_path y (ufe_parent_of ufe_ds x))
+
+end
 
 abbreviation &\NewestL{ufe\_ds}{x}{y}& = find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) x
 abbreviation &\NewestR{ufe\_ds}{x}{y}& = find_newest_on_path ufe_ds (ufe_lca ufe_ds x y) y 
   \end{lstlisting}
-  \caption{The auxiliary function \lstinline|find_newest_on_path|.\label{fig:find_newest} \todo[inline]{Fixed \lstinline|ufe_ds|}}
+  \caption{For an arbitrary \acrshort{ufe} data structure \lstinline|ufe_ds|, the auxiliary function \lstinline|find_newest_on_path| searches the most recent union on the path between two elements of the \acrshort{uf} data structure.
+  \label{fig:find_newest}}
 \end{figure*}
 
 As before, we are interested in how the function behaves under effective unions.
@@ -630,20 +669,20 @@ Since unions only join trees at their roots, existing paths in the tree are unch
 so the function is invariant under unions for elements in the same equivalence class.
 If, on the other hand, two elements only become part of the same equivalence class as a result of a union \lstinline|(a, b)|, then \lstinline|(a, b)| must be on the path between those elements and, as it is the most recent union, the function returns the index of that union.
 The notation \lstinline|x $\rightarrow^*_\text{T}$ y| in the lemma below means that \lstinline|y| is reachable from \lstinline|x| in the graph \lstinline|T|.
-\begin{lstlisting}
-lemma (&\bfseries\textcolor{isargreen}{in}& ufe_invars)
+\begin{lstlisting}[caption={[empty]}, label={lst:find_newest_ufe_union}]
+lemma (&\bfseries\textcolor{isargreen}{in}& ufe_invars)&\hfill\textnormal{(\ref{lst:find_newest_ufe_union})}&
 assumes eff_union (uf_ds ufe_ds) a b
 defines ufe_ds' = ufe_union ufe_ds a b
 assumes x $\rightarrow^*_{\text{ufe\_tree\_of ufe\_ds' pivot}}$ y
 shows
   find_newest_on_path ufe_ds' x y =
   if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y
-    then find_newest_on_path ufe_ds x y
+  then find_newest_on_path ufe_ds x y
   else Some (length (unions ufe_ds))
 \end{lstlisting}
 
 \subsubsection{Explain}
-With the auxiliary functions in place, we are set to implement the efficient explain operation as shown in \autoref{fig:explain'}.
+With the auxiliary functions in place, we are set to implement the efficient \opexplain{} operation as shown in \autoref{fig:explain'}.
 
 Given arguments \lstinline|x| and \lstinline|y|, we first check whether they are equal, and if so, we justify their equality by reflexivity.
 
@@ -686,7 +725,6 @@ function explain' :: nat $\Rightarrow$ nat $\Rightarrow$ nat eq_prf where
 \subsection{Correctness}
 In order to establish functional correctness of \lstinline|explain'|, we need to prove its termination as well as soundness and completeness.
 We prove the former directly, while we obtain the latter by showing that \lstinline|explain'| is extensionally equal to \lstinline|explain|.
-\todo[inline]{We are in the locales here!}
 Finally, \lstinline|explain'|, just as \lstinline|explain|, does not validate its input, so we assume for the remainder of this section that
 \begin{itemize}
   \item \lstinline|x,$\,$y $\in$ Field (ufe_$\alpha$ ufe_ds)| and
@@ -695,7 +733,7 @@ Finally, \lstinline|explain'|, just as \lstinline|explain|, does not validate it
 
 To prove the termination of \lstinline|explain'|, we first show that termination is invariant under an effective union, from which we then deduce that \lstinline|explain'| must terminate for all well-formed \acrshort{ufe} data structures.
 \begin{lstlisting}[caption={[empty]}, label={lst:explain'_dom_ufe_union}]
-lemma explain'_dom_ufe_union: &\hfill\textnormal{(\ref{lst:explain'_dom_ufe_union})}&
+lemma (&\textcolor{isargreen}{\textbf{in}}& ufe_invars) explain'_dom_ufe_union: &\hfill\textnormal{(\ref{lst:explain'_dom_ufe_union})}&
 assumes explain'_dom ufe_ds (x, y)
 assumes eff_union (uf_ds ufe_ds) a b
 shows explain'_dom (ufe_union ufe_ds a b) (x, y)
@@ -730,7 +768,7 @@ it suffices to show that \lstinline|(ax, bx)| is still the most recent union bet
 (unions (ufe_union ufe_ds a b) !
   &\NewestL{ufe\_union ufe\_ds a b}{x}{y}&) = (ax, bx).
   \end{lstlisting}
-  But we know that \lstinline|ufe_lca| and \lstinline|find_newest_on_path| are invariant under union\todo{Refer lemma}, which gives us
+  But we know that \lstinline|ufe_lca| and \lstinline|find_newest_on_path| are invariant under union (cf.\ Lemma~\ref{lst:ufa_lca_ufa_union} and~\ref{lst:find_newest_ufe_union}), which gives us
   \begin{lstlisting}
 &\NewestL{ufe\_union ufe\_ds a b}{x}{y}& = &\NewestL{ufe\_ds}{x}{y}&
   \end{lstlisting}
@@ -738,8 +776,9 @@ it suffices to show that \lstinline|(ax, bx)| is still the most recent union bet
 \end{proof}
 
 \begin{lstlisting}
-lemma explain'_dom_if_ufe_rep_of_eq:
-shows explain'_dom ufe_ds (x, y)
+lemma (&\textcolor{isargreen}{\textbf{in}}& ufe_invars)
+  explain'_dom_if_ufe_rep_of_eq:
+  shows explain'_dom ufe_ds (x, y)
 \end{lstlisting}
 \begin{proof}
   We prove the termination by induction on \lstinline|ufe_ds| for arbitrary \lstinline|x| and \lstinline|y|.
@@ -767,7 +806,6 @@ explain'_dom ufe_ds (u, v)
   Otherwise, we have that the representatives of \lstinline|x| and \lstinline|y| only become equal as a result of the union \lstinline|(a, b)|,
   meaning that \lstinline|(a, b)| is the most recent union on the path from \lstinline|x| to \lstinline|y|.
   Let us assume w.l.o.g.\ ---the other case is symmetric--- that \lstinline|(a, b)| is on the path from the \acrshort{lca} to \lstinline|x|.
-  \todo[inline]{Refer to \autoref{fig:explain'_abs}}
   Then, to prove our goal
   \begin{lstlisting}
 explain'_dom (ufe_union ufe_ds a b) (x, y)
@@ -781,14 +819,14 @@ explain'_dom (ufe_union ufe_ds a b) (b, y).
 \end{proof}
 Using the termination of \lstinline|explain'| together with the invariance of \lstinline|ufe_lca| and \lstinline|find_newest_on_path| under effective unions, we can deduce that \lstinline|explain'| is also invariant under effective unions.
 \begin{lstlisting}[caption={[empty]}, label={lst:explain'_ufe_union}]
-lemma explain'_ufe_union: &\hfill\textnormal{(\ref{lst:explain'_ufe_union})}&
+lemma (&\textcolor{isargreen}{\textbf{in}}& ufe_invars) explain'_ufe_union: &\hfill\textnormal{(\ref{lst:explain'_ufe_union})}&
 assumes eff_union (uf_ds ufe_ds) a b
 shows explain' (ufe_union ufe_ds a b) x y =
       explain' ufe_ds x y
 \end{lstlisting}
-Finally, we show that the efficient version of the explain operation is extensionally equal to the simple one.
+Finally, we show that the efficient version of the \opexplain{} operation is extensionally equal to the simple one.
 \begin{lstlisting}
-lemma explain_eq_explain':
+lemma (&\textcolor{isargreen}{\textbf{in}}& ufe_invars) explain_eq_explain':
 shows
   explain (uf_ds ufe_init) (unions ufe_ds x y) =
   explain' ufe_ds x y
@@ -840,22 +878,22 @@ P p1 p2 =
 \end{proof}
   
 \section{Refinement to an Efficiently Executable Specification}
-In the previous section, we showed how the explain operation can be implemented efficiently on an abstract level.
+In the previous section, we showed how the \opexplain{} operation can be implemented efficiently on an abstract level.
 Specifically, we described a refined recursion scheme that avoids iterating through all input equalities.
 To turn this into an efficiently executable specification, we refine two aspects of the \acrshort{ufe} data structure:
-\todo[inline]{One refinement and then even more concrete refinement}
 \begin{itemize}
   \item First, we employ the union-by-size heuristic~\cite{uf_by_size}, i.e.\ we always attach the tree with fewer nodes to the one with more nodes during a union. 
   This ensures that all trees in the \acrshort{uf} data structure have height at most $\mathcal{O}(\log n)$ where $n$ is the initial number of elements of the data structure.
   This yields $\mathcal{O}(\log n)$ running time for union and find as well as $\mathcal{O}(k \log n)$ for explain.
-  \item Furthermore, we refine lists to arrays as constant time access to the parent element and the size information in the \acrshort{uf} data structure is essential for performance. 
+  \item Then, we take this functional version of the \acrshort{uf} data structure and refine it further to obtain an imperative specification. 
+    This is essential for performance as it allows us constant time access to the parent of an element by using arrays instead of lists.
 \end{itemize}
 
 \subsection{Union-by-size Heuristic}
 Before we describe the formalisation of the union-by-size heuristic in more detail, 
 we remark that \citeauthor{congcl_proofs}~\cite{congcl_proofs} improve the performance of union and find to optimal almost constant running time by also employing the path compression heuristic~\cite{uf_compress}.
-The explain operation, however, is incompatible with path compression, so we would have to maintain two copies of the \acrshort{uf} data structure: one with and one without path compression.
-Since the focus of this paper is the explain operation, we omit this heuristic in the refined specification\footnote{We actually formalise path compression for the \acrshort{uf} data structure but omit it from the executable specification of the \acrshort{ufe} data structure}.
+The \opexplain{} operation, however, is incompatible with path compression, so we would have to maintain two copies of the \acrshort{uf} data structure: one with and one without path compression.
+Since the focus of this paper is the \opexplain{} operation, we omit this heuristic in the refined specification\footnote{We actually formalise path compression for the \acrshort{uf} data structure but omit it from the executable specification of the \acrshort{ufe} data structure}.
 
 As mentioned in \autoref{sec:uf_hol}, our formalisation of the \acrshort{uf} data structure extends a formalisation by \citeauthor{uf_isabelle}~\cite{uf_isabelle,uf_isabelle_afp}.
 The latter formalisation already introduces the union-by-size heuristic, but it does so during the refinement to Imperative HOL.
@@ -873,9 +911,9 @@ definition ufa_eq_class uf i = ufa_$\alpha$ uf `` {i}
 definition ufa_size uf i =
   card (ufa_eq_class uf i)
 \end{lstlisting}
-With this, we can perform the union operation such that the element with the smaller size is always passed as the first argument. 
+With this, we can perform the \opunion{} operation such that the element with the smaller size is always passed as the first argument. 
 The underlying implementation of the data structure always updates the parent pointer of the representative of the first argument to the representative of the second argument,
-thus yielding a union operation that attaches smaller trees in the \acrshort{uf} forest to larger trees.
+thus yielding a \opunion{} operation that attaches smaller trees in the \acrshort{uf} forest to larger trees.
 \begin{lstlisting}
 definition ufa_union_size uf x y =
   let
@@ -904,7 +942,7 @@ To prove this quotient theorem, though, we would have to show that the conversio
 \begin{lstlisting}
 ufs_of_ufa (ufa_of_ufs ufs) = ufs.
 \end{lstlisting}
-This does not hold, though;
+This is not true, though;
 the conversion \lstinline|ufa_of_ufs| forgets the value of the size function \lstinline|sz| for arguments that are not representatives, while \lstinline|ufs_of_ufa| uses \lstinline|ufa_size| as the size function, which might be different to \lstinline|sz|.
 With \citeauthor{transport}'s \emph{Transport} framework, we could relax the equality to a partial equivalence relation that considers instances of \lstinline|ufs| equal if their size functions agree at the representatives. 
 As of now, the framework only has tooling to lift definitions; however, we also need to transport theorems.
@@ -920,8 +958,8 @@ therefore, we intuitively want to define \lstinline|ufs_size|, the pendant to \l
 At the same time, though, we want to establish a transfer theorem between the two functions.
 Here, we hit another limitation, this time of transfer;
 specifically, those functions are only related for some arguments, namely those where the arguments are representatives.
-Again, we could express this in the Transport framework using dependent function relators, which transfer does not support.
-To work around this limitation, we choose to lift \lstinline|ufa_size| instead, which gives us a transfer theorem but not our desired implementation of \lstinline|ufs_rank|.
+Once again, we could express this in the Transport framework using dependent function relators, which transfer does not support.
+To work around this limitation, we choose to lift \lstinline|ufa_size| instead, which gives us a transfer theorem but not our desired implementation of \lstinline|ufs_size|.
 We then restore the desired implementation during the refinement to Imperative HOL, which we describe in the upcoming \autoref{sec:imperative_hol}.
 
 As described above, we only consider the value of the size function at the representatives to be relevant.
@@ -929,12 +967,12 @@ Moreover, in the representation of \lstinline|ufa| as a list of natural numbers,
 Ultimately, we can integrate both insights by encoding the data structure as a list of integers instead:
 we use a negative number to indicate that a parent pointer is self-referential, using the absolute value of the number as the size at the same time.
 The other parent pointers are encoded as non-negative numbers as before.
-Like with the type \lstinline|ufs|, we use \lstinline|typedef| to introduce a new type \lstinline|ufsi| with this representation.\todo{Refer to formalisation?}
+Like with the type \lstinline|ufs|, we use \lstinline|typedef| to introduce a new type \lstinline|ufsi| with this representation.
 We are faced with similar problem as before:
 the type definition represents \lstinline|ufsi| as a list of integers and therefore does not facilitate lifting constant and theorems from \lstinline|ufs| to \lstinline|ufsi|.
 We are in luck this time, though, because \lstinline|ufsi| is actually a quotient of \lstinline|ufs|.
 Consequently, we define functions on \lstinline|ufsi| by lifting them from \lstinline|ufs|, thus obtaining the required transfer theorems automatically through the lifting package.
-We are faced with the same caveat as with the function \lstinline|ufs_rank|:
+We are faced with the same caveat as with the function \lstinline|ufs_size|:
 the functions are lifted from the more abstract type \lstinline|ufs| but for the actual implementation we want to work directly on the list of integers.
 As before, we account for this during the refinement to Imperative HOL.
 %\begin{lstlisting}
@@ -954,12 +992,12 @@ As before, we account for this during the refinement to Imperative HOL.
 %typedef ufsi = {ufsi. ufsi_invar ufsi}
 %\end{lstlisting}
 %
-% Maybe show \lstinline|ufsi_rank_Abs_ufsi| here.
+% Maybe show \lstinline|ufsi_size_Abs_ufsi| here.
 
 \subsection{Refining Lists to Arrays\label{sec:imperative_hol}}
 In the previous section, we formalised the union-by-size heuristic on lists,
 so we still need to refine those lists to arrays for efficient execution. 
-To achieve this in Isabelle, we formulate a refined version of the explain operation in the heap monad provided by the Imperative HOL~\cite{imperative_hol} framework.
+To achieve this in Isabelle, we formulate a refined version of the \opexplain{} operation in the heap monad provided by the Imperative HOL~\cite{imperative_hol} framework.
 This framework comes with an extension to Isabelle's code generator allowing us to generate imperative code in several target languages including Standard ML. 
 Since Imperative HOL only comes with limited capabilities to analyse programs in its heap monad, 
 we bring in \citeauthor{uf_isabelle}'s~\cite{uf_isabelle} separation logic framework for Imperative HOL.
@@ -969,12 +1007,11 @@ so we ensure with heap assertions that the content of the arrays represents our 
 
 To exemplify this, consider the previously introduced type \lstinline|ufsi| that implements the \acrshort{uf} data structure as a list of integers.
 We represent this datatype as an array of integers in Imperative HOL
-\todo[inline]{Explain that an array is just an address}
 \begin{lstlisting}
-type_synonym ufsi_imp = int array 
+type_synonym ufsi_imp = int array
 \end{lstlisting}
-and define the following assertion to relate instances of \lstinline|ufsi| with their array representations:
-\todo[inline]{Introduce type assn}
+where the \lstinline|array| just represents an address that only becomes meaningful in the context of a heap.
+Using the type \lstinline|assn| that encodes assertions in the separation logic, We define the following assertion to relate instances of \lstinline|ufsi| with their array representations:
 \begin{lstlisting}
 definition is_ufsi :: ufsi $\Rightarrow$ ufsi_imp $\Rightarrow$ assn
   where is_ufsi ufsi ufsi_imp =
@@ -1033,7 +1070,7 @@ This works as the domain is actually fixed, i.e.\ the domain of the partial func
 Finally, we represent the list of unions as a dynamic array using the type \lstinline|dyn_array|.
 The type wraps an array together with a natural number indicating how many cells of the array, counting from the first position, are occupied.
 We can then grow the array dynamically by pushing elements to the end, doubling its size each time it becomes fully occupied.
-Hence, we achieve amortised constant running time for adding new unions and constant time random access, which are the operations required by the explain operation. 
+Hence, we achieve amortised constant running time for adding new unions and constant time random access, which are the operations required by the \opexplain{} operation. 
 There is a formalisation of dynamic arrays~\cite{imperative_hol_auto2} available in the \acrshort{afp}~\cite{imperative_hol_auto2}; 
 however, it uses its own definition of heap assertions, so we ported it to the separation logic framework. 
 
@@ -1047,23 +1084,34 @@ The assertion just relates the components of \lstinline|ufe_ds| with those of \l
 The only aspect in need of further explanation is the natural number \lstinline|n| that is part of the first argument.
 Its purpose is to ensure that the elements of the initial \acrshort{uf} data structure and the domain of the associated unions are both the numbers up to \lstinline|n|.
 
-%As implementing the refined operations on \lstinline|ufe_ds_imp| is again straightforward, we only show the final result here that establishes the correctness of \lstinline|explain_partial_imp|, which is the refined version of \lstinline|explain_partial| but it .
-\todo[inline]{Show final refinement result}
+Implementing the refined operations on \lstinline|ufe_ds_imp| is again straightforward,
+so we only show the final result here that establishes the correctness of \lstinline|explain_partial_imp|,
+which is an imperative version of \lstinline|explain'| that ensures soundness following the approach of \lstinline|explain_partial| in \autoref{sec:ufe_simple}.
+\begin{lstlisting}
+theorem (&\textcolor{isargreen}{\textbf{in}}& ufe_invars)
+  <is_ufe_ds (ufe_ds, n) ufe_ds_imp>
+    explain_partial_imp ufe_ds_imp x y
+  <$\lambda$r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * $\uparrow$(r =
+    explain_partial (uf_ds ufe_init)
+      (unions ufe_ds) x y)>
+\end{lstlisting}
 
 \section{Conclusion and Future Work}
-Future work
-\begin{itemize}
-  \item union by reversing edges
-  \item congruence closure
-\end{itemize}
+We developed a formalisation of the \acrshort{uf} data structure with an \opexplain{} operation based on a paper by \citeauthor{congcl_proofs}~\cite{congcl_proofs}.
+The formalisation includes a more naive version of the \opexplain{} operation than the one presented in the paper.
+We proved that both implementations of the operation are equivalent and their soundness, completeness, and termination.
+Finally, we refined the functional representation of the data structure to an imperative one, allowing us to export efficient code.
+
+In future work, we plan to verify the other variant of the \acrshort{ufe} data structure as presented by \citeauthor{congcl_proofs}.
+This variant also forms the basis of their congruence closure algorithm, which is the logical next step.
+Ultimately, we want to work towards a verified, proof-producing version of the Nelson-Oppen algorithm~\cite{nelson_oppen} for the combination of theories.
 
 \begin{acks}
   TODO
 \end{acks}
 
-\printglossary[type=\acronymtype]
-
-\listoftodos{}
+% \printglossary[type=\acronymtype]
+% \listoftodos{}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{sources}
