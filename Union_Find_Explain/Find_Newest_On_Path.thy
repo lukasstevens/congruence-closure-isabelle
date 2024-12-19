@@ -187,20 +187,16 @@ lemma ufe_rep_of_ufe_union_eq_cases:
     "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
     "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds b" "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds a"
   using assms
-  by (metis eff_unionD(1,2) uf_ds_ufe_union ufa_rep_of_ufa_union)
+  by (simp add: uf_ds_ufe_union_eq ufa_rep_of_ufa_union) metis
 
-lemma (in ufe_invars) find_newest_on_path_ufe_union_if_ufe_rep_of_neq:
+lemma find_newest_on_path_ufe_union_if_ufe_rep_of_neq:
   assumes "eff_union (uf_ds ufe_ds) a b"
   assumes "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
-  assumes "uf_ds (ufe_union ufe_ds a b) = ufa_union (uf_ds ufe_ds) a b"
   fixes pivot defines "T \<equiv> ufe_tree_of (ufe_union ufe_ds a b) pivot"
   assumes awalk_pxy:
     "pre_digraph.awalk T x pxy y"
   shows "find_newest_on_path (ufe_union ufe_ds a b) x y = Some (length (unions ufe_ds))"
 proof -
-  from assms ufe_invars_ufe_union interpret ufe_invars_union: ufe_invars
-    where ufe_ds = "ufe_union ufe_ds a b"
-    by blast
   from assms have "pivot \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
     unfolding pre_digraph.awalk_def
     by (metis in_ufa_\<alpha>_if_in_verts in_vertsI part_equiv_trans_sym(1) part_equiv_ufa_\<alpha>)
@@ -216,7 +212,7 @@ proof -
   with assms have
     x_in_Field_\<alpha>: "x \<in> Field (ufe_\<alpha> ufe_ds)" and
     y_in_Field_\<alpha>: "y \<in> Field (ufe_\<alpha> ufe_ds)"
-    using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
+    by simp_all
 
   from x_in_Field_\<alpha> interpret ufe_tree_x: ufe_tree
     where ufe_ds = ufe_ds and pivot = x
@@ -225,8 +221,8 @@ proof -
     where ufe_ds = ufe_ds and pivot = y
     by unfold_locales
   interpret ufe_tree_z: ufe_tree where ufe_ds = ufe_ds and pivot = pivot
-    using assms ufe_tree_union.pivot_in_Field_ufe_\<alpha> Field_ufa_\<alpha>_uf_ds_ufe_union
-    by unfold_locales blast+
+    using assms ufe_tree_union.pivot_in_Field_ufe_\<alpha>
+    by unfold_locales simp_all
 
   from assms have
     rep_a_in_Field_\<alpha>: "ufe_rep_of ufe_ds a \<in> Field (ufe_\<alpha> ufe_ds)"
@@ -238,7 +234,8 @@ proof -
   then have awalk_from_rep_union_rep_a:
     "awalk_from_rep (uf_ds (ufe_union ufe_ds a b)) (ufe_rep_of ufe_ds a) =
     awalk_from_rep (uf_ds ufe_ds) (ufe_rep_of ufe_ds b) @ [(?rep_b, ?rep_a)]"
-    using assms awalk_from_rep_rep_of by simp
+    using assms awalk_from_rep_rep_of
+    by (simp add: uf_ds_ufe_union_eq_if_eff_union)
 
   from awalk_pxy have
     "ufe_rep_of (ufe_union ufe_ds a b) x = ufe_rep_of (ufe_union ufe_ds a b) y"
@@ -258,7 +255,7 @@ proof -
     with assms have
       "pre_digraph.awalk (ufe_tree_of (ufe_union ufe_ds a b) x)
         ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
-      by fastforce
+      by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     then have union_awalk_awalk_from_rep_x:
       "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) x) x"
       using ufa_tree_of_eq_if_in_verts
@@ -271,7 +268,7 @@ proof -
     with assms have
       "pre_digraph.awalk (ufe_tree_of (ufe_union ufe_ds a b) y)
         ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
-      by fastforce
+      by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     then have union_awalk_awalk_from_rep_y:
       "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) y) y"
       using ufa_tree_of_eq_if_in_verts
@@ -284,7 +281,7 @@ proof -
       note ufe_tree_union.awalk_awalk_from_rep[OF this]
       then show ?thesis
         using assms awalk_from_rep_union_rep_a awalk_from_rep_rep_of
-        by simp
+        by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     qed
     ultimately have
       "ufe_tree_union.awalk ?rep_b ((?rep_b, ?rep_a) # awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
@@ -308,7 +305,7 @@ proof -
     with assms have
       "pre_digraph.awalk (ufe_tree_of (ufe_union ufe_ds a b) x)
         ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
-      by fastforce
+      by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     then have union_awalk_awalk_from_rep_x:
       "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x) x"
       using ufa_tree_of_eq_if_in_verts
@@ -321,7 +318,7 @@ proof -
     with assms have
       "pre_digraph.awalk (ufe_tree_of (ufe_union ufe_ds a b) y)
         ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
-      by fastforce
+      by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     then have union_awalk_awalk_from_rep_y:
       "ufe_tree_union.awalk ?rep_a (awalk_from_rep (uf_ds ufe_ds) y) y"
       using ufa_tree_of_eq_if_in_verts
@@ -333,7 +330,8 @@ proof -
         by blast
       note ufe_tree_union.awalk_awalk_from_rep[OF this]
       then show ?thesis
-        using assms(1,3) awalk_from_rep_rep_of awalk_from_rep_union_rep_a by auto
+        using assms(1,3) awalk_from_rep_rep_of awalk_from_rep_union_rep_a
+        by (simp add: uf_ds_ufe_union_eq_if_eff_union)
     qed
     ultimately have union_awalk_rep_b_y:
       "ufe_tree_union.awalk ?rep_b (awalk_from_rep (uf_ds ufe_ds) x @ pxy) y"
@@ -370,7 +368,7 @@ proof -
       by (metis list.set_intros(1))
     moreover
     have "ufe_tree_union.au_of (?rep_b, ?rep_a) = length (unions ufe_ds)"
-      using assms(3) unfolding ufe_tree_union.au_of_def
+      using assms unfolding ufe_tree_union.au_of_def
       by simp
     moreover have "ufe_tree_union.au_of e < length (unions (ufe_union ufe_ds a b))"
       if "e \<in> set pxy" for e
@@ -378,7 +376,7 @@ proof -
       by (meson subsetD ufe_tree_union.awalkE')
     then have "ufe_tree_union.au_of e \<le> length (unions ufe_ds)"
       if "e \<in> set pxy" for e
-      using that assms(3) by (simp add: less_Suc_eq order_le_less)
+      using that assms by (simp add: less_Suc_eq order_le_less)
     ultimately have "Max (ufe_tree_union.au_of ` set pxy) = length (unions ufe_ds)"
       by (intro Max_eqI) (auto simp: rev_image_eqI)
     moreover note ufe_tree_union.find_newest_on_path_eq_Max_au_of[OF awalk_pxy[unfolded T_def]]
@@ -387,7 +385,7 @@ proof -
   qed
 qed
 
-lemma (in ufe_invars) find_newest_on_path_ufe_union:
+lemma find_newest_on_path_ufe_union:
   assumes "eff_union (uf_ds ufe_ds) a b"
   fixes pivot defines "T \<equiv> ufe_tree_of (ufe_union ufe_ds a b) pivot"
   assumes awalk_pxy: "pre_digraph.awalk T x pxy y"
@@ -395,9 +393,6 @@ lemma (in ufe_invars) find_newest_on_path_ufe_union:
     (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y then find_newest_on_path ufe_ds x y
     else Some (length (unions ufe_ds)))"
 proof -
-  from assms ufe_invars_ufe_union interpret ufe_invars_union: ufe_invars
-    where ufe_ds = "ufe_union ufe_ds a b" 
-    by blast
   from assms have "pivot \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
     unfolding pre_digraph.awalk_def
     by (metis in_ufa_\<alpha>_if_in_verts in_vertsI part_equiv_trans_sym(1) part_equiv_ufa_\<alpha>)
@@ -413,7 +408,7 @@ proof -
   with assms have
     x_in_Field_\<alpha>: "x \<in> Field (ufe_\<alpha> ufe_ds)" and
     y_in_Field_\<alpha>: "y \<in> Field (ufe_\<alpha> ufe_ds)"
-    using Field_ufa_\<alpha>_uf_ds_ufe_union by blast+
+    by simp_all
 
   from x_in_Field_\<alpha> interpret ufe_tree_x: ufe_tree 
     where ufe_ds = ufe_ds and pivot = x
@@ -423,8 +418,8 @@ proof -
     by unfold_locales
   interpret ufe_tree_z: ufe_tree
     where ufe_ds = ufe_ds and pivot = pivot
-    using assms ufe_tree_union.pivot_in_Field_ufe_\<alpha> Field_ufa_\<alpha>_uf_ds_ufe_union
-    by unfold_locales blast+
+    using assms ufe_tree_union.pivot_in_Field_ufe_\<alpha>
+    by unfold_locales simp_all
 
   have ?thesis if "x \<noteq> y" "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   proof -
@@ -449,8 +444,8 @@ proof -
       with that have "head (ufe_tree_of ufe_ds x) e \<in> dom (au_ds ufe_ds)"
         using \<open>ufe_tree_x.awalk x pxy y\<close> by blast
       ultimately show ?thesis
-        using assms(2) lookup_au_ds_eq_None_iff[where z="ufe_rep_of ufe_ds b"]
-        unfolding ufe_tree_x.au_of_def ufe_tree_union.au_of_def au_ds_ufe_union                  
+        using assms lookup_au_ds_eq_None_iff[where z="ufe_rep_of ufe_ds b"]
+        unfolding ufe_tree_x.au_of_def ufe_tree_union.au_of_def                  
         by auto
     qed
     ultimately show ?thesis
@@ -458,20 +453,19 @@ proof -
   qed
   moreover have ?thesis if "ufe_rep_of ufe_ds x \<noteq> ufe_rep_of ufe_ds y"
     using assms awalk_pxy that
-    using find_newest_on_path_ufe_union_if_ufe_rep_of_neq by auto
+    using find_newest_on_path_ufe_union_if_ufe_rep_of_neq 
+    by (simp add: uf_ds_ufe_union_eq)
   ultimately show ?thesis
     by force
 qed
 
-lemma (in ufe_invars) find_newest_on_path_ufe_union_if_reachable:
+lemma find_newest_on_path_ufe_union_if_reachable:
   assumes "eff_union (uf_ds ufe_ds) a b"
   assumes "x \<rightarrow>\<^sup>*\<^bsub>ufe_tree_of (ufe_union ufe_ds a b) pivot\<^esub> y"
   shows "find_newest_on_path (ufe_union ufe_ds a b) x y = 
     (if ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y then find_newest_on_path ufe_ds x y
     else Some (length (unions ufe_ds)))"
 proof -
-  interpret ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b"
-    by (intro ufe_invars_ufe_union assms)
   from assms(2) have "x \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
     using reachable_in_vertsE by fast
   with in_ufa_\<alpha>_if_in_verts have "(pivot, x) \<in> ufe_\<alpha> (ufe_union ufe_ds a b)"

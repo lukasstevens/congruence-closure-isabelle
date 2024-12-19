@@ -6,20 +6,20 @@ theory Explain_Imp
 begin
 
 record ufe_ds_imp =
-  uf_ds :: ufsi_imp
-  au_ds :: "nat option Heap.array"
-  unions :: "(nat \<times> nat) dyn_array"
+  uf_ds\<^sub>i :: ufsi_imp
+  au_ds\<^sub>i :: "nat option Heap.array"
+  unions\<^sub>i :: "(nat \<times> nat) dyn_array"
 
 definition "is_au_ds \<equiv> \<lambda>(au, n) au_imp. \<exists>\<^sub>Aau_list.
   au_imp \<mapsto>\<^sub>a au_list *
   \<up>(n = length au_list \<and> au = (\<lambda>k. if k < length au_list then au_list ! k else None))"
 
-definition is_ufe_ds :: "ufe_ds \<times> nat \<Rightarrow> ufe_ds_imp \<Rightarrow> assn" where
+definition is_ufe_ds :: "ufe \<times> nat \<Rightarrow> ufe_ds_imp \<Rightarrow> assn" where
   "is_ufe_ds \<equiv> \<lambda>(ufe_ds, n) ufe_ds_imp.
-    is_ufsi (ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))) (uf_ds ufe_ds_imp) *
+    is_ufsi (ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))) (uf_ds\<^sub>i ufe_ds_imp) *
     \<up>(Field (ufe_\<alpha> ufe_ds) = {0..<n}) *
-    is_au_ds (ufe_ds.au_ds ufe_ds, n) (au_ds ufe_ds_imp) *
-    is_dyn_array (ufe_ds.unions ufe_ds) (unions ufe_ds_imp)"
+    is_au_ds (au_ds ufe_ds, n) (au_ds\<^sub>i ufe_ds_imp) *
+    is_dyn_array (unions ufe_ds) (unions\<^sub>i ufe_ds_imp)"
 
 lemma is_au_ds_upd_rule[sep_heap_rules]:
   assumes "i < n"
@@ -37,23 +37,23 @@ lemma nth_au_ds_rule[sep_heap_rules]:
   assumes "i \<in> Field (ufe_\<alpha> ufe_ds)"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      Array.nth (au_ds ufe_ds_imp) i
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufe_ds.au_ds ufe_ds i)>"
+      Array.nth (au_ds\<^sub>i ufe_ds_imp) i
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = au_ds ufe_ds i)>"
   using assms unfolding is_ufe_ds_def by sep_auto
 
 lemma nth_unions_rule[sep_heap_rules]:
-  assumes "i < length (ufe_ds.unions ufe_ds)"
+  assumes "i < length (unions ufe_ds)"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      Dynamic_Array.nth (unions ufe_ds_imp) i
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufe_ds.unions ufe_ds ! i)>"
+      Dynamic_Array.nth (unions\<^sub>i ufe_ds_imp) i
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = unions ufe_ds ! i)>"
   using assms unfolding is_ufe_ds_def by sep_auto
 
 definition "ufe_imp_init n \<equiv> do {
   uf \<leftarrow> ufsi_imp_init n;
   au \<leftarrow> Array.new n None;
   us \<leftarrow> Dynamic_Array.new (0, 0);
-  return \<lparr> uf_ds = uf, au_ds = au, unions = us \<rparr>
+  return \<lparr> uf_ds\<^sub>i = uf, au_ds\<^sub>i = au, unions\<^sub>i = us \<rparr>
 }"
 
 lemma new_is_au_ds_rule[sep_heap_rules]:
@@ -73,19 +73,19 @@ proof -
 qed
 
 definition "ufe_imp_union_raw ufe_ds_imp x y rep_x rep_y sz \<equiv> do {
-  len \<leftarrow> Dynamic_Array.length (unions ufe_ds_imp);
-  uf' \<leftarrow> ufsi_imp_union_raw (uf_ds ufe_ds_imp) rep_x rep_y sz;
-  au' \<leftarrow> Array.upd rep_x (Some len) (au_ds ufe_ds_imp);
-  us' \<leftarrow> Dynamic_Array.push (unions ufe_ds_imp) (0, 0) (x, y);
-  return \<lparr> uf_ds = uf', au_ds = au', unions = us' \<rparr>
+  len \<leftarrow> Dynamic_Array.length (unions\<^sub>i ufe_ds_imp);
+  uf' \<leftarrow> ufsi_imp_union_raw (uf_ds\<^sub>i ufe_ds_imp) rep_x rep_y sz;
+  au' \<leftarrow> Array.upd rep_x (Some len) (au_ds\<^sub>i ufe_ds_imp);
+  us' \<leftarrow> Dynamic_Array.push (unions\<^sub>i ufe_ds_imp) (0, 0) (x, y);
+  return \<lparr> uf_ds\<^sub>i = uf', au_ds\<^sub>i = au', unions\<^sub>i = us' \<rparr>
 }"
 
 lemma ufe_imp_union_raw_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
   defines "rep_x \<equiv> ufe_rep_of ufe_ds x"
   defines "rep_y \<equiv> ufe_rep_of ufe_ds y"
-  defines "sz_rep_x \<equiv> ufa_size (ufe_ds.uf_ds ufe_ds) rep_x"
-  defines "sz_rep_y \<equiv> ufa_size (ufe_ds.uf_ds ufe_ds) rep_y"
+  defines "sz_rep_x \<equiv> ufa_size (uf_ds ufe_ds) rep_x"
+  defines "sz_rep_y \<equiv> ufa_size (uf_ds ufe_ds) rep_y"
   assumes "rep_x \<noteq> rep_y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
@@ -93,7 +93,7 @@ lemma ufe_imp_union_raw_rule[sep_heap_rules]:
     <is_ufe_ds (ufe_union ufe_ds x y, n)>\<^sub>t"
 proof -
   include ufsi.lifting ufa_ufs_transfer
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   from assms(1,2) have "x \<in> Field (ufsi_\<alpha> ufsi)" "y \<in> Field (ufsi_\<alpha> ufsi)"
     unfolding ufsi_def by (transfer, transfer, simp)+
   moreover have "rep_x = ufsi_rep_of ufsi x" "rep_y = ufsi_rep_of ufsi y"
@@ -103,23 +103,25 @@ proof -
     unfolding ufsi_def sz_rep_x_def sz_rep_y_def rep_x_def rep_y_def
     by (transfer, transfer, simp)+
   moreover have
-    "ufsi_of_ufs (ufs_of_ufa (ufa_union (ufe_ds.uf_ds ufe_ds) x y)) = ufsi_union ufsi x y"
+    "ufsi_of_ufs (ufs_of_ufa (ufa_union (uf_ds ufe_ds) x y)) = ufsi_union ufsi x y"
     unfolding ufsi_def by (transfer, transfer, simp)
   moreover have "ufe_rep_of ufe_ds x = ufsi_rep_of ufsi x"
     unfolding ufsi_def by (transfer, transfer, simp)
+  moreover have "eff_union (uf_ds ufe_ds) x y"
+    using assms by blast
   ultimately show ?thesis
     using \<open>rep_x \<noteq> rep_y\<close> ufa_rep_of_in_Field_ufa_\<alpha>I[OF assms(1)]
     unfolding ufe_imp_union_raw_def is_ufe_ds_def
-    by (sep_auto simp: ufsi_def[symmetric] fun_upd_def)
+    by (sep_auto simp: ufsi_def[symmetric] fun_upd_def uf_ds_ufe_union_eq_if_eff_union)
 qed
 
 definition "ufe_imp_union_size ufe_ds_imp x y \<equiv> do {
-  rep_x \<leftarrow> ufsi_imp_rep_of (uf_ds ufe_ds_imp) x;
-  rep_y \<leftarrow> ufsi_imp_rep_of (uf_ds ufe_ds_imp) y;
+  rep_x \<leftarrow> ufsi_imp_rep_of (uf_ds\<^sub>i ufe_ds_imp) x;
+  rep_y \<leftarrow> ufsi_imp_rep_of (uf_ds\<^sub>i ufe_ds_imp) y;
   if rep_x = rep_y then return ufe_ds_imp
   else do {
-    sz_rep_x \<leftarrow> ufsi_imp_size (uf_ds ufe_ds_imp) rep_x;
-    sz_rep_y \<leftarrow> ufsi_imp_size (uf_ds ufe_ds_imp) rep_y;
+    sz_rep_x \<leftarrow> ufsi_imp_size (uf_ds\<^sub>i ufe_ds_imp) rep_x;
+    sz_rep_y \<leftarrow> ufsi_imp_size (uf_ds\<^sub>i ufe_ds_imp) rep_y;
     if sz_rep_x < sz_rep_y then
       ufe_imp_union_raw ufe_ds_imp x y rep_x rep_y (sz_rep_x + sz_rep_y)
     else
@@ -131,11 +133,11 @@ lemma ufsi_imp_rep_of_is_ufe_ds_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      ufsi_imp_rep_of (uf_ds ufe_ds_imp) x
+      ufsi_imp_rep_of (uf_ds\<^sub>i ufe_ds_imp) x
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufe_rep_of ufe_ds x)>"
 proof -
   include ufsi.lifting ufa_ufs_transfer
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   from assms(1) have "x \<in> Field (ufsi_\<alpha> ufsi)"
     unfolding ufsi_def by (transfer, transfer, simp)
   moreover have "ufsi_rep_of ufsi x = ufe_rep_of ufe_ds x"
@@ -149,16 +151,16 @@ lemma ufsi_imp_size_is_ufe_ds_rule[sep_heap_rules]:
   assumes "ufe_rep_of ufe_ds x = x"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-      ufsi_imp_size (uf_ds ufe_ds_imp) x
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_size (ufe_ds.uf_ds ufe_ds) x)>"
+      ufsi_imp_size (uf_ds\<^sub>i ufe_ds_imp) x
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_size (uf_ds ufe_ds) x)>"
 proof -
   include ufsi.lifting ufa_ufs_transfer
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   from assms(1) have "x \<in> Field (ufsi_\<alpha> ufsi)"
     unfolding ufsi_def by (transfer, transfer, simp)
   moreover from assms(2) have "ufsi_rep_of ufsi x = x"
     unfolding ufsi_def by (transfer, transfer, simp)
-  moreover have "ufsi_size ufsi x = ufa_size (ufe_ds.uf_ds ufe_ds) x"
+  moreover have "ufsi_size ufsi x = ufa_size (uf_ds ufe_ds) x"
     unfolding ufsi_def by (transfer, transfer, simp) 
   ultimately show ?thesis
     unfolding is_ufe_ds_def ufsi_def by sep_auto
@@ -173,7 +175,7 @@ lemma ufe_imp_union_size_rule[sep_heap_rules]:
     <is_ufe_ds (ufe_union_size ufe_ds x y, n)>\<^sub>t"
 proof -
   include ufsi.lifting ufa_ufs_transfer
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   from assms(1,2) have "x \<in> Field (ufsi_\<alpha> ufsi)" "y \<in> Field (ufsi_\<alpha> ufsi)"
     unfolding ufsi_def by (transfer, transfer, simp)+
   moreover from assms(3) have "ufsi_rep_of ufsi x \<noteq> ufsi_rep_of ufsi y"
@@ -254,14 +256,14 @@ lemma is_ufsi_ufsi_imp_lca_rule[sep_heap_rules]:
 lemma ufsi_imp_lca_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
   shows
-    "<is_ufe_ds (ufe_ds, n) ufe_ds_imp> ufsi_imp_lca (uf_ds ufe_ds_imp) x y
-    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_lca (ufe_ds.uf_ds ufe_ds) x y)>"
+    "<is_ufe_ds (ufe_ds, n) ufe_ds_imp> ufsi_imp_lca (uf_ds\<^sub>i ufe_ds_imp) x y
+    <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_lca (uf_ds ufe_ds) x y)>"
 proof -
   include ufsi.lifting ufa_ufs_transfer
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   from assms(1,2) have "x \<in> Field (ufsi_\<alpha> ufsi)" "y \<in> Field (ufsi_\<alpha> ufsi)"
     unfolding ufsi_def by (transfer, transfer, simp)+
-  moreover have "ufa_lca (ufa_of_ufsi ufsi) x y = ufa_lca (ufe_ds.uf_ds ufe_ds) x y"
+  moreover have "ufa_lca (ufa_of_ufsi ufsi) x y = ufa_lca (uf_ds ufe_ds) x y"
     unfolding ufsi_def
     by transfer simp
   ultimately show ?thesis
@@ -273,8 +275,8 @@ partial_function (heap) find_newest_on_path_acc_imp where
   [code]: "find_newest_on_path_acc_imp ufe_ds_imp y x acc =
     (if y = x then return acc
     else do {
-      au_x \<leftarrow> Array.nth (au_ds ufe_ds_imp) x;
-      px \<leftarrow> ufsi_imp_parent_of (uf_ds ufe_ds_imp) x;
+      au_x \<leftarrow> Array.nth (au_ds\<^sub>i ufe_ds_imp) x;
+      px \<leftarrow> ufsi_imp_parent_of (uf_ds\<^sub>i ufe_ds_imp) x;
       find_newest_on_path_acc_imp ufe_ds_imp y px (max au_x acc)
     })"
 
@@ -293,18 +295,18 @@ proof -
   proof(induction arbitrary: p acc rule: find_newest_on_path.pinduct)
     case (1 z y)
 
-    moreover from 1 have "y \<in> Field (ufsi_\<alpha> (ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))))"
+    moreover from "1"(3) have "y \<in> Field (ufsi_\<alpha> (ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))))"
       including ufsi.lifting ufa_ufs_transfer
       by (transfer, transfer) simp
     moreover from this have
-      "ufsi_parent_of (ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))) y =
+      "ufsi_parent_of (ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))) y =
         ufe_parent_of ufe_ds y"
       including ufsi.lifting ufa_ufs_transfer
       by (transfer, transfer) simp
     ultimately have [sep_heap_rules]:
       "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
-        ufsi_imp_parent_of (ufe_ds_imp.uf_ds ufe_ds_imp) y
-      <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_parent_of (ufe_ds.uf_ds ufe_ds) y)>"
+        ufsi_imp_parent_of (uf_ds\<^sub>i ufe_ds_imp) y
+      <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(r = ufa_parent_of (uf_ds ufe_ds) y)>"
       unfolding is_ufe_ds_def by sep_auto
 
     note [sep_heap_rules] = "1.IH"
@@ -330,30 +332,30 @@ partial_function (heap) explain_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarro
   [code]: "explain_imp ufe_ds_imp x y =
     (if x = y then return (ReflP x)
     else do {
-      lca \<leftarrow> ufsi_imp_lca (uf_ds ufe_ds_imp) x y;
+      lca \<leftarrow> ufsi_imp_lca (uf_ds\<^sub>i ufe_ds_imp) x y;
       newest_x \<leftarrow> find_newest_on_path_imp ufe_ds_imp lca x;
       newest_y \<leftarrow> find_newest_on_path_imp ufe_ds_imp lca y;
       if newest_x \<ge> newest_y then do {
-        (ax, bx) \<leftarrow> Dynamic_Array.nth (unions ufe_ds_imp) (the newest_x);
+        (ax, bx) \<leftarrow> Dynamic_Array.nth (unions\<^sub>i ufe_ds_imp) (the newest_x);
         pxax \<leftarrow> explain_imp ufe_ds_imp x ax;
         pbxy \<leftarrow> explain_imp ufe_ds_imp bx y;
         return (TransP (TransP pxax (AssmP (the newest_x))) pbxy)
       } else do {
-        (ay, by) \<leftarrow> Dynamic_Array.nth (unions ufe_ds_imp) (the newest_y);
+        (ay, by) \<leftarrow> Dynamic_Array.nth (unions\<^sub>i ufe_ds_imp) (the newest_y);
         pxby \<leftarrow> explain_imp ufe_ds_imp x by;
         payy \<leftarrow> explain_imp ufe_ds_imp ay y;
         return (TransP (TransP pxby (SymP (AssmP (the newest_y)))) payy)
       }
     })"
 
-lemma (in ufe_invars) explain_imp_rule[sep_heap_rules]:
+lemma explain_imp_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
   assumes "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
       explain_imp ufe_ds_imp x y
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp *
-    \<up>(r = explain (ufe_ds.uf_ds ufe_init) (ufe_ds.unions ufe_ds) x y)>"
+    \<up>(r = explain ufe_ds x y)>"
   unfolding explain_eq_explain'[OF assms]
   using explain'_dom_if_ufe_rep_of_eq[OF assms(1-3)] assms
 proof(induction rule: explain'_pinduct)
@@ -365,13 +367,13 @@ next
   then interpret ufe_tree where ufe_ds = ufe_ds and pivot = x
     by unfold_locales
   from newest_x obtain px py where
-    "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
-    "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) py y"
+    "awalk (ufa_lca (uf_ds ufe_ds) x y) px x"
+    "awalk (ufa_lca (uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
     by (metis in_verts_if_ufa_rep_of_eq)
   moreover from this newest_x have
-    "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) x)
-      < length (ufe_ds.unions ufe_ds)"
+    "the (find_newest_on_path ufe_ds (ufa_lca (uf_ds ufe_ds) x y) x)
+      < length (unions ufe_ds)"
     using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
     by (metis less_eq_option_None_is_None)
   ultimately show ?case
@@ -388,13 +390,13 @@ next
   then interpret ufe_tree where ufe_ds = ufe_ds and pivot = x
     by unfold_locales
   from newest_y obtain px py where
-    "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) px x"
-    "awalk (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) py y"
+    "awalk (ufa_lca (uf_ds ufe_ds) x y) px x"
+    "awalk (ufa_lca (uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
     by (metis in_verts_if_ufa_rep_of_eq)
   moreover from this newest_y have
-    "the (find_newest_on_path ufe_ds (ufa_lca (ufe_ds.uf_ds ufe_ds) x y) y)
-      < length (ufe_ds.unions ufe_ds)"
+    "the (find_newest_on_path ufe_ds (ufa_lca (uf_ds ufe_ds) x y) y)
+      < length (unions ufe_ds)"
     using find_newest_on_path_if_eq newest_on_path_find_newest_on_path newest_on_path_lt_length_unions
     by (metis less_eq_option_None)
   ultimately show ?case
@@ -411,10 +413,10 @@ qed
 definition "explain_partial_imp ufe_ds_imp x y \<equiv>
   if x = y then return (Some (ReflP x))
   else do {
-    n \<leftarrow> Array.len (uf_ds ufe_ds_imp);
+    n \<leftarrow> Array.len (uf_ds\<^sub>i ufe_ds_imp);
     if x < n \<and> y < n then do {
-      rep_x \<leftarrow> ufsi_imp_rep_of (uf_ds ufe_ds_imp) x;
-      rep_y \<leftarrow> ufsi_imp_rep_of (uf_ds ufe_ds_imp) y;
+      rep_x \<leftarrow> ufsi_imp_rep_of (uf_ds\<^sub>i ufe_ds_imp) x;
+      rep_y \<leftarrow> ufsi_imp_rep_of (uf_ds\<^sub>i ufe_ds_imp) y;
       if rep_x = rep_y then do {
         p \<leftarrow> explain_imp ufe_ds_imp x y;
         return (Some p)
@@ -424,38 +426,32 @@ definition "explain_partial_imp ufe_ds_imp x y \<equiv>
     else return None
   }"
 
-theorem (in ufe_invars) explain_partial_imp_rule[sep_heap_rules]:
+theorem explain_partial_imp_rule[sep_heap_rules]:
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
       explain_partial_imp ufe_ds_imp x y
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp *
-      \<up>(r = explain_partial (ufe_ds.uf_ds ufe_init) (ufe_ds.unions ufe_ds) x y)>"
+      \<up>(r = explain_partial ufe_ds x y)>"
 proof -
-  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (ufe_ds.uf_ds ufe_ds))"
+  define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe_ds))"
   have "ufsi_\<alpha> ufsi = ufe_\<alpha> ufe_ds"
     unfolding ufsi_def
     including ufsi.lifting ufa_ufs_transfer 
     by (transfer, transfer) simp
   have
-    "<is_ufsi ufsi (uf_ds ufe_ds_imp)> Array.len (uf_ds ufe_ds_imp)
-    <\<lambda>r. is_ufsi ufsi (uf_ds ufe_ds_imp) *
+    "<is_ufsi ufsi (uf_ds\<^sub>i ufe_ds_imp)> Array.len (uf_ds\<^sub>i ufe_ds_imp)
+    <\<lambda>r. is_ufsi ufsi (uf_ds\<^sub>i ufe_ds_imp) *
       \<up>(\<forall>i. i < r \<longleftrightarrow> i \<in> Field (ufsi_\<alpha> ufsi))>"
     unfolding is_ufsi_def
     by (sep_auto simp: Field_ufsi_\<alpha>_Abs_ufsi_eq)
   note [sep_heap_rules] =
     this[unfolded \<open>ufsi_\<alpha> ufsi = ufe_\<alpha> ufe_ds\<close>, unfolded ufsi_def]
   have [sep_heap_rules]:
-    "<is_ufe_ds (ufe_ds, n) ufe_ds_imp> Array.len (ufe_ds_imp.uf_ds ufe_ds_imp)
+    "<is_ufe_ds (ufe_ds, n) ufe_ds_imp> Array.len (uf_ds\<^sub>i ufe_ds_imp)
     <\<lambda>r. is_ufe_ds (ufe_ds, n) ufe_ds_imp * \<up>(\<forall>i. i < r \<longleftrightarrow> i \<in> Field (ufe_\<alpha> ufe_ds))>"
     unfolding is_ufe_ds_def
     by sep_auto
-  have "(x, y) \<in> equivcl (set (ufe_ds.unions ufe_ds)) \<longleftrightarrow>
-    x = y \<or>
-    x \<in> Field (ufe_\<alpha> ufe_ds) \<and> y \<in> Field (ufe_\<alpha> ufe_ds) \<and>
-    ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds y"
-    using in_equivcl_iff_eq_or_ufa_rep_of_eq
-    using uf_ds_ufe_ds_eq_ufa_unions
-    by (metis eff_unions ufa_\<alpha>_uf_ds_ufe_init valid_unions_if_eff_unions)
+  note in_equivcl_iff_eq_or_ufe_rep_of_eq
   then show ?thesis
     unfolding explain_partial_imp_def explain_partial_def
     by sep_auto

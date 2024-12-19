@@ -1,151 +1,21 @@
 theory UFE_Tree
   imports Explain_Simple Explain_Efficient
 begin
-
-lemma ufe_\<alpha>_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds:
-  assumes "eff_unions (uf_ds ufe_ds) us"
-  shows "ufe_\<alpha> (ufe_unions ufe_ds us) = ufa_\<alpha> (ufa_unions (uf_ds ufe_ds) us)"
-  using assms
-  by (induction "uf_ds ufe_ds" us arbitrary: ufe_ds rule: eff_unions.induct) simp_all
-
-locale ufe_init_invars =
-  fixes ufe_init :: "ufe_ds"
-
-  assumes ufa_\<alpha>_uf_ds_ufe_init:
-    "ufe_\<alpha> ufe_init \<subseteq> Id"
-  assumes au_ds_ufe_init[simp]:
-    "au_ds ufe_init = Map.empty"
-  assumes unions_ufe_init[simp]:
-    "unions ufe_init = []"
-begin
-
-lemma in_ufa_\<alpha>_uf_ds_ufe_init[simp]:
-  assumes "x \<in> Field (ufe_\<alpha> ufe_init)"
-  shows "(x, x) \<in> ufe_\<alpha> ufe_init"
-  using assms ufa_\<alpha>_uf_ds_ufe_init ufa_\<alpha>I by blast
-
-lemma ufe_rep_of_ufe_init:
-  assumes "x \<in> Field (ufe_\<alpha> ufe_init)"
-  shows "ufe_rep_of ufe_init x = x"
-  using assms ufa_\<alpha>_uf_ds_ufe_init ufa_rep_of_eq_iff_in_ufa_\<alpha> by fastforce
-
-end
-
-lemma ufe_init_invars_ufe_init:
-  "ufe_init_invars (ufe_init n)"
-  by unfold_locales (auto simp: ufa_\<alpha>_ufa_init)
-
-locale ufe_invars = ufe_init_invars +
-  fixes ufe_ds
-
-  assumes eff_unions:
-    "eff_unions (uf_ds ufe_init) (unions ufe_ds)"
-  assumes ufe_ds_eq_ufe_unions:
-    "ufe_ds = ufe_unions ufe_init (unions ufe_ds)"
-begin
-
-lemma ufe_ds_induct[case_names ufe_init ufe_union]:
-  assumes "P ufe_init"
-  assumes "\<And>ufe_ds x y.
-    \<lbrakk> ufe_invars ufe_init ufe_ds; eff_union (uf_ds ufe_ds) x y; P ufe_ds 
-    \<rbrakk> \<Longrightarrow> P (ufe_union ufe_ds x y)"
-  shows "P ufe_ds"
-  using eff_unions ufe_ds_eq_ufe_unions
-proof(induction "unions ufe_ds" arbitrary: ufe_ds rule: rev_induct)
-  case (snoc u us)
-  let ?ufe_ds0 = "ufe_unions ufe_init us"
-
-  from snoc have "ufe_\<alpha> ?ufe_ds0 = ufa_\<alpha> (ufa_unions (uf_ds ufe_init) us)"
-    by (metis ufe_\<alpha>_ufe_unions_eq_ufa_\<alpha>_ufa_unions_uf_ds eff_unions_append)
-  moreover from this have u_in_Field_ufa_\<alpha>:
-    "fst u \<in> Field (ufe_\<alpha> (ufe_unions ufe_init us))"
-    "snd u \<in> Field (ufe_\<alpha> (ufe_unions ufe_init us))"
-    using snoc.prems \<open>us @ [u] = unions ufe_ds\<close>[symmetric]
-    by (force simp: eff_unions_append)+
-
-  moreover from snoc have "ufa_rep_of (ufa_unions (uf_ds ufe_init) us) (fst u) \<noteq>
-    ufa_rep_of (ufa_unions (uf_ds ufe_init) us) (snd u)"
-    using \<open>us @ [u] = unions ufe_ds\<close>[symmetric]
-    by (simp add: eff_unions_append)
-  ultimately have eff_union_u:
-    "eff_union (uf_ds (ufe_unions ufe_init us)) (fst u) (snd u)"
-    unfolding eff_union_def valid_union_def
-    by (simp add: ufa_rep_of_eq_iff_in_ufa_\<alpha>)
-
-  moreover from snoc have "ufe_ds = ufe_union ?ufe_ds0 (fst u) (snd u)"
-    by (metis ufe_unions_Cons ufe_unions_Nil ufe_unions_append)
-  moreover from this snoc have "unions (ufe_union ?ufe_ds0 (fst u) (snd u)) = us @ [u]"
-    by simp
-  ultimately have "us = unions ?ufe_ds0"
-    by fastforce
-  moreover from this have
-    "?ufe_ds0 = ufe_unions ufe_init (unions ?ufe_ds0)"
-    by simp
-  moreover from \<open>us = unions ?ufe_ds0\<close> snoc.prems snoc.hyps(2)[symmetric] have
-    "eff_unions (uf_ds ufe_init) (unions ?ufe_ds)"
-    by (simp_all add: eff_unions_append)
-  ultimately have "P ?ufe_ds0"
-    using snoc.hyps(1) by blast
-
-  moreover have "ufe_invars ufe_init ?ufe_ds0"
-    using \<open>us = unions ?ufe_ds0\<close>
-    using \<open>eff_unions (uf_ds ufe_init) (unions ?ufe_ds0)\<close>
-    by unfold_locales simp_all
-
-  ultimately have "P (ufe_union ?ufe_ds0 (fst u) (snd u))"
-    using \<open>unions (ufe_union ?ufe_ds0 (fst u) (snd u)) = us @ [u]\<close>
-    using u_in_Field_ufa_\<alpha> eff_union_u assms(2)
-    by (simp add: case_prod_unfold)
-  then show ?case
-    using \<open>ufe_ds = ufe_union ?ufe_ds0 (fst u) (snd u)\<close> by blast
-qed (use assms(1) in simp)
-
-lemma uf_ds_ufe_ds_eq_ufa_unions:
-  "uf_ds ufe_ds = ufa_unions (uf_ds ufe_init) (unions ufe_ds)"
-  by (induction rule: ufe_ds_induct) (simp_all add: ufa_unions_def)
-
-lemma in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init:
-  shows "x \<in> Field (ufe_\<alpha> ufe_ds) \<longleftrightarrow> x \<in> Field (ufe_\<alpha> ufe_init)"
-  using uf_ds_ufe_ds_eq_ufa_unions eff_unions by simp
-
-lemma ufe_invars_ufe_union:
-  assumes "eff_union (uf_ds ufe_ds) x y"
-  defines "ufe_ds' \<equiv> ufe_union ufe_ds x y"
-  shows "ufe_invars ufe_init ufe_ds'"
-proof unfold_locales
-  from assms have x_y_in_Field:
-    "x \<in> Field (ufe_\<alpha> ufe_init)" "y \<in> Field (ufe_\<alpha> ufe_init)"
-    using in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init
-    by auto
-
-  show "ufe_ds' = ufe_unions ufe_init (unions ufe_ds')"
-    unfolding ufe_ds'_def using ufe_ds_eq_ufe_unions
-    by simp
-
-  from assms x_y_in_Field eff_unions show "eff_unions (uf_ds ufe_init) (unions ufe_ds')"
-    unfolding ufe_ds'_def uf_ds_ufe_ds_eq_ufa_unions
-    by (auto simp: eff_unions_append)
-qed
-                   
+             
 lemma lookup_au_ds_lt_length_unions:
   "au_ds ufe_ds x = Some i \<Longrightarrow> i < length (unions ufe_ds)"
-proof(induction rule: ufe_ds_induct)
-  case (ufe_union ufe_ds y z)
-  then interpret ufe_invars where ufe_ds = ufe_ds
-    by simp
-  from ufe_union show ?case
-    by (auto simp: less_SucI split: if_splits)
+proof(induction ufe_ds arbitrary: x i rule: ufe_induct)
+  case (ufe_union ufe a b x)
+  then show ?case
+    by (simp add: less_Suc_eq split: if_splits)
 qed simp
 
 lemma dom_au_ds_subs_Field_ufa_\<alpha>:
   "dom (au_ds ufe_ds) \<subseteq> Field (ufe_\<alpha> ufe_ds)"
-proof(induction rule: ufe_ds_induct)
-  case (ufe_union ufe_ds y z)
-  then interpret ufe_invars where ufe_ds = ufe_ds
-    by simp
-  from ufe_union show ?case
-    using ufa_rep_of_in_Field_ufa_\<alpha>I
-    by (fastforce split: if_splits)+
+proof(induction ufe_ds rule: ufe_induct)
+  case (ufe_union ufe a b)
+  then show ?case
+    by (simp add: domIff subset_iff)
 qed simp
 
 lemma ufe_rep_of_eq_if_au:
@@ -159,52 +29,45 @@ proof -
     "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x \<and>
     ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
     using assms
-  proof(induction arbitrary: i a b rule: ufe_ds_induct)
-    case ufe_init
-    then show ?case by simp
-  next
+  proof(induction ufe_ds arbitrary: i a b rule: ufe_induct)
     case (ufe_union ufe_ds y z)
-    then interpret ufe_invars where ufe_ds = ufe_ds
-      by simp
-    from ufe_union interpret ufe_invars_union: ufe_invars where
-      ufe_ds = "ufe_union ufe_ds y z"
-      by (intro ufe_invars_ufe_union eff_unionI) simp_all
 
     from ufe_union.prems have "(a, b) \<in> set (unions (ufe_union ufe_ds y z))"
-      by (metis nth_mem ufe_invars_union.lookup_au_ds_lt_length_unions)
-    with ufe_invars_union.eff_unions have
+      by (metis lookup_au_ds_lt_length_unions nth_mem)
+    with ufe_union.hyps have
       a_in_Field_\<alpha>: "a \<in> Field (ufe_\<alpha> ufe_ds)" and
       b_in_Field_\<alpha>: "b \<in> Field (ufe_\<alpha> ufe_ds)"
-      unfolding in_Field_uf_ds_iff_in_Field_uf_ds_ufe_init
-      using in_Field_ufa_\<alpha>_if_in_eff_unions by force+
+      using Field_unions_subs_Field_ufe_\<alpha>
+      by (auto intro: FieldI1 FieldI2)
     from ufe_union have x_in_Field_\<alpha>: "x \<in> Field (ufe_\<alpha> ufe_ds)"
-      using ufe_invars_union.dom_au_ds_subs_Field_ufa_\<alpha>
-      using Field_ufa_\<alpha>_uf_ds_ufe_union by blast
+      using dom_au_ds_subs_Field_ufa_\<alpha> Field_ufe_\<alpha>_ufe_union_eq
+      by blast
 
     show ?case
     proof(cases "i < length (unions ufe_ds)")
       case False
 
-      note ufe_invars_union.lookup_au_ds_lt_length_unions[OF ufe_union.prems(1)]
-      with False have "i = length (unions ufe_ds)"
+      note lookup_au_ds_lt_length_unions[OF ufe_union.prems(1)]
+      with ufe_union.hyps False have "i = length (unions ufe_ds)"
         by simp
       moreover from calculation have "au_ds ufe_ds x \<noteq> Some i"
         using lookup_au_ds_lt_length_unions by blast
       ultimately show ?thesis
         using ufe_union.prems a_in_Field_\<alpha> b_in_Field_\<alpha> x_in_Field_\<alpha>
-        by (simp add: ufa_rep_of_ufa_union) (metis ufa_rep_of_ufa_rep_of)
-    next
+        unfolding uf_ds_ufe_union_eq_if_eff_union[OF ufe_union.hyps]
+        by (simp add: ufe_union.hyps ufa_rep_of_ufa_union)
+          (metis ufa_rep_of_ufa_rep_of)
+      next
       case True
       with ufe_union.prems ufe_union.hyps have "au_ds ufe_ds x = Some i"
         by (simp split: if_splits)
-      moreover from True have "unions (ufe_union ufe_ds y z) ! i = unions ufe_ds ! i"
+      moreover from ufe_union.hyps True have "unions (ufe_union ufe_ds y z) ! i = unions ufe_ds ! i"
         by (simp add: nth_append)
       ultimately show ?thesis
-        using a_in_Field_\<alpha> b_in_Field_\<alpha> x_in_Field_\<alpha>
-        using ufe_union
-        by (force simp: ufa_rep_of_ufa_union)+
+        using ufe_union a_in_Field_\<alpha> b_in_Field_\<alpha> x_in_Field_\<alpha>
+        by (simp add: uf_ds_ufe_union_eq ufa_rep_of_ufa_union)
     qed
-  qed
+  qed simp
   then show
     "ufe_rep_of ufe_ds a = ufe_rep_of ufe_ds x"
     "ufe_rep_of ufe_ds b = ufe_rep_of ufe_ds x"
@@ -215,51 +78,45 @@ lemma lookup_au_ds_eq_None_iff:
   assumes "z \<in> Field (ufe_\<alpha> ufe_ds)"
   shows "au_ds ufe_ds z \<noteq> None \<longleftrightarrow> ufe_rep_of ufe_ds z \<noteq> z"
   using assms
-proof(induction rule: ufe_ds_induct)
-  case ufe_init
+proof(induction rule: ufe_induct)
+  case init
   then show ?case
-    using ufa_\<alpha>_uf_ds_ufe_init ufa_eq_class_def ufa_eq_class_ufa_rep_of
-    by fastforce
+    by (auto dest!: subsetD simp: ufa_\<alpha>I)
 next
   case (ufe_union ufe_ds x y)
-  then interpret ufe_invars where ufe_ds = ufe_ds
-    by blast
-
-  from ufe_union show ?case
-    by (simp add: ufa_rep_of_ufa_union) (metis eff_unionE ufa_rep_of_ufa_rep_of)
+  then show ?case
+    unfolding uf_ds_ufe_union_eq_if_eff_union[OF ufe_union.hyps]
+    by (simp add:  ufa_rep_of_ufa_union)
+      (metis eff_unionE ufa_rep_of_ufa_rep_of)
 qed
 
 lemma inj_au_ds:
   shows "inj_on (au_ds ufe_ds) (dom (au_ds ufe_ds))"
-proof(induction rule: ufe_ds_induct)
+proof(induction ufe_ds rule: ufe_induct)
+  case init
+  then show ?case
+    by (simp add: au_ds.simps)
+next
   case (ufe_union ufe_ds x y)
-  then interpret ufe_invars where ufe_ds = ufe_ds
-    by blast
-
-  from ufe_union show ?case
+  then show ?case
     using lookup_au_ds_lt_length_unions
-    unfolding dom_def inj_on_def
-    by simp_all (metis order_less_irrefl)
-qed simp
+    by (force simp: domIff inj_on_def)
+qed
 
-end
-
-locale ufe_tree = ufe_invars +
+locale ufe_tree =
+  fixes ufe_ds :: ufe
   fixes pivot
   assumes pivot_in_Field_ufe_\<alpha>[simp, intro]: "pivot \<in> Field (ufe_\<alpha> ufe_ds)"
 begin
 
 sublocale ufa_tree where uf = "uf_ds ufe_ds" and pivot = pivot
-  using pivot_in_Field_ufe_\<alpha> eff_unions
+  using pivot_in_Field_ufe_\<alpha>
   by unfold_locales
 
 context
   fixes a b
   assumes eff_union: "eff_union (uf_ds ufe_ds) a b"
 begin
-
-interpretation ufe_invars_union: ufe_invars where ufe_ds = "ufe_union ufe_ds a b"
-  using eff_union ufe_invars_ufe_union by blast
 
 interpretation ufe_tree_union: ufe_tree where
   ufe_ds = "ufe_union ufe_ds a b" and pivot = pivot
@@ -270,27 +127,27 @@ lemma in_verts_ufe_tree_of_ufe_union_if_in_verts[simp, intro]:
   shows "x \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
   using assms eff_union
   using in_verts_ufa_tree_of_ufa_union_if_in_verts
-  by auto
+  by (simp add: uf_ds_ufe_union_eq)
 
 lemma in_arcs_ufe_tree_of_ufe_union_if_in_arcs[simp, intro]:
   assumes "e \<in> arcs (ufe_tree_of ufe_ds pivot)"
   shows "e \<in> arcs (ufe_tree_of (ufe_union ufe_ds a b) pivot)"
   using assms eff_unionD[OF eff_union]
   using in_arcs_ufa_tree_of_ufa_union_if_in_arcs
-  by auto
+  by (simp add: uf_ds_ufe_union_eq)
 
 lemma ufe_union_awalk_if_awalk:
   assumes "awalk x p y"
   shows "ufe_tree_union.awalk x p y"
   using assms eff_union ufa_union_awalk_if_awalk
-  by auto
+  by (simp add: uf_ds_ufe_union_eq)
 
 lemma awalk_if_ufe_union_awalk:
   assumes "ufe_tree_union.awalk pivot p x"
   assumes "ufe_rep_of ufe_ds pivot = ufe_rep_of ufe_ds x"
   shows "awalk pivot p x"
   using awalk_if_ufa_union_awalk[OF _ _ _ assms(2)] assms(1) eff_union
-  by auto
+  by (auto simp: uf_ds_ufe_union_eq)
 
 end
 
@@ -400,7 +257,8 @@ proof -
   from assms have "(a, b) \<in> set (unions ufe_ds)"
     using newest_on_path_lt_length_unions by (metis nth_mem)
   then show "a \<in> Field (ufe_\<alpha> ufe_ds)" "b \<in> Field (ufe_\<alpha> ufe_ds)"
-    using uf_ds_ufe_ds_eq_ufa_unions in_Field_ufa_\<alpha>_if_in_eff_unions eff_unions by auto
+    using Field_unions_subs_Field_ufe_\<alpha>
+    by (auto intro: FieldI1 FieldI2)
 qed
 
 lemma ufe_rep_of_eq_if_newest_on_path:
