@@ -63,34 +63,36 @@ lemma nth_rep_of_eq_rep_of:
   using ufa_invarD(1)[OF assms] assms
   by (induction rule: rep_of.pinduct) (auto simp: rep_of.psimps Let_def ufa_invarD(2))
 
-lemma ufa_invar_list_update_rep_of_rep_of:
+lemma rep_of_dom_list_update_rep_of:
+  assumes "ufa_invar uf" "x < length uf" "y < length uf"
+  assumes "i < length uf"
+  shows "rep_of_dom (uf[x := rep_of uf y], i)"
+proof -
+  from assms have "rep_of_dom (uf, i)"
+    using ufa_invarD by simp
+  then show ?thesis
+    using assms
+  proof(induction rule: rep_of.pinduct)
+    case (1 uf i)
+    note [intro!] =
+      rep_of.domintros[where i=i]
+      rep_of.domintros[where i="rep_of uf y" for uf]
+    from 1 show ?case
+      using nth_list_update[OF \<open>x < length uf\<close>]
+      using nth_rep_of_eq_rep_of
+      by (auto dest: ufa_invarD simp: ufa_invarD(2))
+  qed
+qed
+
+lemma ufa_invar_list_update_rep_of:
   assumes "ufa_invar uf"
   assumes "x < length uf" "y < length uf"
-  shows "ufa_invar (uf[rep_of uf x := rep_of uf y])"
+  shows "ufa_invar (uf[x := rep_of uf y])"
 proof -
-  from assms have rep_of_lt_length:
-    "rep_of uf x < length uf" "rep_of uf y < length uf"
+  from assms have "rep_of uf y < length uf"
     by blast+
-  have "rep_of_dom (uf[rep_of uf x := rep_of uf y], i)"
-    if "i < length uf" for i
-  proof -
-    from that \<open>ufa_invar uf\<close> have "rep_of_dom (uf, i)"
-      using that ufa_invarD by simp
-    then show ?thesis
-      using assms that rep_of_lt_length
-    proof(induction rule: rep_of.pinduct)
-      case (1 uf i)
-      note [intro!] =
-        rep_of.domintros[where i=i]
-        rep_of.domintros[where i="rep_of uf y" for uf]
-      from 1 show ?case
-        using nth_list_update[OF \<open>rep_of uf x < length uf\<close>]
-        using nth_rep_of_eq_rep_of
-        by (auto dest: ufa_invarD simp: ufa_invarD(2))
-    qed
-  qed
-  with assms rep_of_lt_length show ?thesis
-    unfolding ufa_invar_def by (auto simp: nth_list_update)
+  with rep_of_dom_list_update_rep_of show ?thesis
+    using assms unfolding ufa_invar_def by (auto simp: nth_list_update)
 qed
 
 end
@@ -107,6 +109,9 @@ lemma part_equiv_ufa_\<alpha>: "part_equiv (ufa_\<alpha> uf)"
 lemma equiv_Field_ufa_\<alpha>_ufa_\<alpha>:
   "equiv (Field (ufa_\<alpha> uf)) (ufa_\<alpha> uf)"
   by (transfer, rule equivI) (auto simp: Union_Find.\<alpha>_def Field_iff refl_on_def intro: symI transI)
+
+lemma finite_Field_ufa_\<alpha>: "finite (Field (ufa_\<alpha> uf))"
+  by transfer (meson Field_\<alpha> bounded_nat_set_is_finite)
 
 lemma ufa_\<alpha>I:
   assumes "x \<in> Field (ufa_\<alpha> uf)" "y \<in> Field (ufa_\<alpha> uf)" "ufa_rep_of uf x = ufa_rep_of uf y"
@@ -134,6 +139,12 @@ lemma ufa_rep_of_if_refl_ufa_parent_of:
   "ufa_parent_of uf i = i \<Longrightarrow> ufa_rep_of uf i = i"
   by transfer (simp add: rep_of.domintros rep_of.psimps)
 
+lemma ufa_rep_of_nrefl_iff_ufa_parent_of_nrefl:
+  assumes "i \<in> Field (ufa_\<alpha> uf)"
+  shows "ufa_parent_of uf i \<noteq> i \<longleftrightarrow> ufa_rep_of uf i \<noteq> i"
+  using assms  nth_rep_of_eq_rep_of
+  by transfer (force simp: rep_of.domintros rep_of.psimps)
+  
 lemma ufa_rep_of_if_irrefl_ufa_parent_of:
   assumes "i \<in> Field (ufa_\<alpha> uf)"
   assumes "ufa_parent_of uf i \<noteq> i"
@@ -217,7 +228,7 @@ lemma ufa_\<alpha>_ufa_init: "ufa_\<alpha> (ufa_init n) = {(x, x) |x. x < n}"
 
 lift_definition ufa_union :: "ufa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ufa" is
   "\<lambda>uf x y. if x < length uf \<and> y < length uf then uf[rep_of uf x := rep_of uf y] else uf"
-  using ufa_invar_list_update_rep_of_rep_of by auto
+  using ufa_invar_list_update_rep_of by auto
 
 lemma ufa_union_eq_if_not_in_Field_ufa_\<alpha>[simp]:
   assumes "x \<notin> Field (ufa_\<alpha> uf) \<or> y \<notin> Field (ufa_\<alpha> uf)"
@@ -307,38 +318,7 @@ lemma ufa_\<alpha>_ufa_union_eq_per_union_ufa_\<alpha>[simp]:
 
 lift_definition ufa_compress :: "ufa \<Rightarrow> nat \<Rightarrow> ufa" is 
   "\<lambda>uf x. if x < length uf then uf[x := rep_of uf x] else uf"
-proof -
-  fix uf x
-  assume "ufa_invar uf"
-  show "ufa_invar (if x < length uf then uf[x := rep_of uf x] else uf)"
-  proof(cases "x < length uf")
-    case False
-    with \<open>ufa_invar uf\<close> show ?thesis by auto
-  next
-    case True
-    with \<open>ufa_invar uf\<close> have "rep_of uf x < length uf"
-      by simp
-    have "rep_of_dom (uf[x := rep_of uf x], i)"
-      if "i < length uf" for i
-    proof -
-      from that \<open>ufa_invar uf\<close> have "rep_of_dom (uf, i)"
-        using that ufa_invarD by simp
-      then show ?thesis
-        using \<open>ufa_invar uf\<close> that True \<open>rep_of uf x < length uf\<close>
-      proof(induction rule: rep_of.pinduct)
-        case (1 uf i)
-        note [intro!] =
-          rep_of.domintros[where i=i]
-          rep_of.domintros[where i="rep_of uf i" for uf]
-        from nth_list_update[OF \<open>x < length uf\<close>] 1 show ?case
-          using ufa_parent_of_ufa_rep_of[untransferred]
-          by (auto simp: ufa_invarD)
-      qed
-    qed
-    with \<open>ufa_invar uf\<close> True \<open>rep_of uf x < length uf\<close> show ?thesis
-      unfolding ufa_invar_def by (auto simp: nth_list_update)
-  qed
-qed
+  by (auto intro!: ufa_invar_list_update_rep_of)
     
 lemma Field_ufa_\<alpha>_ufa_compress[simp]:
   "Field (ufa_\<alpha> (ufa_compress uf x)) = Field (ufa_\<alpha> uf)"

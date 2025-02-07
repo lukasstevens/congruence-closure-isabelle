@@ -280,7 +280,7 @@ partial_function (heap) find_newest_on_path_acc_imp where
       find_newest_on_path_acc_imp ufe_ds_imp y px (max au_x acc)
     })"
 
-lemma (in ufe_tree) find_newest_on_path_acc_imp_rule[sep_heap_rules]:
+lemma (in ufe_forest) find_newest_on_path_acc_imp_rule[sep_heap_rules]:
   assumes "awalk z p y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
@@ -319,7 +319,7 @@ qed
 definition find_newest_on_path_imp :: "ufe_ds_imp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option Heap" where
   "find_newest_on_path_imp ufe_ds_imp y x \<equiv> find_newest_on_path_acc_imp ufe_ds_imp y x None"
 
-lemma (in ufe_tree) find_newest_on_path_imp_rule[sep_heap_rules]:
+lemma (in ufe_forest) find_newest_on_path_imp_rule[sep_heap_rules]:
   assumes "awalk z p y"
   shows
     "<is_ufe_ds (ufe_ds, n) ufe_ds_imp>
@@ -364,13 +364,13 @@ proof(induction rule: explain'_pinduct)
     by (subst explain_imp.simps) sep_auto
 next
   case (newest_x x y ax bx)
-  then interpret ufe_tree where ufe_ds = ufe_ds and pivot = x
-    by unfold_locales
+  interpret ufe_forest ufe_ds .
+
   from newest_x obtain px py where
     "awalk (ufa_lca (uf_ds ufe_ds) x y) px x"
     "awalk (ufa_lca (uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
-    by (metis in_verts_if_ufa_rep_of_eq)
+    unfolding verts_ufa_forest_of by metis
   moreover from this newest_x have
     "the (find_newest_on_path ufe_ds (ufa_lca (uf_ds ufe_ds) x y) x)
       < length (unions ufe_ds)"
@@ -387,13 +387,12 @@ next
     done
 next
   case (newest_y x y ay "by")
-  then interpret ufe_tree where ufe_ds = ufe_ds and pivot = x
-    by unfold_locales
+  interpret ufe_forest ufe_ds .
   from newest_y obtain px py where
     "awalk (ufa_lca (uf_ds ufe_ds) x y) px x"
     "awalk (ufa_lca (uf_ds ufe_ds) x y) py y"
     using lca_ufa_lca lca_reachableD reachable_awalk
-    by (metis in_verts_if_ufa_rep_of_eq)
+    unfolding verts_ufa_forest_of by metis
   moreover from this newest_y have
     "the (find_newest_on_path ufe_ds (ufa_lca (uf_ds ufe_ds) x y) y)
       < length (unions ufe_ds)"

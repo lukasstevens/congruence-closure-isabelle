@@ -322,7 +322,7 @@ proof -
     unfolding rep_x_def rep_y_def uf_of_ufsi_list_update
     including ufa_ufs_transfer ufa.lifting
     by (transfer, transfer, transfer)
-      (simp add: ufa_invar_list_update_rep_of_rep_of ufsi_invarD(1))
+      (auto simp: ufsi_invarD(1) intro!: ufa_invar_list_update_rep_of)
   moreover have swap:
     "ufsi[rep_y := - int (sz_rep_x + sz_rep_y), rep_x := int rep_y] =
     ufsi[rep_x := int rep_y, rep_y := - int (sz_rep_x + sz_rep_y)]"

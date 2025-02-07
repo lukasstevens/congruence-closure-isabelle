@@ -255,7 +255,7 @@ function au_ds :: "ufe \<Rightarrow> (nat \<rightharpoonup> nat)" where
   "au_ds ufe =
     (if unions ufe = [] then Map.empty
     else
-      let ufe0 = rollback ufe; (x, y) = last (unions ufe)
+      let (x, y) = last (unions ufe); ufe0 = rollback ufe
       in (au_ds ufe0)(ufe_rep_of ufe0 x \<mapsto> length (unions ufe0)))"
   by auto
 termination 

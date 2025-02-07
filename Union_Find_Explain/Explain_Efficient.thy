@@ -2,13 +2,13 @@ theory Explain_Efficient
   imports 
     "HOL-Library.Sublist"
     "HOL-Library.Option_ord"
-    "UFA_Tree"
+    "UFA_Forest"
     "UFA_LCA"
     "Equality_Proof"
 begin
 
 abbreviation "ufe_lca ufe_ds \<equiv> ufa_lca (uf_ds ufe_ds)"
-abbreviation "ufe_tree_of ufe_ds \<equiv> ufa_tree_of (uf_ds ufe_ds)"
+abbreviation "ufe_forest_of ufe_ds \<equiv> ufa_forest_of (uf_ds ufe_ds)"
 
 context
   fixes ufe_ds :: ufe

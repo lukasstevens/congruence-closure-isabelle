@@ -1,5 +1,5 @@
 theory UFA_LCA
-  imports Explain_Simple UFA_Tree
+  imports Explain_Simple UFA_Forest
 begin
 
 definition ufa_lca where
@@ -20,31 +20,28 @@ proof -
 qed
 
 
-theorem (in ufa_tree) lca_ufa_lca:
-  assumes "x \<in> verts (ufa_tree_of uf pivot)"
-  assumes "y \<in> verts (ufa_tree_of uf pivot)"
+theorem (in ufa_forest) lca_ufa_lca:
+  assumes "x \<in> verts (ufa_forest_of uf)"
+  assumes "y \<in> verts (ufa_forest_of uf)"
+  assumes "ufa_rep_of uf x = ufa_rep_of uf y"
   shows "lca (ufa_lca uf x y) x y"
 proof -
-  from assms have "ufa_rep_of uf x = ufa_rep_of uf y"
-    by simp
-  note assms[THEN awalk_awalk_from_rep, folded this]
+  note assms(1-2)[THEN awalk_awalk_from_rep, folded assms(3)]
   note lca_last_longest_common_prefix_awalk_verts[OF this]
-  with \<open>ufa_rep_of uf x = ufa_rep_of uf y\<close> show ?thesis
-    unfolding ufa_lca_def
-    unfolding assms[THEN awalk_verts_from_rep_eq_awalk_verts]
-    by simp
+  with assms(3) show ?thesis
+    unfolding ufa_lca_def assms(1-2)[THEN awalk_verts_from_rep_eq_awalk_verts]
+    by metis
 qed
 
-lemma (in ufa_tree) ufa_rep_of_ufa_lca:
-  assumes "x \<in> verts (ufa_tree_of uf pivot)"
-  assumes "y \<in> verts (ufa_tree_of uf pivot)"
+lemma (in ufa_forest) ufa_rep_of_ufa_lca:
+  assumes "x \<in> verts (ufa_forest_of uf)"
+  assumes "y \<in> verts (ufa_forest_of uf)"
+  assumes "ufa_rep_of uf x = ufa_rep_of uf y"
   shows "ufa_rep_of uf (ufa_lca uf x y) = ufa_rep_of uf x"
 proof -
   note lca_ufa_lca[OF assms]
-  then have "ufa_lca uf x y \<in> verts (ufa_tree_of uf pivot)"
-    using lca_reachableD(2) reachable_in_verts(1) by blast
   with assms show ?thesis
-    by simp
+    using lca_reachableD(1) ufa_rep_of_eq_if_reachable by blast
 qed
 
 lemma ufa_lca_ufa_union:
@@ -54,26 +51,22 @@ lemma ufa_lca_ufa_union:
   shows "ufa_lca (ufa_union uf a b) x y =
     (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y else ufa_rep_of uf b)"
 proof -
-  interpret ufa_tree_x: ufa_tree where pivot = x
-    using assms by unfold_locales
-  interpret ufa_tree_y: ufa_tree where pivot = y
-    using assms by unfold_locales
+  interpret ufa_forest where uf = uf .
+  interpret ufa_union_forest: ufa_forest where uf = "ufa_union uf a b" .
 
   note awalk_verts_from_rep_union_eq = 
-    assms(2,3)[THEN ufa_tree_x.awalk_verts_from_rep_ufa_union[OF eff_unionD[OF assms(1)]]]
-  
+    assms(2,3)[THEN awalk_verts_from_rep_ufa_union[OF eff_unionD[OF assms(1)]]]
+
+  note assms(2,3)[THEN ufa_forest.awalk_verts_from_rep_eq_Cons[unfolded verts_ufa_forest_of]]
+  then obtain px py where
+    px: "awalk_verts_from_rep uf x = ufa_rep_of uf x # px" and
+    py: "awalk_verts_from_rep uf y = ufa_rep_of uf y # py"
+    by metis
+
   show ?thesis
   proof(cases "ufa_rep_of uf x = ufa_rep_of uf y")
     case True
-    with \<open>x \<in> Field (ufa_\<alpha> uf)\<close> \<open>y \<in> Field (ufa_\<alpha> uf)\<close>
-    have "x \<in> verts (ufa_tree_of uf x)" "y \<in> verts (ufa_tree_of uf x)"
-      using ufa_tree_x.in_verts_if_ufa_rep_of_eq by simp_all
-    note this[THEN ufa_tree_x.awalk_verts_from_rep_eq_Cons]
-    with True obtain px py where
-      "awalk_verts_from_rep uf x = ufa_rep_of uf y # px"
-      "awalk_verts_from_rep uf y = ufa_rep_of uf y # py"
-      by metis
-    then have
+    with px py have
       "longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y) \<noteq> []"
       by simp
     with True show ?thesis
@@ -89,78 +82,94 @@ proof -
     then show ?thesis
     proof(cases)
       case 1
-      from 1 obtain px where awalk_verts_from_rep_x:
-        "awalk_verts_from_rep uf x = ufa_rep_of uf a # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.pivot_in_verts]
-        by metis
-      from 1 obtain py where awalk_verts_from_rep_y:
-        "awalk_verts_from_rep uf y = ufa_rep_of uf b # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.pivot_in_verts]
-        by metis
-
       have "longest_common_prefix (awalk_verts_from_rep uf x) py = []"
       proof(rule ccontr)
         assume "longest_common_prefix (awalk_verts_from_rep uf x) py \<noteq> []"
-        then obtain py' where "py = ufa_rep_of uf a # py'"
-          unfolding awalk_verts_from_rep_x by (cases py) force+
-        then have "awalk_verts_from_rep uf y = ufa_rep_of uf b # ufa_rep_of uf a # py'"
-          using awalk_verts_from_rep_y by blast
-        moreover note ufa_tree_y.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_y.pivot_in_verts]
-        moreover note ufa_tree_y.awalk_awalk_from_rep[OF ufa_tree_y.pivot_in_verts]
-        ultimately have
-          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf y)"
-          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf y)"
-          using ufa_tree_y.adj_in_verts
-          by (metis ufa_tree_y.awalk_imp_vwalk ufa_tree_y.vwalk_Cons_Cons)+
-        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
-        then have "ufa_rep_of uf a = ufa_rep_of uf b"
-          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
-          by simp
-        with eff_unionD(3)[OF assms(1)] show False
-          by blast
+        with 1 px obtain py' where "py = ufa_rep_of uf a # py'"
+          by (cases py) force+
+        with 1 py have "awalk_verts_from_rep uf y = ufa_rep_of uf b # ufa_rep_of uf a # py'"
+          by metis
+        moreover note y_in_verts = assms(3)[folded verts_ufa_forest_of]
+        note awalk_awalk_from_rep[OF this] awalk_verts_from_rep_eq_awalk_verts[OF this]
+        ultimately have "(ufa_rep_of uf b, ufa_rep_of uf a) \<in> arcs (ufa_forest_of uf)"
+          using awalk_imp_vwalk by force
+        then have "ufa_parent_of uf (ufa_rep_of uf a) = ufa_rep_of uf b"
+          using eq_ufa_parent_of_if_mem_arcs_ufa_forest_of by simp
+        with False 1 assms(2) show False
+          by (metis ufa_parent_of_ufa_rep_of)
       qed
 
-      with assms 1 show ?thesis
-        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_y
+      with assms 1 py show ?thesis
+        unfolding ufa_lca_def awalk_verts_from_rep_union_eq
         by auto
     next
       case 2
-      from 2 obtain px where awalk_verts_from_rep_x:
-        "awalk_verts_from_rep uf x = ufa_rep_of uf b # px"
-        using ufa_tree_x.awalk_verts_from_rep_eq_Cons[OF ufa_tree_x.pivot_in_verts]
-        by metis
-      from 2 obtain py where awalk_verts_from_rep_y:
-        "awalk_verts_from_rep uf y = ufa_rep_of uf a # py"
-        using ufa_tree_y.awalk_verts_from_rep_eq_Cons[OF ufa_tree_y.pivot_in_verts]
-        by metis
-
       have "longest_common_prefix px (awalk_verts_from_rep uf y) = []"
       proof(rule ccontr)
         assume "longest_common_prefix px (awalk_verts_from_rep uf y) \<noteq> []"
-        then obtain px' where "px = ufa_rep_of uf a # px'"
-          unfolding awalk_verts_from_rep_y by (cases px) force+
-        then have "awalk_verts_from_rep uf x = ufa_rep_of uf b # ufa_rep_of uf a # px'"
-          using awalk_verts_from_rep_x by blast
-        moreover note ufa_tree_x.awalk_verts_from_rep_eq_awalk_verts[OF ufa_tree_x.pivot_in_verts]
-        moreover note ufa_tree_x.awalk_awalk_from_rep[OF ufa_tree_x.pivot_in_verts]
-        ultimately have
-          "ufa_rep_of uf a \<in> verts (ufa_tree_of uf x)"
-          "ufa_rep_of uf b \<in> verts (ufa_tree_of uf x)"
-          using ufa_tree_x.adj_in_verts
-          by (metis ufa_tree_x.awalk_imp_vwalk ufa_tree_x.vwalk_Cons_Cons)+
-        note this[THEN ufa_rep_of_eq_if_in_verts[unfolded NO_MATCH_def]]
-        then have "ufa_rep_of uf a = ufa_rep_of uf b"
-          using eff_unionD(1,2)[OF assms(1)] ufa_rep_of_ufa_rep_of
-          by simp
-        with eff_unionD(3)[OF assms(1)] show False
-          by blast
+        with 2 py obtain px' where "px = ufa_rep_of uf a # px'"
+          by (cases px) force+
+        with 2 px have "awalk_verts_from_rep uf x = ufa_rep_of uf b # ufa_rep_of uf a # px'"
+          by metis
+        moreover note y_in_verts = assms(2)[folded verts_ufa_forest_of]
+        note awalk_awalk_from_rep[OF this] awalk_verts_from_rep_eq_awalk_verts[OF this]
+        ultimately have "(ufa_rep_of uf b, ufa_rep_of uf a) \<in> arcs (ufa_forest_of uf)"
+          using awalk_imp_vwalk by force
+        then have "ufa_parent_of uf (ufa_rep_of uf a) = ufa_rep_of uf b"
+          using eq_ufa_parent_of_if_mem_arcs_ufa_forest_of by simp
+        with False 2 assms(3) show False
+          by (metis ufa_parent_of_ufa_rep_of)
       qed
 
-      with assms 2 False show ?thesis
-        unfolding ufa_lca_def awalk_verts_from_rep_union_eq awalk_verts_from_rep_x
+      with assms 2 False px  show ?thesis
+        unfolding ufa_lca_def awalk_verts_from_rep_union_eq
         by simp
     qed
   qed
 qed
 
+lemma (in ufa_forest) ufa_union_awalk_eq:
+  assumes "eff_union uf a b"
+  assumes "ufa_rep_of uf x \<noteq> ufa_rep_of uf y"
+  assumes "pre_digraph.awalk (ufa_forest_of (ufa_union uf a b)) x p y"
+  shows "x = ufa_rep_of uf b" "p = (ufa_rep_of uf b, ufa_rep_of uf a) # awalk_from_rep uf y"
+proof -
+  interpret ufa_union_forest: ufa_forest where uf = "ufa_union uf a b" .
+  from assms(3) have in_verts:
+    "x \<in> verts (ufa_forest_of uf)" "y \<in> verts (ufa_forest_of uf)"
+    using verts_ufa_forest_of_ufa_union by blast+
+
+  from assms have "ufa_union_forest.lca (ufa_lca (ufa_union uf a b) x y) x y"
+    using ufa_union_forest.ufa_rep_of_eq_if_awalk
+    by (intro ufa_forest.lca_ufa_lca) blast+
+  moreover from assms have "ufa_union_forest.lca x x y"
+    using ufa_union_forest.reachable_awalkI ufa_union_forest.lca_same_if_reachable
+    by blast
+  moreover from calculation assms have "ufa_lca (ufa_union uf a b) x y = x"
+    using ufa_union_forest.Uniq_lca[unfolded Uniq_def] by blast
+  moreover have "ufa_lca (ufa_union uf a b) x y = ufa_rep_of uf b"
+    using assms in_verts ufa_union_forest.ufa_rep_of_eq_if_awalk
+    by (subst ufa_lca_ufa_union) (fastforce simp del: with_proj_simps)+
+
+  ultimately show "x = ufa_rep_of uf b"
+    by simp
+
+  moreover from assms have
+    "ufa_rep_of (ufa_union uf a b) y = ufa_rep_of (ufa_union uf a b) x"
+    using ufa_union_forest.ufa_rep_of_eq_if_awalk by simp
+  ultimately have "ufa_rep_of (ufa_union uf a b) y = x"
+    using assms(1) ufa_rep_of_ufa_union by auto
+  with assms have
+    "p = awalk_from_rep (ufa_union uf a b) y"
+    using ufa_union_forest.eq_awalk_from_rep_if_awalk_ufa_rep_of
+    by (metis ufa_union_forest.awalkE')
+  moreover from assms in_verts \<open>ufa_rep_of (ufa_union uf a b) y = x\<close> have
+    "ufa_rep_of uf y = ufa_rep_of uf a"
+    by (cases "ufa_rep_of uf y = ufa_rep_of uf a")
+      (subst (asm) ufa_rep_of_ufa_union; fastforce simp del: with_proj_simps)+
+  ultimately show "p = (ufa_rep_of uf b, ufa_rep_of uf a) # awalk_from_rep uf y"
+    using assms in_verts
+    by (subst (asm) awalk_from_rep_ufa_union) (auto simp del: with_proj_simps)
+qed
+    
 end

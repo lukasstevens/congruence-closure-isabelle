@@ -9,14 +9,13 @@ lemma neq_find_newest_on_path_ufa_lca_if_neq:
   defines "lca_x_y \<equiv> ufe_lca ufe_ds x y"
   shows "find_newest_on_path ufe_ds lca_x_y x \<noteq> find_newest_on_path ufe_ds lca_x_y y"
 proof -
-  from assms interpret ufe_tree where pivot = x
-    by unfold_locales
-  from assms have "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using in_verts_if_ufa_rep_of_eq by simp
-  note lca_ulca = lca_ufa_lca[OF pivot_in_verts this]
+  interpret ufe_forest ufe_ds .
+  from assms have "lca lca_x_y x y"
+    using verts_ufa_forest_of unfolding lca_x_y_def
+    by (intro lca_ufa_lca) blast+
   then obtain px py where
     px: "awalk lca_x_y px x" and py: "awalk lca_x_y py y"
-    unfolding lca_x_y_def by (meson lca_reachableD reachable_awalk)
+    by (meson lca_reachableD reachable_awalk)
   note find_newest_on_path_dom = this[THEN find_newest_on_path_dom]
   note find_newest_on_path_psimps = this[THEN find_newest_on_path.psimps]
   consider (lca_x) "x = lca_x_y" | (lca_y) "y = lca_x_y" | (not_lca) "lca_x_y \<noteq> x" "lca_x_y \<noteq> y"
@@ -49,12 +48,11 @@ proof -
       iy: "iy \<in> set py" "find_newest_on_path ufe_ds lca_x_y y = Some (au_of iy)"
       using newest_on_pathE[unfolded newest_on_path_def]
       by (simp add: find_newest_on_path_eq_Max_au_of) metis
-    moreover note ps[unfolded lca_x_y_def] = px py
-    note disjoint_awalk_if_awalk_lca[OF lca_ulca \<open>x \<noteq> y\<close> this]
+    moreover note disjoint_awalk_if_awalk_lca[OF \<open>lca lca_x_y x y\<close> \<open>x \<noteq> y\<close> px py]
     with ix iy have "ix \<noteq> iy"
       by blast
     moreover from px py ix iy have
-      "ix \<in> arcs (ufe_tree_of ufe_ds x)" "iy \<in> arcs (ufe_tree_of ufe_ds x)"
+      "ix \<in> arcs (ufe_forest_of ufe_ds)" "iy \<in> arcs (ufe_forest_of ufe_ds)"
       by blast+
     ultimately show ?thesis
       using inj_on_au_of_arcs ix iy by (fastforce dest: inj_onD)
@@ -88,13 +86,9 @@ lemma
     "newest_x < newest_y \<Longrightarrow>
       unions ufe_ds' ! the newest_y = unions ufe_ds ! the newest_y"
 proof -
-  from assms interpret ufe_tree: ufe_tree
-    where ufe_ds = ufe_ds and pivot = x
-    by unfold_locales blast
+  interpret ufe_forest: ufe_forest ufe_ds .
 
-  from assms interpret ufe_tree_union: ufe_tree
-    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
-    by unfold_locales simp
+  interpret ufe_union_forest: ufe_forest "ufe_union ufe_ds a b" .
 
   from eff_union assms(1-3) show lca_eq:
     "ufe_lca ufe_ds' x y = ufe_lca ufe_ds x y"
@@ -104,27 +98,25 @@ proof -
   from eff_union assms have ufe_rep_of_union_eq:
     "ufe_rep_of ufe_ds' x = ufe_rep_of ufe_ds' y"
     using ufa_rep_of_ufa_union by (simp add: uf_ds_ufe_union_eq)
-  from assms have "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using ufe_tree.in_verts_if_ufa_rep_of_eq by metis
-  with assms ufe_tree.pivot_in_verts obtain px py where
-    px: "ufe_tree.awalk (ufe_lca ufe_ds' x y) px x" and
-    py: "ufe_tree.awalk (ufe_lca ufe_ds' x y) py y"
-    unfolding lca_eq
-    using ufe_tree.lca_ufa_lca ufe_tree.lca_reachableD ufe_tree.reachable_awalk
-    by metis
+  from assms have "ufe_forest.lca (ufe_lca ufe_ds' x y) x y"
+    using lca_eq ufe_forest.lca_ufa_lca verts_ufa_forest_of
+    by simp
+  then obtain px py where
+    px: "ufe_forest.awalk (ufe_lca ufe_ds' x y) px x" and
+    py: "ufe_forest.awalk (ufe_lca ufe_ds' x y) py y"
+    using ufe_forest.lca_reachableD by (metis ufe_forest.reachable_awalk)
   moreover note find_newest_on_path_ufe_union[OF eff_union]
   moreover from assms ufe_rep_of_union_eq have
     "ufe_rep_of ufe_ds (ufe_lca ufe_ds' x y) = ufe_rep_of ufe_ds x"
-    unfolding lca_eq
-    using ufe_tree.ufa_rep_of_ufa_lca ufe_tree.in_verts_if_ufa_rep_of_eq by metis
+    using px ufe_forest.ufa_rep_of_eq_if_awalk by blast
   ultimately show newest_eq:
     "find_newest_on_path ufe_ds' (ufe_lca ufe_ds x y) x = newest_x"
     "find_newest_on_path ufe_ds' (ufe_lca ufe_ds x y) y = newest_y"
-    using assms lca_eq ufe_tree.ufe_union_awalk_if_awalk[OF eff_union]
+    using assms lca_eq ufe_forest.ufe_union_awalk_if_awalk[OF eff_union]
     by metis+
 
   note px py
-  from this[THEN ufe_tree.find_newest_on_path_lt_Some_length_unions] show newest_lt:
+  from this[THEN ufe_forest.find_newest_on_path_lt_Some_length_unions] show newest_lt:
     "newest_x < Some (length (unions ufe_ds))"
     "newest_y < Some (length (unions ufe_ds))"
     unfolding lca_eq newest_eq newest_x_def newest_y_def by blast+
@@ -173,13 +165,12 @@ lemma explain'_pinduct[consumes 4, case_names eq newest_x newest_y]:
   using assms(1-4)
 proof(induction rule: explain'.pinduct)
   case (1 x y)
-  then interpret ufe_tree where pivot = x
-    by unfold_locales
+  interpret ufe_forest ufe_ds .
 
-  from 1 have in_verts_ufe_tree:
-    "x \<in> verts (ufe_tree_of ufe_ds x)"
-    "y \<in> verts (ufe_tree_of ufe_ds x)"
-    using in_verts_if_ufa_rep_of_eq by metis+
+  from "1.prems" have "lca (ufe_lca ufe_ds x y) x y"
+    using verts_ufa_forest_of
+    by (intro lca_ufa_lca) auto
+
   then obtain px py where
     px: "awalk (ufe_lca ufe_ds x y) px x" and
     py: "awalk (ufe_lca ufe_ds x y) py y"
@@ -203,16 +194,17 @@ proof(induction rule: explain'.pinduct)
       by simp
   next
     case newest_x
+
     with neq_find_newest_on_path_ufa_lca_if_neq[OF "1.prems"] have
       "ufe_lca ufe_ds x y \<noteq> x"
       using less_eq_option_None_is_None by fastforce
-    note newest_on_path_find_newest_on_path[OF px this]
-    with \<open>ufe_lca ufe_ds x y \<noteq> x\<close> newest_x "1.prems" have
+    note newest_on_path_find_newest_on_path[OF px this] this newest_x(3)
+    note newest_on_path_valid_union[OF this] ufe_rep_of_eq_if_newest_on_path[OF this]
+    with \<open>ufe_lca ufe_ds x y \<noteq> x\<close> px py newest_x "1.prems" have
       "ax \<in> Field (ufe_\<alpha> ufe_ds)" "bx \<in> Field (ufe_\<alpha> ufe_ds)"
       "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds ax"
       "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds bx"
-      using newest_on_path_valid_union ufe_rep_of_eq_if_newest_on_path
-      by simp_all
+      using ufa_rep_of_eq_if_awalk by simp_all
     moreover note IH = "1.IH"(1,2)[OF \<open>x \<noteq> y\<close> HOL.refl HOL.refl HOL.refl
         newest_x(2) newest_x(3)[symmetric] HOL.refl]
     ultimately show ?thesis
@@ -223,13 +215,13 @@ proof(induction rule: explain'.pinduct)
     with neq_find_newest_on_path_ufa_lca_if_neq[OF "1.prems"] have
       "ufe_lca ufe_ds x y \<noteq> y"
       using less_eq_option_None_is_None by fastforce
-    note newest_on_path_find_newest_on_path[OF py this]
-    with \<open>ufe_lca ufe_ds x y \<noteq> y\<close> newest_y "1.prems" have
+    note newest_on_path_find_newest_on_path[OF py this] this newest_y(3)
+    note newest_on_path_valid_union[OF this] ufe_rep_of_eq_if_newest_on_path[OF this]
+    with \<open>ufe_lca ufe_ds x y \<noteq> y\<close> px py newest_y "1.prems" have
       "ay \<in> Field (ufe_\<alpha> ufe_ds)" "by \<in> Field (ufe_\<alpha> ufe_ds)"
       "ufe_rep_of ufe_ds x = ufe_rep_of ufe_ds by"
       "ufe_rep_of ufe_ds y = ufe_rep_of ufe_ds ay"
-      using newest_on_path_valid_union ufe_rep_of_eq_if_newest_on_path
-      by simp_all
+      using ufa_rep_of_eq_if_awalk by simp_all
     moreover note IH = "1.IH"(3,4)[OF \<open>x \<noteq> y\<close> HOL.refl HOL.refl HOL.refl
         newest_y(2) newest_y(3)[symmetric] HOL.refl]
     ultimately show ?thesis
@@ -300,20 +292,18 @@ proof(induction ufe_ds arbitrary: x y rule: ufe_induct)
 next
   case (ufe_union ufe_ds a b x y)
 
-  from ufe_union.prems interpret ufe_tree_union: ufe_tree
-    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
-    by unfold_locales
+  interpret ufe_union_forest: ufe_forest "ufe_union ufe_ds a b" .
 
-  from ufe_union.prems have in_verts_ufe_tree_union:
-    "x \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-    "y \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-    using ufe_tree_union.in_verts_if_ufa_rep_of_eq by metis+
+  from ufe_union.prems have in_verts_ufe_union_forest:
+    "x \<in> verts (ufe_forest_of (ufe_union ufe_ds a b))"
+    "y \<in> verts (ufe_forest_of (ufe_union ufe_ds a b))"
+    unfolding verts_ufa_forest_of by blast+
 
-  then obtain px py where
-    px: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
-    py: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) py y"
-    using ufe_tree_union.lca_ufa_lca ufe_tree_union.lca_reachableD
-    by (metis ufe_tree_union.reachable_awalk)
+  with ufe_union.prems obtain px py where
+    px: "ufe_union_forest.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
+    py: "ufe_union_forest.awalk (ufe_lca (ufe_union ufe_ds a b) x y) py y"
+    using ufe_union_forest.lca_ufa_lca ufe_union_forest.lca_reachableD
+    by (metis ufe_union_forest.reachable_awalk)
 
   from ufe_union have in_Field_ufe_\<alpha>:
     "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
@@ -340,7 +330,7 @@ next
       from 2 have "x \<noteq> y"
         by blast
       note neq_find_newest_on_path_ufa_lca_if_neq[OF ufe_union.prems this]
-      moreover note ufe_tree_union.find_newest_on_path_lt_Some_length_unions[OF py]
+      moreover note ufe_union_forest.find_newest_on_path_lt_Some_length_unions[OF py]
       ultimately show ?thesis
         using ufe_union.hyps newest_x_eq leq_Some_if_lt_Suc_Some 
         by simp
@@ -364,7 +354,7 @@ next
       from 3 have "x \<noteq> y"
         by blast
       note neq_find_newest_on_path_ufa_lca_if_neq[OF ufe_union.prems this]
-      moreover note ufe_tree_union.find_newest_on_path_lt_Some_length_unions[OF px]
+      moreover note ufe_union_forest.find_newest_on_path_lt_Some_length_unions[OF px]
       ultimately show ?thesis
         using ufe_union.hyps newest_y_eq leq_Some_if_lt_Suc_Some
         using order_antisym_conv by auto
@@ -434,29 +424,23 @@ proof(induction arbitrary: x y rule: ufe_induct)
     by simp
 next
   case (ufe_union ufe_ds a b x y)
-
+  interpret ufe_forest: ufe_forest ufe_ds .
+  interpret ufe_union_forest: ufe_forest "ufe_union ufe_ds a b" .
+  
   from ufe_union have in_Field_ufe_\<alpha>:
     "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
     by simp_all
-  then interpret ufe_tree: ufe_tree where ufe_ds = ufe_ds and pivot = x
-    by unfold_locales
 
   let ?ufe_ds' = "ufe_union ufe_ds a b"
   let ?newest_x = "find_newest_on_path ?ufe_ds' (ufe_lca ?ufe_ds' x y) x"
   let ?newest_y = "find_newest_on_path ?ufe_ds' (ufe_lca ?ufe_ds' x y) y"
 
-  from ufe_union interpret ufe_tree_union: ufe_tree
-    where ufe_ds = "ufe_union ufe_ds a b" and pivot = x
-    by unfold_locales
-  from ufe_union.prems(2,3) ufe_tree_union.pivot_in_verts have
-    "y \<in> verts (ufe_tree_of (ufe_union ufe_ds a b) x)"
-    using ufe_tree_union.in_verts_if_ufa_rep_of_eq by metis
-  with ufe_tree_union.pivot_in_verts obtain px py where
-    px: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
-    py: "ufe_tree_union.awalk (ufe_lca (ufe_union ufe_ds a b) x y) py y"
-    using ufe_tree_union.lca_ufa_lca ufe_tree_union.lca_reachableD ufe_tree_union.reachable_awalk
-    by metis
-  note this[THEN ufe_tree_union.find_newest_on_path_lt_Some_length_unions]
+  from ufe_union.prems obtain px py where
+    px: "ufe_union_forest.awalk (ufe_lca (ufe_union ufe_ds a b) x y) px x" and
+    py: "ufe_union_forest.awalk (ufe_lca (ufe_union ufe_ds a b) x y) py y"
+    using ufe_union_forest.lca_ufa_lca ufe_union_forest.lca_reachableD ufe_union_forest.reachable_awalk
+    unfolding verts_ufa_forest_of by metis
+  note this[THEN ufe_union_forest.find_newest_on_path_lt_Some_length_unions]
   then have find_newest_on_path_le:
     "?newest_x \<le> Some (length (unions ufe_ds))"
     "?newest_y \<le> Some (length (unions ufe_ds))"
