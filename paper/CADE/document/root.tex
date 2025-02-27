@@ -1,0 +1,86 @@
+\documentclass[runningheads]{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[british]{babel}
+
+\usepackage[numbers]{natbib}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{mathpartir}
+
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,filecolor=black,urlcolor=black,pdfpagelabels]{hyperref}
+
+\pagestyle{plain}  %for submission
+
+\usepackage{isabelle,isabellesym}
+\isabellestyle{it}
+
+\isadroptag{theory}
+\isafoldtag{proof}
+
+\usepackage[capitalise]{cleveref}
+
+\usepackage{xcolor}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,positioning,patterns,patterns.meta}
+\usepackage{pgfplots}
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+\usepackage{calc}
+
+\usepackage[inline]{enumitem}
+
+\usepackage{array}
+\usepackage{multirow}
+
+\usepackage{todonotes}
+
+\makeatletter
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+                       {-8\p@ \@plus -4\p@ \@minus -4\p@}% Formerly -18\p@ \@plus -4\p@ \@minus -4\p@
+                       {-0.5em \@plus -0.22em \@minus -0.1em}%
+                       {\normalfont\normalsize\bfseries\boldmath}}
+\makeatother
+
+% Acronyms
+\usepackage[acronym,section=section]{glossaries}
+\makenoidxglossaries
+\newacronym{adt}{ADT}{abstract data type}
+\newacronym{uf}{UF}{Union-Find}
+\newacronym{ufe}{UFE}{Union-Find-Explain}
+\newacronym{lca}{LCA}{lowest common ancestor}
+\newacronym{afp}{AFP}{Archive of Formal Proofs}
+\newacronym{smt}{SMT}{Satisfiability Modulo Theories}
+
+% Notation
+\newcommand{\opunion}{\textsc{union}}
+\newcommand{\opfind}{\textsc{find}}
+\newcommand{\opexplain}{\textsc{explain}}
+
+\title{Simplified and Verified: A Second Look at a Proof-Producing Union-Find Algorithm}
+\author{Lukas Stevens\inst{1,2}\orcidID{0000-0003-0222-6858} \and Rebecca Ghidini\inst{1,3,4,5}\orcidID{0009-0009-8117-2659}}
+\institute{
+  Technical University of Munich, Department of Computer Science,\\
+  Boltzmannstr. 3, Garching, Germany
+  \and
+  \email{lukas.stevens@in.tum.de}
+  \and
+  École normale supérieure, Département d’informatique de l’ENS,\\
+  CNRS, PSL University, 75005 Paris, France
+  \and
+  Inria
+  \and
+  \email{rebecca.ghidini@info.ens.psl.eu}
+}
+
+\begin{document}
+
+\input{session}
+
+\end{document}
