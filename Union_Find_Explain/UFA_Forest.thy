@@ -18,21 +18,22 @@ definition "ufa_forest_of \<equiv>
 
 function (domintros) awalk_from_rep where
   "awalk_from_rep x =
-    (let
-      px = ufa_parent_of uf x
-    in
-      if px = x then [] else awalk_from_rep px @ [(px, x)])"
+    (let px = ufa_parent_of uf x
+    in if px = x then [] else awalk_from_rep px @ [(px, x)])"
   by auto
 
 function (domintros) awalk_verts_from_rep where
   "awalk_verts_from_rep x =
-    (let
-      px = ufa_parent_of uf x
-    in
-      if px = x then [] else awalk_verts_from_rep px) @ [x]"
+    (let px = ufa_parent_of uf x
+    in if px = x then [x] else awalk_verts_from_rep px @ [x])"
   by auto
 
 end
+
+lemma
+  tail_ufa_forest_of[simp]: "tail (ufa_forest_of uf) = fst" and
+  head_ufa_forest_of[simp]: "head (ufa_forest_of uf) = snd"
+  by simp_all
 
 lemma verts_ufa_forest_of:
   "verts (ufa_forest_of uf) = Field (ufa_\<alpha> uf)"
@@ -45,7 +46,7 @@ lemma verts_ufa_forest_of_ufa_union:
 lemma arcs_ufa_forest_of:
   "arcs (ufa_forest_of uf) =
     {(ufa_parent_of uf x, x) |x. x \<in> Field (ufa_\<alpha> uf) \<and> ufa_rep_of uf x \<noteq> x}"
-  unfolding ufa_forest_of_def using ufa_rep_of_nrefl_iff_ufa_parent_of_nrefl
+  unfolding ufa_forest_of_def using ufa_rep_of_refl_iff_ufa_parent_of_refl
   by (auto simp: Let_def)
 
 lemma in_Field_ufa_\<alpha>_if_in_verts_ufa_forest_of:
@@ -69,7 +70,7 @@ lemma ufa_rep_of_in_verts_if_in_verts_ufa_forest_of[simp, intro]:
 lemma eq_ufa_parent_of_if_mem_arcs_ufa_forest_of:
   assumes "(x, y) \<in> arcs (ufa_forest_of uf)"
   shows "x = ufa_parent_of uf y"
-  using assms unfolding ufa_forest_of_def Let_def by simp
+  using assms unfolding arcs_ufa_forest_of by simp
 
 lemma awalk_from_rep_domI[simp, intro]:
   assumes "x \<in> Field (ufa_\<alpha> uf)"
@@ -111,8 +112,10 @@ proof unfold_locales
   show "finite (verts (ufa_forest_of uf))"
     unfolding verts_ufa_forest_of using finite_Field_ufa_\<alpha> by blast
   then show "finite (arcs (ufa_forest_of uf))"
-    unfolding ufa_forest_of_def by (auto simp: Let_def)
-qed (auto simp: ufa_forest_of_def Let_def)
+    unfolding verts_ufa_forest_of arcs_ufa_forest_of by auto
+qed (auto simp: verts_ufa_forest_of arcs_ufa_forest_of simp del: with_proj_simps)
+
+declare with_proj_simps[simp del]
 
 lemma awalk_ufa_parent_of:
   assumes "x \<in> verts (ufa_forest_of uf)"
@@ -120,7 +123,8 @@ lemma awalk_ufa_parent_of:
   shows "awalk (ufa_parent_of uf x) [(ufa_parent_of uf x, x)] x"
 proof -
   from assms have "(ufa_parent_of uf x, x) \<in> arcs (ufa_forest_of uf)"
-    unfolding ufa_forest_of_def Let_def by simp
+    unfolding arcs_ufa_forest_of
+    using ufa_parent_of_ufa_rep_of by fastforce
   note arc_implies_awalk[OF this]
   then show ?thesis
     by simp
@@ -198,7 +202,8 @@ proof
       by auto
     moreover from this have
       "a = (ufa_parent_of uf x, x)" "ufa_parent_of uf x \<noteq> x"
-      unfolding ufa_forest_of_def using snoc.prems(1) by (auto simp: Let_def)
+      using snoc.prems(1) unfolding arcs_ufa_forest_of
+      using ufa_rep_of_if_refl_ufa_parent_of by auto
     moreover from snoc.prems have
       "ufa_rep_of uf (ufa_parent_of uf x) = ufa_rep_of uf x"
       using ufa_rep_of_ufa_parent_of by blast
@@ -235,9 +240,8 @@ proof -
     proof(cases "?px = x")
       case True
       with 1 show ?thesis
-        using awalk_from_rep_ufa_rep_of_if_in_verts
-        using ufa_rep_of_if_refl_ufa_parent_of
-        by (fastforce simp: awalk_verts_from_rep.psimps)
+        using awalk_from_rep_rep_of ufa_rep_of_if_refl_ufa_parent_of
+        by (subst awalk_verts_from_rep_eq_map_fst_awalk_from_rep) fastforce+
     next
       case False
       from 1 have "ufa_rep_of uf ?px = ufa_rep_of uf x"
@@ -474,14 +478,25 @@ lemma arcs_ufa_forest_of_ufa_union_eq:
   "arcs (ufa_forest_of (ufa_union uf a b)) =
     insert (ufa_rep_of uf b, ufa_rep_of uf a) (arcs (ufa_forest_of uf))"
   using a_b_in_Field_ufa_\<alpha> ufa_rep_of_neq unfolding ufa_forest_of_def
-  by (auto simp: Let_def ufa_parent_of_ufa_union)
+  by (auto simp: ufa_parent_of_ufa_union Let_def with_proj_simps)
 
 lemma ufa_forest_of_ufa_union_eq_add_arc:
   "with_proj (ufa_forest_of (ufa_union uf a b)) =
     add_arc (ufa_rep_of uf b, ufa_rep_of uf a)"
-  unfolding with_proj_def pre_digraph.add_arc_def
-  using verts_ufa_forest_of_ufa_union_eq arcs_ufa_forest_of_ufa_union_eq
-  using ufa_union_forest.adj_in_verts by force
+proof -
+  from a_b_in_Field_ufa_\<alpha> have
+    "verts (add_arc (ufa_rep_of uf b, ufa_rep_of uf a)) =
+    verts (ufa_forest_of (ufa_union uf a b))"
+    unfolding verts_add_arc_conv verts_ufa_forest_of_ufa_union_eq
+    by (auto simp: verts_ufa_forest_of)
+  moreover have
+    "arcs (add_arc (ufa_rep_of uf b, ufa_rep_of uf a)) =
+      arcs (ufa_forest_of (ufa_union uf a b))"
+    unfolding arcs_add_arc arcs_ufa_forest_of_ufa_union_eq
+    by blast
+  ultimately show ?thesis
+    by simp
+qed
 
 lemma ufa_union_awalk_if_awalk:
   assumes "awalk x p y"

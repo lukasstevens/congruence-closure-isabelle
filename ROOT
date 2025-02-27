@@ -9,7 +9,7 @@ session Union_Find in Union_Find = HOL +
 
 session Tree_Theory in Tree_Theory = Graph_Theory +
   theories
-    LCA_Directed_Tree
+    LCA_Directed_Forest
 
 session Union_Find_Explain in Union_Find_Explain = Union_Find +
   sessions

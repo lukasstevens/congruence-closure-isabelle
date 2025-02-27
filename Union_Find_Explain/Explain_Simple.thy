@@ -132,9 +132,9 @@ lift_definition unions :: "ufe \<Rightarrow> (nat \<times> nat) list" is
 lift_definition uf_ds :: "ufe \<Rightarrow> ufa" is
   "\<lambda>(ufa_init, us). ufa_unions ufa_init us" .
 
-abbreviation "ufe_rep_of ufe_ds x \<equiv> ufa_rep_of (uf_ds ufe_ds) x"
-abbreviation "ufe_parent_of ufe_ds x \<equiv> ufa_parent_of (uf_ds ufe_ds) x"
-abbreviation "ufe_\<alpha> ufe_ds \<equiv> ufa_\<alpha> (uf_ds ufe_ds)"
+abbreviation "ufe_rep_of ufe x \<equiv> ufa_rep_of (uf_ds ufe) x"
+abbreviation "ufe_parent_of ufe x \<equiv> ufa_parent_of (uf_ds ufe) x"
+abbreviation "ufe_\<alpha> ufe \<equiv> ufa_\<alpha> (uf_ds ufe)"
 
 lift_definition ufe_init :: "nat \<Rightarrow> ufe" is
   "\<lambda>n. (ufa_init n, [])"
@@ -206,9 +206,9 @@ lemma Field_ufe_\<alpha>_ufe_union_eq[simp]:
   "Field (ufe_\<alpha> (ufe_union ufe x y)) = Field (ufe_\<alpha> ufe)"
   by transfer (auto simp: eff_unions_append split: if_splits)
 
-lemma ufa_\<alpha>_uf_ds_ufe_union_eq_per_union:
-  assumes "x \<in> Field (ufe_\<alpha> ufe_ds)" "y \<in> Field (ufe_\<alpha> ufe_ds)"
-  shows "ufe_\<alpha> (ufe_union ufe_ds x y) = per_union (ufe_\<alpha> ufe_ds) x y"
+lemma ufe_\<alpha>_ufe_union_eq_per_union:
+  assumes "x \<in> Field (ufe_\<alpha> ufe)" "y \<in> Field (ufe_\<alpha> ufe)"
+  shows "ufe_\<alpha> (ufe_union ufe x y) = per_union (ufe_\<alpha> ufe) x y"
   using assms per_union_cmp[OF part_equiv_ufa_\<alpha>, OF ufa_\<alpha>I]
   apply transfer
   apply (auto simp: eff_unions_append ufa_unions_append split: if_splits)

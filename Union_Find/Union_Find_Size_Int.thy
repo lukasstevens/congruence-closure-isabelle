@@ -35,7 +35,7 @@ lemma length_uf_of_ufsi[simp]:
   unfolding uf_of_ufsi_def by simp
 
 context
-  includes ufa.lifting ufs.lifting
+  includes ufa.lifting and ufs.lifting
 begin
 
 lift_definition ufa_of_ufsi :: "ufsi \<Rightarrow> ufa" is uf_of_ufsi

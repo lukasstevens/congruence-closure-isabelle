@@ -3,16 +3,16 @@ theory Union_Find_Size_Int_Quotient
 begin
 
 lemma ufsi_of_ufs_eq_if_eq_ufs:
-  includes ufa.lifting ufs.lifting ufsi.lifting
+  includes ufa.lifting and ufs.lifting and ufsi.lifting
   assumes "eq_ufs ufs1 ufs2"
   shows "ufsi_of_ufs ufs1 = ufsi_of_ufs ufs2"
   using assms unfolding eq_ufs_def ufs_\<alpha>_def ufs_rep_of_def ufs_size_def
   apply (transfer, unfold ufs_invar_def, transfer)
-  by (simp add: ufsi_of_uf_def rep_of.psimps ufa_invarD(1)
-      map_index_cong pred_prod_beta split: prod.splits)
+  by (auto simp add: ufsi_of_uf_def rep_of.psimps rep_of.domintros
+      intro!: map_index_cong split: prod.splits)
 
 lemma eq_ufs_if_ufsi_of_ufs_eq:
-  includes ufa.lifting ufs.lifting ufsi.lifting
+  includes ufa.lifting and ufs.lifting and ufsi.lifting
   assumes "ufsi_of_ufs ufs1 = ufsi_of_ufs ufs2"
   shows "eq_ufs ufs1 ufs2"
   using assms unfolding eq_ufs_def ufs_\<alpha>_def ufs_rep_of_def ufs_size_def
@@ -140,7 +140,7 @@ lemma ufa_of_ufsi_eq_ufa_of_ufs_ufs_of_ufsi:
   by (simp add: Rep_ufsi_inverse ufa_of_ufs.rep_eq ufs_of_ufsi.rep_eq)
 
 lemma ufa_of_ufsi_transfer[transfer_rule]:
-  includes lifting_syntax ufa_ufs_transfer
+  includes lifting_syntax and ufa_ufs_transfer
   notes [transfer_rule] = ufa_of_ufs_transfer
   shows "(pcr_ufsi ===> (=)) ufa_of_ufs ufa_of_ufsi"
   unfolding ufa_of_ufsi_eq_ufa_of_ufs_ufs_of_ufsi ufsi.pcr_cr_eq ufs_ufsi_rel_def
@@ -193,7 +193,7 @@ proof -
 qed
 
 lemma Abs_ufsi_replicate_neg_1_eq_ufsi_init:
-  includes ufa.lifting ufa_ufs_transfer
+  includes ufa.lifting and ufa_ufs_transfer
   notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
   shows "Abs_ufsi (replicate n (-1)) = ufsi_init n"
   apply (transfer, transfer, transfer)
@@ -214,7 +214,7 @@ lemma ufsi_rep_of_ufsi_rep_of[simp]:
   using assms by (transfer, transfer) simp
 
 lemma lt_length_if_in_Field_ufsi_\<alpha>_Abs_ufsi:
-  includes ufa_ufs_transfer ufa.lifting
+  includes ufa_ufs_transfer and ufa.lifting
   notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
   assumes "ufsi_invar ufsi"
   assumes "i \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
@@ -225,7 +225,7 @@ lemma lt_length_if_in_Field_ufsi_\<alpha>_Abs_ufsi:
   by auto
 
 lemma Field_ufsi_\<alpha>_Abs_ufsi_eq:
-  includes ufa_ufs_transfer ufa.lifting
+  includes ufa_ufs_transfer and ufa.lifting
   notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
   assumes "ufsi_invar ufsi"
   shows "Field (ufsi_\<alpha> (Abs_ufsi ufsi)) = {0..<length ufsi}"
@@ -240,7 +240,7 @@ lemma eq_uf_of_ufsi[simp]:
   by (simp add: Abs_ufsi_inverse ufa_of_ufs.rep_eq ufa_of_ufsi.rep_eq ufs_of_ufsi.rep_eq)
 
 lemma ufsi_parent_of_Abs_ufsi_eq:
-  includes ufa.lifting ufa_ufs_transfer
+  includes ufa.lifting and ufa_ufs_transfer
   notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
   assumes "ufsi_invar ufsi"
   assumes "i \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
@@ -252,7 +252,7 @@ lemma ufsi_parent_of_Abs_ufsi_eq:
   by (simp add: uf_of_ufsi_def)
 
 lemma ufsi_rep_of_Abs_ufsi_eq:
-  includes ufa.lifting ufa_ufs_transfer
+  includes ufa.lifting and ufa_ufs_transfer
   notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
   assumes "ufsi_invar ufsi"
   assumes "i \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
@@ -320,7 +320,7 @@ proof -
  
   from assms(1-3) have "ufa_invar (uf_of_ufsi (ufsi[rep_x := int rep_y]))"
     unfolding rep_x_def rep_y_def uf_of_ufsi_list_update
-    including ufa_ufs_transfer ufa.lifting
+    including ufa_ufs_transfer and ufa.lifting
     by (transfer, transfer, transfer)
       (auto simp: ufsi_invarD(1) intro!: ufa_invar_list_update_rep_of)
   moreover have swap:
@@ -354,7 +354,7 @@ proof -
       unfolding uf_of_ufsi'_eq
       unfolding ufa_union.abs_eq[OF eq_onp_ufa_invar_uf_of_ufsi]
       unfolding rep_x_def rep_y_def sz_rep_x_def sz_rep_y_def
-      including ufa_ufs_transfer ufa.lifting
+      including ufa_ufs_transfer and ufa.lifting
       by (transfer, transfer, transfer) (simp add: uf_of_ufsi_list_update)
   qed
 
@@ -396,6 +396,112 @@ proof -
   with assms(1) uf_of_ufsi'_eq_ufa_union show "ufsi_union (Abs_ufsi ufsi) x y = Abs_ufsi ?ufsi'"
     including ufa_ufs_transfer
     by (transfer, transfer) (metis Rep_ufa_inverse eq_uf_of_ufsi)
+qed
+
+lemma ufsi_compress_Abs_ufsi_eq_if_neq_ufsi_rep_of:
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
+  assumes "ufsi_invar ufsi"
+  assumes "x \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
+  defines "rep_x \<equiv> ufsi_rep_of (Abs_ufsi ufsi) x"
+  assumes "rep_x \<noteq> x"
+  shows "ufsi_invar (ufsi[x := int rep_x])" (is "ufsi_invar ?ufsi'")
+    and "ufsi_compress (Abs_ufsi ufsi) x = Abs_ufsi (ufsi[x := int rep_x])"
+proof -
+  let ?ufa = "Abs_ufa (uf_of_ufsi ufsi)"
+  
+  note ufa_invar = \<open>ufsi_invar ufsi\<close>[THEN ufsi_invarD(1)]
+
+  from assms(1) have rep_eq_ufa_rep_of:
+    "rep_x = ufa_rep_of ?ufa x"
+    unfolding rep_x_def including ufa_ufs_transfer
+    by (transfer, transfer, metis Rep_ufa_inverse eq_uf_of_ufsi)+
+ 
+  from assms(1-2) have "ufa_invar (uf_of_ufsi ?ufsi')"
+    unfolding rep_x_def uf_of_ufsi_list_update
+    including ufa_ufs_transfer and ufa.lifting
+    by (transfer, transfer, transfer)
+      (auto simp: ufsi_invarD(1) intro!: ufa_invar_list_update_rep_of)
+
+  from assms(1-3) have uf_of_ufsi'_eq_ufa_compress:
+    "Abs_ufa (uf_of_ufsi ?ufsi') = ufa_compress ?ufa x"
+  proof -
+    from assms(1) have eq_onp_ufa_invar_uf_of_ufsi:
+      "eq_onp ufa_invar (uf_of_ufsi ufsi) (uf_of_ufsi ufsi)"
+      by (simp add: eq_onp_same_args ufsi_invarD(1))
+    from assms(1,2,4) show ?thesis
+      unfolding ufa_compress.abs_eq[OF eq_onp_ufa_invar_uf_of_ufsi]
+      unfolding rep_x_def
+      including ufa_ufs_transfer and ufa.lifting
+      by (transfer, transfer, transfer) (simp add: uf_of_ufsi_list_update)
+  qed
+
+  have "ufs_invar (Abs_ufa (uf_of_ufsi ?ufsi'), size_of_ufsi ?ufsi')"
+  proof (rule ufs_invarI)
+    fix i
+    assume i_in_Field': "i \<in> Field (ufa_\<alpha> (Abs_ufa (uf_of_ufsi ?ufsi')))"
+    assume i_is_ufa_rep': "ufa_rep_of (Abs_ufa (uf_of_ufsi ?ufsi')) i = i"
+
+    from i_in_Field' have i_in_Field:
+      "i \<in> Field (ufa_\<alpha> ?ufa)"
+      unfolding uf_of_ufsi'_eq_ufa_compress by force
+
+    with assms(1) have "i \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
+      including ufa_ufs_transfer apply transfer apply transfer
+      using ufa_of_ufs_ufs_of_ufsi_Abs_ufsi_eq by fastforce
+    from assms(1) i_in_Field i_is_ufa_rep' have
+      "ufsi_rep_of (Abs_ufsi ufsi) i = i"
+      unfolding uf_of_ufsi'_eq_ufa_compress
+      including ufa_ufs_transfer apply transfer apply transfer
+      by (simp add: ufa_of_ufs_ufs_of_ufsi_Abs_ufsi_eq)
+
+     with assms(4)[unfolded rep_x_def] have "size_of_ufsi ?ufsi' i = size_of_ufsi ufsi i"
+      using size_of_ufsi_def by (metis nth_list_update_neq)
+    also have "\<dots> = ufsi_size (Abs_ufsi ufsi) i"
+      using \<open>i \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))\<close> \<open>ufsi_rep_of (Abs_ufsi ufsi) i = i\<close>
+      by (intro ufsi_size_Abs_ufsi[symmetric] assms)
+    also have "\<dots> = ufa_size (Abs_ufa (uf_of_ufsi ?ufsi')) i"
+      using assms(1) unfolding uf_of_ufsi'_eq_ufa_compress ufa_size_ufa_compress
+      including ufa_ufs_transfer apply transfer apply transfer
+      using ufa_of_ufs_ufs_of_ufsi_Abs_ufsi_eq by fastforce
+    finally show "size_of_ufsi (ufsi[x := int rep_x]) i =
+      ufa_size (Abs_ufa (uf_of_ufsi (ufsi[x := int rep_x]))) i" .
+  qed
+  with \<open>ufa_invar (uf_of_ufsi ?ufsi')\<close> show "ufsi_invar ?ufsi'"
+    unfolding ufsi_invar_def by simp
+
+  with assms(1) uf_of_ufsi'_eq_ufa_compress show "ufsi_compress (Abs_ufsi ufsi) x = Abs_ufsi ?ufsi'"
+    including ufa_ufs_transfer
+    by (transfer, transfer) (metis Rep_ufa_inverse eq_uf_of_ufsi)
+qed
+
+lemma ufsi_compress_Abs_ufsi_eq:
+  notes [transfer_rule] = Rep_ufa_ufa_of_ufs_transfer
+  assumes "ufsi_invar ufsi"
+  assumes "x \<in> Field (ufsi_\<alpha> (Abs_ufsi ufsi))"
+  defines "rep_x \<equiv> ufsi_rep_of (Abs_ufsi ufsi) x"
+  shows "ufsi_invar (ufsi[x := if rep_x = x then ufsi ! x else int rep_x])" (is "ufsi_invar ?ufsi'")
+    and "ufsi_compress (Abs_ufsi ufsi) x =
+      Abs_ufsi (ufsi[x := if rep_x = x then ufsi ! x else int rep_x])"
+proof -
+  from assms(1,2) show "ufsi_invar ?ufsi'"
+    unfolding rep_x_def using ufsi_compress_Abs_ufsi_eq_if_neq_ufsi_rep_of(1)
+    by simp
+
+  show "ufsi_compress (Abs_ufsi ufsi) x = Abs_ufsi ?ufsi'"
+  proof(cases "rep_x = x")
+    case False
+    with assms(1,2) show ?thesis
+      unfolding rep_x_def using ufsi_compress_Abs_ufsi_eq_if_neq_ufsi_rep_of(2)
+      by simp
+  next
+    case True
+    with assms(1,2) have "ufsi_compress (Abs_ufsi ufsi) x = Abs_ufsi ufsi"
+      unfolding rep_x_def including ufa.lifting and ufa_ufs_transfer    
+      apply transfer apply transfer
+      using ufa_compress_ufa_rep_of_eq by fastforce
+    with True show ?thesis
+      by force
+  qed
 qed
   
 lifting_update ufsi.lifting

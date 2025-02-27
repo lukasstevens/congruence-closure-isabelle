@@ -72,13 +72,13 @@ lemma ufs_imp_size_rule[sep_heap_rules]:
   using assms unfolding is_ufs_def is_ufs'_def ufs_imp_size_def  ufs_invar_def
   by (sep_auto simp: ufs_\<alpha>_def ufs_rep_of_def ufs_size_def split: prod.splits)
 
-definition "ufs_imp_union_raw p rep_x rep_y sz \<equiv> do {
+definition "ufs_imp_link p rep_x rep_y sz \<equiv> do {
   puf' \<leftarrow> ufa_imp_union (fst p) rep_x rep_y;
   prs' \<leftarrow> Array.upd rep_y sz (snd p);
   return (puf', prs')
 }"
 
-lemma ufs_invar_ufs_union_raw:
+lemma ufs_invar_ufs_link:
   fixes rs :: "nat list"
   assumes "ufs_invar (ufa_of_ufs ufs, (!) rs)" "\<forall>i \<in> Field (ufs_\<alpha> ufs). i < length rs"
   assumes "x \<in> Field (ufs_\<alpha> ufs)" "y \<in> Field (ufs_\<alpha> ufs)"
@@ -97,7 +97,7 @@ proof -
       (auto simp: nth_list_update ufa_rep_of_ufa_union ufa_size_ufa_union_if_ufa_rep_of_neq)
 qed
 
-lemma Abs_ufs_ufs_union_raw_eq_ufs_ufs_union:
+lemma Abs_ufs_ufs_link_eq_ufs_ufs_union:
   fixes rs :: "nat list"
   assumes "eq_ufs (Abs_ufs (ufa_of_ufs ufs, (!) rs)) ufs"
   assumes "ufs_invar (ufa_of_ufs ufs, (!) rs)" "\<forall>i \<in> Field (ufs_\<alpha> ufs). i < length rs"
@@ -109,7 +109,7 @@ lemma Abs_ufs_ufs_union_raw_eq_ufs_ufs_union:
     "eq_ufs (Abs_ufs (ufa_union (ufa_of_ufs ufs) x y, (!) (rs[rep_y := sz_rep_x + sz_rep_y])))
       (ufs_union ufs x y)"
 proof -  
-  note ufs_invar_ufs_union_raw[OF assms(2-5) assms(10)[unfolded rep_x_def rep_y_def]]
+  note ufs_invar_ufs_link[OF assms(2-5) assms(10)[unfolded rep_x_def rep_y_def]]
   then show ?thesis
     unfolding assms(6-9) eq_ufs_def ufs_size_def
     by (auto simp: ufa_of_ufs_ufs_union eq_onp_same_args ufa_of_ufs.abs_eq)
@@ -124,7 +124,7 @@ lemma ufs_imp_union_rule[sep_heap_rules]:
   assumes "rep_x \<noteq> rep_y"
   shows 
     "<is_ufs ufs p>
-      ufs_imp_union_raw p rep_x rep_y (sz_rep_x + sz_rep_y)
+      ufs_imp_link p rep_x rep_y (sz_rep_x + sz_rep_y)
     <is_ufs (ufs_union ufs x y)>"
 proof -
   from assms(1,2) have rep_in_Field_ufs_\<alpha>:
@@ -140,14 +140,14 @@ proof -
       Array.upd rep_y (sz_rep_x + sz_rep_y) prs
     <\<lambda>r. is_ufs' (ufs_union ufs x y) r>" for prs
     unfolding is_ufs'_def
-    using ufs_invar_ufs_union_raw Abs_ufs_ufs_union_raw_eq_ufs_ufs_union
+    using ufs_invar_ufs_link Abs_ufs_ufs_link_eq_ufs_ufs_union
     by (sep_auto simp: ufa_of_ufs_ufs_union ufs_\<alpha>_def)
   from assms(1,2) have
     "ufa_union (ufa_of_ufs ufs) rep_x rep_y = ufa_union (ufa_of_ufs ufs) x y"
     unfolding rep_x_def rep_y_def ufs_\<alpha>_def ufs_rep_of_def
     by simp
   with rep_in_Field_ufs_\<alpha>[unfolded ufs_\<alpha>_def] show ?thesis
-   unfolding ufs_imp_union_raw_def is_ufs_def
+   unfolding ufs_imp_link_def is_ufs_def
    by (sep_auto simp: ufa_of_ufs_ufs_union)
 qed
 
@@ -158,8 +158,8 @@ definition "ufs_imp_union_size p x y \<equiv> do {
   else do {
     sz_rep_x \<leftarrow> ufs_imp_size p rep_x;
     sz_rep_y \<leftarrow> ufs_imp_size p rep_y;
-    if sz_rep_x < sz_rep_y then ufs_imp_union_raw p rep_x rep_y (sz_rep_x + sz_rep_y)
-    else ufs_imp_union_raw p rep_y rep_x (sz_rep_y + sz_rep_x)
+    if sz_rep_x < sz_rep_y then ufs_imp_link p rep_x rep_y (sz_rep_x + sz_rep_y)
+    else ufs_imp_link p rep_y rep_x (sz_rep_y + sz_rep_x)
   }
 }"
 

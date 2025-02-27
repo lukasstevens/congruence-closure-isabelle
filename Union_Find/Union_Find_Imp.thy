@@ -85,8 +85,7 @@ proof -
     using that including ufa.lifting by (transfer, simp)+
   then have "<is_ufa ufa p> Array.upd (ufa_rep_of ufa x) (ufa_rep_of ufa y) p
     <is_ufa (ufa_union ufa x y)>"
-    using assms ufa_invar_list_update_rep_of_rep_of unfolding is_ufa_def
-    by sep_auto
+    using assms unfolding is_ufa_def by sep_auto
   with assms show ?thesis
     unfolding ufa_imp_union_def by sep_auto
 qed

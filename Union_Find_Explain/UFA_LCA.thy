@@ -4,7 +4,10 @@ begin
 
 definition ufa_lca where
   "ufa_lca uf x y \<equiv>
-    last (longest_common_prefix (awalk_verts_from_rep uf x) (awalk_verts_from_rep uf y))"
+    let
+      px = awalk_verts_from_rep uf x;
+      py = awalk_verts_from_rep uf y
+    in last (longest_common_prefix px py)"
 
 lemma ufa_lca_symmetric:
   "ufa_lca uf x y = ufa_lca uf y x"

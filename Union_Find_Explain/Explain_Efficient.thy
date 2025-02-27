@@ -7,17 +7,17 @@ theory Explain_Efficient
     "Equality_Proof"
 begin
 
-abbreviation "ufe_lca ufe_ds \<equiv> ufa_lca (uf_ds ufe_ds)"
-abbreviation "ufe_forest_of ufe_ds \<equiv> ufa_forest_of (uf_ds ufe_ds)"
+abbreviation "ufe_lca ufe \<equiv> ufa_lca (uf_ds ufe)"
+abbreviation "ufe_forest_of ufe \<equiv> ufa_forest_of (uf_ds ufe)"
 
 context
-  fixes ufe_ds :: ufe
+  fixes ufe :: ufe
 begin
 
 function (domintros) find_newest_on_path :: "nat \<Rightarrow> nat \<Rightarrow> nat option" where
   "find_newest_on_path y x =
     (if y = x then None
-    else max (au_ds ufe_ds x) (find_newest_on_path y (ufe_parent_of ufe_ds x)))"
+    else max (au_ds ufe x) (find_newest_on_path y (ufe_parent_of ufe x)))"
   by pat_completeness auto
 
 lemma find_newest_on_path_if_eq[simp]:
@@ -29,17 +29,17 @@ function (domintros) explain' :: "nat \<Rightarrow> nat \<Rightarrow> nat eq_prf
     (if x = y then ReflP x
     else 
       let
-        lca = ufe_lca ufe_ds x y;
+        lca = ufe_lca ufe x y;
         newest_x = find_newest_on_path lca x;
         newest_y = find_newest_on_path lca y
       in
         if newest_x \<ge> newest_y then
-          let (ax, bx) = unions ufe_ds ! the newest_x
+          let (ax, bx) = unions ufe ! the newest_x
           in TransP
             (TransP (explain' x ax) (AssmP (the newest_x)))
             (explain' bx y)
         else
-          let (ay, by) = unions ufe_ds ! the newest_y
+          let (ay, by) = unions ufe ! the newest_y
           in TransP
             (TransP (explain' x by) (SymP (AssmP (the newest_y))))
             (explain' ay y))"

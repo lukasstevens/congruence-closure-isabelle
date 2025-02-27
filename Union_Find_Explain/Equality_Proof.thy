@@ -2,9 +2,9 @@ theory Equality_Proof
   imports Main
 begin
 
-definition "symcl r \<equiv> r \<union> r\<inverse>"
+definition symcl :: "'a rel \<Rightarrow> 'a rel" where "symcl r \<equiv> r \<union> r\<inverse>"
 
-definition "equivcl r \<equiv> (symcl r)\<^sup>*"
+definition equivcl :: "'a rel \<Rightarrow> 'a rel" where "equivcl r \<equiv> (symcl r)\<^sup>*"
 
 lemma symcl_mono:
   assumes "r \<subseteq> s"

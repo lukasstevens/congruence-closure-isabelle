@@ -139,10 +139,10 @@ lemma ufa_rep_of_if_refl_ufa_parent_of:
   "ufa_parent_of uf i = i \<Longrightarrow> ufa_rep_of uf i = i"
   by transfer (simp add: rep_of.domintros rep_of.psimps)
 
-lemma ufa_rep_of_nrefl_iff_ufa_parent_of_nrefl:
+lemma ufa_rep_of_refl_iff_ufa_parent_of_refl:
   assumes "i \<in> Field (ufa_\<alpha> uf)"
-  shows "ufa_parent_of uf i \<noteq> i \<longleftrightarrow> ufa_rep_of uf i \<noteq> i"
-  using assms  nth_rep_of_eq_rep_of
+  shows "ufa_parent_of uf i = i \<longleftrightarrow> ufa_rep_of uf i = i"
+  using assms nth_rep_of_eq_rep_of
   by transfer (force simp: rep_of.domintros rep_of.psimps)
   
 lemma ufa_rep_of_if_irrefl_ufa_parent_of:
@@ -368,6 +368,16 @@ lemma ufa_rep_of_ufa_compress[simp]:
   shows "ufa_rep_of (ufa_compress uf x) i = ufa_rep_of uf i"
   using assms ufa_rep_of_ufa_compress_if_in_Field_ufa_\<alpha>
   by (simp_all add: ufa_\<alpha>.rep_eq ufa_compress.rep_eq ufa_rep_of.rep_eq)
+
+lemma ufa_compress_ufa_rep_of_eq[simp]:
+  assumes "x \<in> Field (ufa_\<alpha> uf)"
+  shows "ufa_compress uf (ufa_rep_of uf x) = uf"
+proof -
+  from assms have "ufa_rep_of uf (ufa_rep_of uf x) = ufa_rep_of uf x"
+    by simp
+  with assms show ?thesis
+    by transfer (simp add: list_update_same_conv nth_rep_of_eq_rep_of)
+qed
 
 definition "ufa_eq_class uf i \<equiv> ufa_\<alpha> uf `` {i}"
 
