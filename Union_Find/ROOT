@@ -1,0 +1,8 @@
+session Union_Find = HOL +
+  sessions
+    "List-Index"
+    Separation_Logic_Imperative_HOL
+  theories
+    Union_Find_Imp
+    Union_Find_Size_Imp
+    Union_Find_Size_Int_Imp

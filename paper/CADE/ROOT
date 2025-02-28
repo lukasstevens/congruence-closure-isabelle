@@ -2,10 +2,6 @@ session Union_Find_Explain_Paper = Union_Find_Explain +
   options [
     document_build = "pdflatex"  (*or: omit option for LuaLaTeX*)
   ]
-  sessions
-    Union_Find
-    Tree_Theory
-    Union_Find_Explain
   theories
     Document
   document_files
