@@ -1,6 +1,8 @@
 session Union_Find_Explain_Paper = Union_Find_Explain +
   options [
-    document_build = "pdflatex"  (*or: omit option for LuaLaTeX*)
+    document = "pdf",
+    document_build = "pdflatex",
+    document_output = "build/"
   ]
   theories
     Document
