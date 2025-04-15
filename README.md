@@ -12,35 +12,28 @@ The formalisation is structured as follows:
 - `paper/CADE`. This directory contains the Isabelle theories that produce the paper.
 
 ## Prerequisites
-The formalisations uses Isabelle2025-RC2, which can be obtained as follows.
-```
-$ hg clone https://isabelle.in.tum.de/repos/isabelle isabelle
-$ isabelle/Admin/init -r Isabelle2025-RC2 
-```
-Furthermore it relies on entries of the [*Archive of Formal Proofs* (AFP)](https://www.isa-afp.org), which can be obtained as follows.
-```
-$ hg clone https://foss.heptapod.net/isa-afp/afp-2025 afp-2025
-```
+The formalisations uses Isabelle2025, which can be obtained from the [Isabelle website](https://isabelle.in.tum.de/).
+Furthermore it relies on entries of the [*Archive of Formal Proofs* (AFP)](https://www.isa-afp.org), which can be obtained as described on the [download page](https://www.isa-afp.org/download/).
 
 ## Running the Formalisation
-Let `$ISABELLE` be the path that you cloned Isabelle to and `$AFP` be the path you cloned the AFP to.
+Let `$AFP` be the path you downloaded the AFP to.
 You can build the formalisation and the paper, which non-interactively checks all the proofs, by executing the command
 ```
-$ $ISABELLE/bin/isabelle build -d $AFP/thys -D . -v
+$ isabelle build -d $AFP/thys -D . -v
 ```
 After executing this command, the paper will be in `paper/CADE/build`.
 In order to export the code from the imperative specification to the file `Union_Find_Explain/export/UFE.ML`, execute
 ```
-$ $ISABELLE/bin/isabelle build -d $AFP/thys -d . -e Union_Find_Explain
+$ isabelle build -d $AFP/thys -d . -e Union_Find_Explain
 ```
 You can browse the theories interactively with the following command.
 Here, we open the theory file that produces the paper so you directly see how the paper corresponds to the formalisation.
 Note that jEdit displays the buffer of the ROOT file by default so you need to switch to the buffer `Document.thy`.
 ```
-$ $ISABELLE/bin/isabelle jedit -d $AFP/thys -d . -R Tree_Theory paper/CADE/Document.thy
+$ isabelle jedit -d $AFP/thys -d . -R Tree_Theory paper/CADE/Document.thy
 ```
 You can also browse the Isabelle theories as HTML files.
 To do this, execute the following command and open the directory that you see on the console with your browser.
 ```
-$ $ISABELLE/bin/isabelle build -d $AFP/thys -D . -o browser_info
+$ isabelle build -d $AFP/thys -D . -o browser_info
 ```
