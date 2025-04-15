@@ -564,6 +564,7 @@ theorem explain_partial_imp_rule[sep_heap_rules]:
   by sep_auto
 
 export_code ufe_c_imp_init ufe_c_imp_rep_of ufe_c_imp_union_size explain_partial_imp
+  AssmP nat_of_integer
   in SML_imp module_name UFE file_prefix UFE
 
 end
