@@ -95,6 +95,18 @@ proof -
     using assms unfolding ufa_invar_def by (auto simp: nth_list_update)
 qed
 
+lemma ufa_invar_list_update:
+  assumes "ufa_invar uf"
+  assumes "x < length uf" "y < length uf"
+  assumes "uf ! y = y"
+  shows "ufa_invar (uf[x := y])"
+proof -
+  from assms have "rep_of uf y = y"
+    by (simp add: ufa_invarD rep_of.psimps)
+  with ufa_invar_list_update_rep_of[OF assms(1-3)] show ?thesis
+    by simp
+qed
+
 end
 
 lift_definition ufa_\<alpha> :: "ufa \<Rightarrow> nat rel" is Union_Find.\<alpha> .
@@ -131,9 +143,9 @@ lemma ufa_parent_of_in_Field_ufa_\<alpha>I[simp, intro]:
 
 lemma ufa_rep_of_simp:
   assumes "i \<in> Field (ufa_\<alpha> uf)"
-  shows "ufa_rep_of uf i = (let pi = ufa_parent_of uf i in if pi = i then i else ufa_rep_of uf i)"
-  using assms
-  by transfer (simp add: rep_of.domintros rep_of.psimps)
+  shows "ufa_rep_of uf i = (let pi = ufa_parent_of uf i in if pi = i then i else ufa_rep_of uf pi)"
+  using assms unfolding Let_def
+  by (transfer, subst rep_of.psimps)(simp_all add: ufa_invarD)
 
 lemma ufa_rep_of_if_refl_ufa_parent_of:
   "ufa_parent_of uf i = i \<Longrightarrow> ufa_rep_of uf i = i"
