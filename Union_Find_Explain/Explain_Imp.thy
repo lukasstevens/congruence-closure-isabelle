@@ -2,7 +2,7 @@ theory Explain_Imp
   imports
     Explain_Efficient_Correctness
     "Union_Find.Union_Find_Size_Int_Imp"
-    Dynamic_Array
+    "Refine_Imperative_HOL.IICF_Array_List"
 begin
 
 section \<open>Basic Union-Find-Explain\<close>
@@ -10,7 +10,7 @@ section \<open>Basic Union-Find-Explain\<close>
 record ufe_imp =
   uf_ds\<^sub>i :: ufsi_imp
   au_ds\<^sub>i :: "nat option Heap.array"
-  unions\<^sub>i :: "(nat \<times> nat) dyn_array"
+  unions\<^sub>i :: "(nat \<times> nat) array_list"
 
 definition "is_au_ds \<equiv> \<lambda>(au, n) au_imp. \<exists>\<^sub>Aau_list.
   au_imp \<mapsto>\<^sub>a au_list *
@@ -21,7 +21,7 @@ definition is_ufe :: "ufe \<times> nat \<Rightarrow> ufe_imp \<Rightarrow> assn"
     is_ufsi (ufsi_of_ufs (ufs_of_ufa (uf_ds ufe))) (uf_ds\<^sub>i ufe_imp) *
     \<up>(Field (ufe_\<alpha> ufe) = {0..<n}) *
     is_au_ds (au_ds ufe, n) (au_ds\<^sub>i ufe_imp) *
-    is_dyn_array (unions ufe) (unions\<^sub>i ufe_imp)"
+    is_array_list (unions ufe) (unions\<^sub>i ufe_imp)"
 
 lemma is_au_ds_upd_rule[sep_heap_rules]:
   assumes "i < n"
@@ -47,7 +47,7 @@ lemma nth_unions_rule[sep_heap_rules]:
   assumes "i < length (unions ufe)"
   shows
     "<is_ufe (ufe, n) ufe_imp>
-      Dynamic_Array.nth (unions\<^sub>i ufe_imp) i
+      arl_get (unions\<^sub>i ufe_imp) i
     <\<lambda>r. is_ufe (ufe, n) ufe_imp * \<up>(r = unions ufe ! i)>"
   using assms unfolding is_ufe_def by sep_auto
 
@@ -55,7 +55,7 @@ definition ufe_imp_init :: "nat \<Rightarrow> ufe_imp Heap" where
   "ufe_imp_init n \<equiv> do {
     uf \<leftarrow> ufsi_imp_init n;
     au \<leftarrow> Array.new n None;
-    us \<leftarrow> Dynamic_Array.new (0, 0);
+    us \<leftarrow> arl_empty;
     return \<lparr> uf_ds\<^sub>i = uf, au_ds\<^sub>i = au, unions\<^sub>i = us \<rparr>
   }"
 
@@ -226,12 +226,12 @@ partial_function (heap) explain_imp :: "ufe_imp \<Rightarrow> nat \<Rightarrow> 
       newest_x \<leftarrow> find_newest_on_path_imp ufe_imp lca x;
       newest_y \<leftarrow> find_newest_on_path_imp ufe_imp lca y;
       if newest_x \<ge> newest_y then do {
-        (ax, bx) \<leftarrow> Dynamic_Array.nth (unions\<^sub>i ufe_imp) (the newest_x);
+        (ax, bx) \<leftarrow> arl_get (unions\<^sub>i ufe_imp) (the newest_x);
         pxax \<leftarrow> explain_imp ufe_imp x ax;
         pbxy \<leftarrow> explain_imp ufe_imp bx y;
         return (TransP (TransP pxax (AssmP (the newest_x))) pbxy)
       } else do {
-        (ay, by) \<leftarrow> Dynamic_Array.nth (unions\<^sub>i ufe_imp) (the newest_y);
+        (ay, by) \<leftarrow> arl_get (unions\<^sub>i ufe_imp) (the newest_y);
         pxby \<leftarrow> explain_imp ufe_imp x by;
         payy \<leftarrow> explain_imp ufe_imp ay y;
         return (TransP (TransP pxby (SymP (AssmP (the newest_y)))) payy)
@@ -299,10 +299,10 @@ next
 qed
 
 definition "ufe_imp_link ufe_imp x y rep_x rep_y sz \<equiv> do {
-  len \<leftarrow> Dynamic_Array.length (unions\<^sub>i ufe_imp);
+  len \<leftarrow> arl_length (unions\<^sub>i ufe_imp);
   uf' \<leftarrow> ufsi_imp_link (uf_ds\<^sub>i ufe_imp) rep_x rep_y sz;
   au' \<leftarrow> Array.upd rep_x (Some len) (au_ds\<^sub>i ufe_imp);
-  us' \<leftarrow> Dynamic_Array.push (unions\<^sub>i ufe_imp) (0, 0) (x, y);
+  us' \<leftarrow> arl_append (unions\<^sub>i ufe_imp) (x, y);
   return \<lparr> uf_ds\<^sub>i = uf', au_ds\<^sub>i = au', unions\<^sub>i = us' \<rparr>
 }"
 
