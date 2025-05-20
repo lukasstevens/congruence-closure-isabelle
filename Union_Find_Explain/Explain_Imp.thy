@@ -78,18 +78,22 @@ qed
 partial_function (heap) ufsi_imp_awalk_verts_from_rep_acc where
   [code]: "ufsi_imp_awalk_verts_from_rep_acc ufsi x vs = do {
     px \<leftarrow> ufsi_imp_parent_of ufsi x;
-    if px = x then return (x # vs) 
-    else ufsi_imp_awalk_verts_from_rep_acc ufsi px (x # vs)
+    if px = x then arl_append vs x
+    else do {
+      vs' \<leftarrow> arl_append vs x;
+      ufsi_imp_awalk_verts_from_rep_acc ufsi px vs'
+    }
   }"
 
-lemma ufsi_imp_awalk_verts_from_rep_acc_rule[sep_heap_rules]:
+lemma ufsi_imp_awalk_verts_from_rep_acc_rule:
   assumes "x \<in> Field (ufsi_\<alpha> ufsi)"
   shows
-    "<is_ufsi ufsi ufsi_imp>
-      ufsi_imp_awalk_verts_from_rep_acc ufsi_imp x vs
-    <\<lambda>r. is_ufsi ufsi ufsi_imp * \<up>(r = awalk_verts_from_rep (ufa_of_ufsi ufsi) x @ vs)>"
+    "<is_array_list vs vsa * is_ufsi ufsi ufsi_imp * true>
+      ufsi_imp_awalk_verts_from_rep_acc ufsi_imp x vsa
+    <\<lambda>r. is_array_list (vs @ rev (awalk_verts_from_rep (ufa_of_ufsi ufsi) x)) r *
+      is_ufsi ufsi ufsi_imp>\<^sub>t"
   using assms
-proof(induction arbitrary: vs rule: ufsi_rep_of_induct)
+proof(induction arbitrary: vs vsa rule: ufsi_rep_of_induct)
   case "parametric"
   then show ?case
     unfolding ufa_ufs_rel_def rel_fun_def
@@ -102,11 +106,13 @@ next
   moreover from this have "awalk_verts_from_rep_dom (ufa_of_ufsi ufsi) i"
     using awalk_verts_from_rep.domintros by force
   ultimately show ?case
-    by (subst ufsi_imp_awalk_verts_from_rep_acc.simps)
-      (sep_auto simp: awalk_verts_from_rep.psimps)
+    apply (subst ufsi_imp_awalk_verts_from_rep_acc.simps)
+    apply (sep_auto simp: awalk_verts_from_rep.psimps)
+    done
 next
   case (not_rep i)
-  moreover from this have "ufa_parent_of (ufa_of_ufsi ufsi) i = ufsi_parent_of ufsi i"
+  note not_rep.hyps not_rep.IH[of "vs @ [i]"]
+  moreover from not_rep have "ufa_parent_of (ufa_of_ufsi ufsi) i = ufsi_parent_of ufsi i"
     unfolding ufa_of_ufsi_eq_ufa_of_ufs_ufs_of_ufsi
     using ufs_parent_of_def ufsi_parent_of.rep_eq by force
   moreover from not_rep.hyps have "awalk_verts_from_rep_dom (ufa_of_ufsi ufsi) i"
@@ -114,44 +120,154 @@ next
     using awalk_verts_from_rep.domintros
     by (simp add: ufs_\<alpha>_def ufsi_\<alpha>.rep_eq)
   ultimately show ?case
-    by (subst ufsi_imp_awalk_verts_from_rep_acc.simps)
-      (sep_auto simp: awalk_verts_from_rep.psimps)
+    apply (subst ufsi_imp_awalk_verts_from_rep_acc.simps)
+    apply (sep_auto simp: awalk_verts_from_rep.psimps)
+    done
 qed
 
-definition "ufsi_imp_awalk_verts_from_rep ufsi x \<equiv> ufsi_imp_awalk_verts_from_rep_acc ufsi x []"
+lemmas ufsi_imp_awalk_verts_from_rep_acc_rule'[sep_heap_rules] =
+  ufsi_imp_awalk_verts_from_rep_acc_rule[THEN Hoare_Triple.cons_pre_rule[OF ent_refl_true]]
+
+
+definition "ufsi_imp_awalk_verts_from_rep ufsi x \<equiv> do {
+  vs \<leftarrow> arl_empty;
+  ufsi_imp_awalk_verts_from_rep_acc ufsi x vs
+}"
 
 lemma ufsi_imp_awalk_verts_from_rep_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufsi_\<alpha> ufsi)"
   shows
     "<is_ufsi ufsi ufsi_imp>
       ufsi_imp_awalk_verts_from_rep ufsi_imp x
-    <\<lambda>r. is_ufsi ufsi ufsi_imp * \<up>(r = awalk_verts_from_rep (ufa_of_ufsi ufsi) x)>"
+    <\<lambda>r. is_array_list (rev (awalk_verts_from_rep (ufa_of_ufsi ufsi) x)) r * is_ufsi ufsi ufsi_imp>\<^sub>t"
   using assms ufsi_imp_awalk_verts_from_rep_acc_rule[where ?vs="[]"]
-  unfolding ufsi_imp_awalk_verts_from_rep_def by simp
+  unfolding ufsi_imp_awalk_verts_from_rep_def by sep_auto
 
-definition "ufsi_imp_lca ufsi x y \<equiv> do {
-    vsx \<leftarrow> ufsi_imp_awalk_verts_from_rep ufsi x;
-    vsy \<leftarrow> ufsi_imp_awalk_verts_from_rep ufsi y;
-    return (last (longest_common_prefix vsx vsy))
+definition "longest_common_suffix xs ys \<equiv> rev (longest_common_prefix (rev xs) (rev ys))"
+
+lemma longest_common_suffix_Nil[simp]:
+  "longest_common_suffix [] ys = []"
+  "longest_common_suffix xs [] = []"
+  unfolding longest_common_suffix_def
+  by simp_all
+
+lemma longest_common_suffix_snoc[simp]:
+  "longest_common_suffix (xs @ [y]) (ys @ [y]) = longest_common_suffix xs ys @ [y]"
+  unfolding longest_common_suffix_def by simp
+
+lemma longest_common_suffix_eq_Nil_iff:
+  shows "longest_common_suffix xs ys = [] \<longleftrightarrow> xs = [] \<or> ys = [] \<or> last xs \<noteq> last ys"
+  unfolding longest_common_suffix_def
+  by (cases xs rule: rev_cases; cases ys rule: rev_cases) auto
+
+lemma eq_longest_common_suffix_butlast:
+  assumes "xs \<noteq> []" "ys \<noteq> []"
+  assumes "last xs = last ys"
+  shows "longest_common_suffix xs ys = longest_common_suffix (butlast xs) (butlast ys) @ [last xs]"
+  using assms
+  by (cases xs rule: rev_cases; cases ys rule: rev_cases) auto
+
+lemma longest_common_suffix_rev_rev:
+  "longest_common_suffix (rev xs) (rev ys) = rev (longest_common_prefix xs ys)"
+  unfolding longest_common_suffix_def by simp
+
+definition "arl_butlast' \<equiv> \<lambda>(a, n). return (a, n - 1)"
+
+lemma arl_butlast'_rule[sep_heap_rules]:
+  assumes "l \<noteq> []"
+  shows "<is_array_list l a> arl_butlast' a <is_array_list (butlast l)>"
+  using assms unfolding arl_butlast'_def
+  by (sep_auto simp: is_array_list_def butlast_take)
+
+partial_function (heap) hd_longest_common_suffix_aux_imp where
+  [code]: "hd_longest_common_suffix_aux_imp vsx vsy x = do {
+    evsx \<leftarrow> arl_is_empty vsx;
+    evsy \<leftarrow> arl_is_empty vsy;
+    if evsx \<or> evsy then return x
+    else do {
+      lx \<leftarrow> arl_last vsx;
+      ly \<leftarrow> arl_last vsy;
+      if lx \<noteq> ly then return x
+      else do {
+        vsx' \<leftarrow> arl_butlast' vsx;
+        vsy' \<leftarrow> arl_butlast' vsy;
+        hd_longest_common_suffix_aux_imp vsx' vsy' lx
+      }
+    }
   }"
+
+lemma hd_longest_common_suffix_aux_imp_rule[sep_heap_rules]:
+  shows
+    "<is_array_list ys ysa * is_array_list xs xsa>
+      hd_longest_common_suffix_aux_imp xsa ysa x
+    <\<lambda>r.
+      \<up>(if longest_common_suffix xs ys = []
+        then r = x
+        else r = hd (longest_common_suffix xs ys))>\<^sub>t"
+proof(induction "min (length xs) (length ys)" arbitrary: xs xsa ys ysa x)
+  case 0
+  then have "xs = [] \<or> ys = []"
+    by (cases xs; cases ys) simp_all
+  then show ?case
+    by (subst hd_longest_common_suffix_aux_imp.simps) sep_auto
+next
+  case (Suc n)
+  then have "xs \<noteq> []" "ys \<noteq> []"
+    by force+
+  moreover from this Suc.hyps(2) have "n = min (length (butlast xs)) (length (butlast ys))"
+    by simp
+  note Suc.hyps(1)[OF this]
+  ultimately show ?case
+    apply (subst hd_longest_common_suffix_aux_imp.simps)
+    apply (sep_auto simp: hd_append
+      longest_common_suffix_eq_Nil_iff[of xs ys]
+      eq_longest_common_suffix_butlast[of xs ys])
+    done
+qed
+
+definition "ufsi_imp_lca ufsi_imp x y \<equiv> do {
+  vx \<leftarrow> ufsi_imp_awalk_verts_from_rep ufsi_imp x;
+  vy \<leftarrow> ufsi_imp_awalk_verts_from_rep ufsi_imp y;
+  hd_longest_common_suffix_aux_imp vx vy 0
+}"
+
+lemma longest_common_prefix_awalk_verts_from_rep_neq_Nil:
+  assumes "x \<in> Field (ufa_\<alpha> ufa)" "y \<in> Field (ufa_\<alpha> ufa)"
+  assumes "ufa_rep_of ufa x = ufa_rep_of ufa y"
+  shows "longest_common_prefix (awalk_verts_from_rep ufa x) (awalk_verts_from_rep ufa y) \<noteq> []"
+  using assms ufa_forest.awalk_verts_from_rep_eq_Cons unfolding verts_ufa_forest_of 
+  by (metis list.distinct(1) longest_common_prefix.simps(1))
 
 lemma is_ufsi_ufsi_imp_lca_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufsi_\<alpha> ufsi)" "y \<in> Field (ufsi_\<alpha> ufsi)"
+  assumes "ufsi_rep_of ufsi x = ufsi_rep_of ufsi y"
   shows
     "<is_ufsi ufsi ufsi_imp> ufsi_imp_lca ufsi_imp x y 
-    <\<lambda>r. is_ufsi ufsi ufsi_imp * \<up>(r = ufa_lca (ufa_of_ufsi ufsi) x y)>"
-  using assms unfolding ufsi_imp_lca_def
-  by (sep_auto simp: ufa_lca_def)
+    <\<lambda>r. is_ufsi ufsi ufsi_imp * \<up>(r = ufa_lca (ufa_of_ufsi ufsi) x y)>\<^sub>t"
+proof -
+  from assms have
+    "longest_common_prefix
+      (awalk_verts_from_rep (ufa_of_ufsi ufsi) x) (awalk_verts_from_rep (ufa_of_ufsi ufsi) y) \<noteq> []"
+    supply ufa_of_ufs_transfer[transfer_rule]
+    including ufsi.lifting and ufa_ufs_transfer apply (transfer, transfer)
+    by (simp add: longest_common_prefix_awalk_verts_from_rep_neq_Nil)
+  with assms show ?thesis
+    unfolding ufsi_imp_lca_def
+    by (sep_auto simp: ufa_lca_def longest_common_suffix_rev_rev hd_rev)
+qed
 
 lemma ufsi_imp_lca_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe)" "y \<in> Field (ufe_\<alpha> ufe)"
+  assumes "ufe_rep_of ufe x = ufe_rep_of ufe y"
   shows
     "<is_ufe (ufe, n) ufe_imp> ufsi_imp_lca (uf_ds\<^sub>i ufe_imp) x y
-    <\<lambda>r. is_ufe (ufe, n) ufe_imp * \<up>(r = ufa_lca (uf_ds ufe) x y)>"
+    <\<lambda>r. is_ufe (ufe, n) ufe_imp * \<up>(r = ufa_lca (uf_ds ufe) x y)>\<^sub>t"
 proof -
   include ufsi.lifting and ufa_ufs_transfer
   define ufsi where "ufsi \<equiv> ufsi_of_ufs (ufs_of_ufa (uf_ds ufe))"
   from assms(1,2) have "x \<in> Field (ufsi_\<alpha> ufsi)" "y \<in> Field (ufsi_\<alpha> ufsi)"
+    unfolding ufsi_def by (transfer, transfer, simp)+
+  moreover from assms(3) have  "ufsi_rep_of ufsi x = ufsi_rep_of ufsi y"
     unfolding ufsi_def by (transfer, transfer, simp)+
   moreover have "ufa_lca (ufa_of_ufsi ufsi) x y = ufa_lca (uf_ds ufe) x y"
     unfolding ufsi_def
@@ -168,7 +284,7 @@ partial_function (heap) find_newest_on_path_acc_imp where
       au_x \<leftarrow> Array.nth (au_ds\<^sub>i ufe_imp) x;
       px \<leftarrow> ufsi_imp_parent_of (uf_ds\<^sub>i ufe_imp) x;
       find_newest_on_path_acc_imp ufe_imp y px (max au_x acc)
-    })"
+    })" 
 
 lemma (in ufe_forest) find_newest_on_path_acc_imp_rule[sep_heap_rules]:
   assumes "awalk z p y"
@@ -242,9 +358,9 @@ lemma explain_imp_rule[sep_heap_rules]:
   assumes "x \<in> Field (ufe_\<alpha> ufe)" "y \<in> Field (ufe_\<alpha> ufe)"
   assumes "ufe_rep_of ufe x = ufe_rep_of ufe y"
   shows
-    "<is_ufe (ufe, n) ufe_imp>
+    "<is_ufe (ufe, n) ufe_imp * true>
       explain_imp ufe_imp x y
-    <\<lambda>r. is_ufe (ufe, n) ufe_imp * \<up>(r = explain ufe x y)>"
+    <\<lambda>r. is_ufe (ufe, n) ufe_imp * \<up>(r = explain ufe x y)>\<^sub>t"
   unfolding explain_eq_explain'[OF assms]
   using explain'_dom_if_ufe_rep_of_eq[OF assms(1-3)] assms
 proof(induction rule: explain'_pinduct)
@@ -297,6 +413,9 @@ next
     apply(sep_auto simp: explain'.psimps[OF explain'_dom_if_ufe_rep_of_eq])
     done
 qed
+
+lemmas explain_imp_rule'[sep_heap_rules] =
+  explain_imp_rule[THEN Hoare_Triple.cons_pre_rule[OF ent_refl_true]]
 
 definition "ufe_imp_link ufe_imp x y rep_x rep_y sz \<equiv> do {
   len \<leftarrow> arl_length (unions\<^sub>i ufe_imp);
@@ -525,7 +644,7 @@ lemma explain_imp_is_ufe_c_rule[sep_heap_rules]:
   shows
     "<is_ufe_c (ufe, n) ufe_c_imp>
       explain_imp (ufe\<^sub>i ufe_c_imp) x y
-    <\<lambda>r. is_ufe_c (ufe, n) ufe_c_imp * \<up>(r = explain ufe x y)>"
+    <\<lambda>r. is_ufe_c (ufe, n) ufe_c_imp * \<up>(r = explain ufe x y)>\<^sub>t"
   using assms unfolding is_ufe_c_def by sep_auto
 
 lemma Array_len_is_ufsi_conj_in_Field_ufsi_\<alpha>_rule[sep_heap_rules]:
@@ -558,7 +677,7 @@ theorem explain_partial_imp_rule[sep_heap_rules]:
   shows
     "<is_ufe_c (ufe, n) ufe_c_imp>
       explain_partial_imp ufe_c_imp x y
-    <\<lambda>r. is_ufe_c (ufe, n) ufe_c_imp * \<up>(r = explain_partial ufe x y)>"
+    <\<lambda>r. is_ufe_c (ufe, n) ufe_c_imp * \<up>(r = explain_partial ufe x y)>\<^sub>t"
   unfolding explain_partial_imp_def explain_partial_def
   unfolding in_equivcl_iff_eq_or_ufe_rep_of_eq
   by sep_auto
