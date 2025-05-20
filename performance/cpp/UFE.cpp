@@ -71,7 +71,7 @@ class UFE {
       vector<int> walk_y; 
       awalk_from_rep(walk_x, x);
       awalk_from_rep(walk_y, y);
-      int i;
+      size_t i;
       for (i = 0; i < min(walk_x.size(), walk_y.size()); ++i) {
         if (walk_x.at(i) != walk_y.at(i)) {
           break;
@@ -110,78 +110,3 @@ class UFE {
       explain_aux(proof, x, y);
     }
 };
-
-
-//enum operation {
-//  UNION,
-//  FIND,
-//  EXPLAIN
-//};
-//
-//int main() {
-//  int n;
-//  string operation;
-//  cin >> operation >> n;
-//  uf.resize(n, -1);
-//  ufc.resize(n, -1);
-//  au.resize(n, -1);
-//  int n_ops;
-//  int x, y;
-//  cin >> n_ops;
-//  vector<int> op_type(n_ops);
-//  vector< pair<int, int> > op_args(n_ops);
-//  for (int i = 0; i < n_ops; ++i) {
-//    cin >> operation;
-//    if (operation == "union") {
-//      op_type.at(i) = UNION;
-//      cin >> x >> y;
-//      op_args.at(i) = make_pair(x, y);
-//    } else if (operation == "find") {
-//      op_type.at(i) = FIND;
-//      cin >> x;
-//      op_args.at(i) = make_pair(x, x);
-//    } else if (operation == "explain") {
-//      op_type.at(i) = EXPLAIN;
-//      cin >> x >> y;
-//      op_args.at(i) = make_pair(x, y);
-//    }
-//  }
-//  auto start = chrono::steady_clock::now();
-//  for (int i = 0; i < n_ops; ++i) {
-//    auto op_typ = op_type.at(i);
-//    x = get<0>(op_args.at(i));
-//    y = get<1>(op_args.at(i));
-//    if (op_typ == UNION) {
-//      union_(x, y); 
-//    } else if (op_typ == FIND) {
-//      find(x);
-//    } else if (op_typ == EXPLAIN) {
-//      //for (int i = 0; i < ufc.size(); ++i) {
-//      //  cout << '(' << uf[i] << ',' << ufc[i] << ',' << au[i] << ") ";
-//      //}
-//      //cout << endl;
-//      //cout << au.size() << endl;
-//      //for (int i = 0; i < au.size(); ++i) {
-//      //  cout << au[i] << ' ';
-//      //}
-//      //cout << endl;
-//      //cout << unions.size() << endl;
-//      //for (int i = 0; i < unions.size(); ++i) {
-//      //  cout << get<0>(unions[i]) << ',' << get<1>(unions[i]) << ' ';
-//      //}
-//      //cout << endl;
-//
-//      vector< pair<int, int> > proof;
-//      explain(proof, x, y);
-//      cout << proof.size() << endl;
-//      //for (int i = 0; i < proof.size(); ++i) {
-//      //  cout << get<0>(proof[i]) << ',' << get<1>(proof[i]) << ' ';
-//      //}
-//      //cout << endl;
-//    }
-//  }
-//  auto finish = chrono::steady_clock::now();
-//  chrono::duration<double> duration = finish - start;
-//  cout << chrono::duration_cast<chrono::milliseconds>(duration).count() << '\n';
-//}
-
