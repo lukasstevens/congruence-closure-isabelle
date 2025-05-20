@@ -2,6 +2,7 @@ session Union_Find_Explain = Union_Find +
   sessions
     "HOL-Library"
     Tree_Theory
+    Refine_Imperative_HOL
   theories
     Explain_Simple
     Explain_Efficient_Correctness
