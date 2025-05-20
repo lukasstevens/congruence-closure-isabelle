@@ -110,7 +110,7 @@ end
 structure Ufe_C :> UFE_C =
 struct
 
-val dll = "UFE.so"
+val dll = "./UFE.so"
 val hndl = DynLink.dlopen (dll, DynLink.RTLD_NOW)
 
 local

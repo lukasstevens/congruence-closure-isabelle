@@ -75,4 +75,6 @@ fun main ()  =
     (print ("usr: " ^ Time.toString usr ^ "\t" ^ "sys: " ^ Time.toString sys ^ "\n");
     print ("usr: " ^ Time.toString usr_C ^ "\t" ^ "sys: " ^ Time.toString sys_C ^ "\n"))
   end;
-main ()
+
+main ();
+
