@@ -36,7 +36,7 @@ proof -
     proof(induction arbitrary: p rule: ufa_rep_of_induct)
       case (rep i)
       then show ?case
-        by (meson awalk_and_ufa_rep_of_reflD(2) ufa_rep_of_simp)
+        using awalk_and_ufa_rep_of_reflD(2) ufa_rep_of_refl_iff_ufa_parent_of_refl by blast
     next
       case (not_rep i)
       then have "awalk x (butlast p) (ufe_parent_of ufe i)"
