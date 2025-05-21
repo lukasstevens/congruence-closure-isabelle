@@ -63,7 +63,6 @@ class UFE {
         verts.push_back(x);
         x = this->uf.at(x);
       }
-      return reverse(verts.begin(), verts.end());
     }
 
     int lca_of(int x, int y) {
@@ -71,13 +70,13 @@ class UFE {
       vector<int> walk_y; 
       awalk_from_rep(walk_x, x);
       awalk_from_rep(walk_y, y);
-      size_t i;
-      for (i = 0; i < min(walk_x.size(), walk_y.size()); ++i) {
-        if (walk_x.at(i) != walk_y.at(i)) {
-          break;
-        }
+      int lca = walk_x.back();
+      while (!walk_x.empty() && !walk_y.empty() && walk_x.back() == walk_y.back()) {
+        lca = walk_x.back();
+        walk_x.resize(walk_x.size() - 1);
+        walk_y.resize(walk_y.size() - 1);
       }
-      return walk_x.at(i - 1);
+      return lca;
     }
 
     void explain_aux(vector< pair<int, int> >& proof, int x, int y) {
@@ -107,6 +106,9 @@ class UFE {
 
     void explain(int x, int y) {
       vector < pair<int, int> > proof;
+      int rep_x = find(x);
+      int rep_y = find(y);
+      if (rep_x != rep_y) return;
       explain_aux(proof, x, y);
     }
 };
