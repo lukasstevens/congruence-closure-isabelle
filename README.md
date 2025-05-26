@@ -5,10 +5,8 @@ The formalisation is structured as follows:
 - `Tree_Theory/`. We extend the `Graph_Theory` entry of the AFP with a definition of directed trees and forests. Furthermore, we define the least common ancestor in a graph.
 - `Union_Find/`. We formalise the basic Union-Find data structure including union-by-size and path compression. Additionally, we define a version of the data structure that encodes the size information more efficiently using a list of integers. The operations are the data structure are refined to Imperative HOL such that efficient imperative code can be exported.
 - `Union_Find_Explain/`. We formalise the Union-Find-Explain data structure by first formalising a simple, but inefficient, version of the explain operation and prove its soundness and completeness.
-    Then, we formalise the more complicated recursive implementation from the original paper and show that it is extensionally equal to the simple version.
+    Then, we formalise the more complex recursive implementation from the original paper and show that it is extensionally equal to the simple version.
     Finally, we refine the explain operation to Imperative HOL in order to be able to export efficient imperative code.
-     
-    Additionally, we formalise dynamic arrays in Imperative HOL.
 - `paper/CADE`. This directory contains the Isabelle theories that produce the paper.
 
 ## Prerequisites
