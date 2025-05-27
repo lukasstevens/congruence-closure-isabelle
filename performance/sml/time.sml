@@ -103,7 +103,7 @@ let
     String.concatWith "\t" (map Time.toString [usr_unions, sys_unions, usr_explains, sys_explains])
 
   val _ =
-    if true 
+    if false 
       then (print (String.concatWith ", " (map int_pair_toString (wide_tree 4)) ^ "\n");
         print (String.concatWith ", " (map int_pair_toString (balanced_tree 4)) ^ "\n"))
       else ()
@@ -128,4 +128,4 @@ let
       end
 in
   go n_low
-end
+end;
