@@ -15,10 +15,14 @@ fun pow 0 0 = 1
 
 fun wide_tree n = map (fn x => (x, x + 1)) (upt (pow 2 n - 1))
 
-fun balanced_tree 0 = []
-  | balanced_tree n =
-      map (fn x => (2 * x, 2 * x + 1)) (upt (pow 2 (n - 1))) @
-      map (fn (x, y) => (2 * x, 2 * y)) (balanced_tree (n - 1))
+fun balanced_tree_tr 0 k = k [] 
+  | balanced_tree_tr n k =
+      balanced_tree_tr (n - 1) 
+        (fn xs' => k (
+          map (fn x => (2 * x, 2 * x + 1)) (upt (pow 2 (n - 1))) @
+          map (fn (x, y) => (2 * x, 2 * y)) xs')
+        )
+fun balanced_tree n = balanced_tree_tr n (fn xs => xs)
 
 val _ = MLton.Random.srand (Word.fromInt 1337)
 
@@ -99,7 +103,7 @@ let
     String.concatWith "\t" (map Time.toString [usr_unions, sys_unions, usr_explains, sys_explains])
 
   val _ =
-    if false 
+    if true 
       then (print (String.concatWith ", " (map int_pair_toString (wide_tree 4)) ^ "\n");
         print (String.concatWith ", " (map int_pair_toString (balanced_tree 4)) ^ "\n"))
       else ()
