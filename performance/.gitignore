@@ -1,3 +1,4 @@
 *.so
-input/*.in
-sml/sources
+sml/time
+sml/time_int
+*.out

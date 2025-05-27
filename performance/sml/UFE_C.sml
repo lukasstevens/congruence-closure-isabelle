@@ -95,50 +95,36 @@ struct
          end
 end
 
-signature UFE_C =
-sig
-
-val new : int -> MLton.Pointer.t
-val delete : MLton.Pointer.t -> unit
-
-val find : (MLton.Pointer.t * int) -> int
-val union : (MLton.Pointer.t * int * int) -> unit
-val explain : (MLton.Pointer.t * int * int) -> unit
-
-end
-
-structure Ufe_C :> UFE_C =
+structure Ufe_C :> UFE_SIG =
 struct
 
 val dll = "./UFE.so"
 val hndl = DynLink.dlopen (dll, DynLink.RTLD_NOW)
 
+type nat = int
+type ufe = MLton.Pointer.t
+
+fun nat_of_int i = i 
+
 local
-   val call = _import * : DynLink.fptr -> int -> MLton.Pointer.t;
+   val call = _import * : DynLink.fptr -> nat -> MLton.Pointer.t;
    val UFE_New_fptr = DynLink.dlsym (hndl, "UFE_New")
 in
-   val new = call UFE_New_fptr 
+   val init = call UFE_New_fptr 
 end
 
 local
-   val call = _import * : DynLink.fptr -> MLton.Pointer.t -> unit;
-   val UFE_Delete_fptr = DynLink.dlsym (hndl, "UFE_Delete")
-in
-   val delete = call UFE_Delete_fptr 
-end
-
-local
-   val call = _import * : DynLink.fptr -> (MLton.Pointer.t * int) -> int;
+   val call = _import * : DynLink.fptr -> (MLton.Pointer.t * nat) -> nat;
    val UFE_find_fptr = DynLink.dlsym (hndl, "UFE_find")
 in
    val find = call UFE_find_fptr 
 end
 
 local
-   val call = _import * : DynLink.fptr -> (MLton.Pointer.t * int * int) -> unit;
+   val call = _import * : DynLink.fptr -> (MLton.Pointer.t * nat * nat) -> unit;
    val UFE_union_fptr = DynLink.dlsym (hndl, "UFE_union")
 in
-   val union = call UFE_union_fptr 
+   fun union (ufe, x, y) = (call UFE_union_fptr (ufe, x, y); ufe)
 end
 
 local

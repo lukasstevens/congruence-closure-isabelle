@@ -1,5 +1,8 @@
 $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/basis/mlton.mlb
+$(SML_LIB)/basis/c-types.mlb
 UFE.sml
+UFE_SML_Export.sml
+UFE_SML.sml
 UFE_C.sml
 time.sml

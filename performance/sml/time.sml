@@ -1,80 +1,127 @@
-datatype operation =
-  Union of (int * int) |
-  Find  of int |
-  Explain of (int * int) 
+structure Ufe_Bench_Base =
+struct
 
-fun nat_of_int x = UFE.nat_of_integer (IntInf.fromInt x)
-
-fun readFile filename : (int * operation list) =
+fun upt n = 
   let
-    val ins = TextIO.openIn filename
-
-    fun readline () = Option.valOf (TextIO.inputLine ins)
-
-    fun parseInt s = Option.valOf (Int.fromString s)
-
-    fun processLineInit line =
-      let
-        val ["init", nStr] = String.tokens (Char.isSpace) line
-      in 
-        parseInt nStr
-      end
-
-    fun processLine line =
-      case String.tokens (fn c => Char.isSpace c) line of
-          ["union", xStr, yStr] =>
-            let
-              val x = parseInt xStr
-              val y = parseInt yStr
-            in
-              Union (x, y)
-            end
-        | ["find", xStr] =>
-            let
-              val x = parseInt xStr
-            in
-              Find x 
-            end
-        | ["explain", xStr, yStr] =>
-            let
-              val x = parseInt xStr
-              val y = parseInt yStr
-            in
-              Explain (x, y) 
-            end
-    val n = processLineInit (readline ())
-    val c = parseInt (readline ())
-    fun go 0 acc : operation list = List.rev acc 
-      | go i acc = go (i - 1) (processLine (readline ()) :: acc)
-  in 
-    (n, go c [])
+    fun go 0 acc = acc
+      | go n acc = go (n - 1) ((n - 1) :: acc)
+  in
+    go n [] 
   end
 
-fun main ()  =
+fun pow 0 0 = 1
+  | pow b 0 = 1
+  | pow b e = b * pow b (e - 1)
+
+fun wide_tree n = map (fn x => (x, x + 1)) (upt (pow 2 n - 1))
+
+fun balanced_tree 0 = []
+  | balanced_tree n =
+      map (fn x => (2 * x, 2 * x + 1)) (upt (pow 2 (n - 1))) @
+      map (fn (x, y) => (2 * x, 2 * y)) (balanced_tree (n - 1))
+
+val _ = MLton.Random.srand (Word.fromInt 1337)
+
+local
+   val r: word ref = ref 0w0
+   val max: word ref = ref 0w0
+in
+   fun wordLessThan (w: word): word =
+         let
+            val () =
+               if w - 0w1 <= !max
+                  then ()
+               else (r := MLton.Random.rand ()
+                     ; max := Word.notb 0wx0)
+            val w' = !r
+            val () = r := Word.div (w', w)
+            val () = max := Word.div (!max, w)
+         in
+            Word.mod (w', w)
+         end
+end
+
+fun natLessThan (n: int): int = Word.toInt (wordLessThan (Word.fromInt n))
+
+fun gen_explain n = (natLessThan (pow 2 n), natLessThan (pow 2 n)) 
+
+fun gen_explains c n = map (fn _ => gen_explain n) (upt c)
+
+end
+
+functor Ufe_Bench(structure Ufe : UFE_MORE) =
+struct 
+
+open Ufe_Bench_Base
+
+fun bench_unions ufe gen_unions n =
   let
-    fun execute ([] : operation list) _ : unit = () 
-      | execute (Union (x, y) :: os) ufe =
-          execute os (UFE.ufe_c_imp_union_size ufe (nat_of_int x) (nat_of_int y) ())
-      | execute (Find x :: os) ufe = execute os (UFE.ufe_c_imp_rep_of ufe (nat_of_int x) (); ufe)
-      | execute (Explain (x, y) :: os) ufe =
-        execute os (UFE.explain_partial_imp ufe (nat_of_int x) (nat_of_int y) (); ufe)
-
-    val (n, ops) = readFile (List.hd (CommandLine.arguments ()))
-    val timer = Timer.startCPUTimer () 
-    val _ = execute ops (UFE.ufe_c_imp_init (nat_of_int n) ())
-    val {usr = usr, sys = sys} = Timer.checkCPUTimer timer
-
-    fun execute_C ([] : operation list) _ : unit = () 
-      | execute_C (Union (x, y) :: os) ufe = execute_C os (Ufe_C.union (ufe, x, y); ufe)
-      | execute_C (Find x :: os) ufe = execute_C os (Ufe_C.find (ufe, x); ufe)
-      | execute_C (Explain (x, y) :: os) ufe = execute_C os (Ufe_C.explain (ufe, x, y); ufe)
-    val timer_C = Timer.startCPUTimer () 
-    val _ = execute_C ops (Ufe_C.new n)
-    val {usr = usr_C, sys = sys_C} = Timer.checkCPUTimer timer_C
+    val us = Ufe.mk_unions (gen_unions n)
+    val timer = Timer.startRealTimer ()
+    val ufe = Ufe.unions ufe us 
+    val time = Timer.checkRealTimer timer
   in
-    (print ("usr: " ^ Time.toString usr ^ "\t" ^ "sys: " ^ Time.toString sys ^ "\n");
-    print ("usr: " ^ Time.toString usr_C ^ "\t" ^ "sys: " ^ Time.toString sys_C ^ "\n"))
-  end;
+    (ufe, time)
+  end
 
-main ();
 
+fun bench_explains ufe gen_explains n =
+  let
+    val es = Ufe.mk_explains (gen_explains n) 
+    val timer = Timer.startRealTimer ()
+    val ufe = Ufe.explains ufe es
+    val time = Timer.checkRealTimer timer
+  in
+    (ufe, time) 
+  end
+
+fun bench gen_unions gen_explains n =
+  let
+    val ufe = Ufe.init (Ufe.nat_of_int (pow 2 n))
+    val (ufe, time_unions) = bench_unions ufe gen_unions n
+    val (_, time_explains) = bench_explains ufe gen_explains n
+  in
+    (time_unions, time_explains) 
+  end
+
+end
+
+structure Ufe_Sml_Bench = Ufe_Bench(structure Ufe = Ufe_More(structure Ufe = Ufe_Sml));
+structure Ufe_C_Bench = Ufe_Bench(structure Ufe = Ufe_More(structure Ufe = Ufe_C));
+
+let
+  open Ufe_Bench_Base
+
+  fun pair_toString toString (x, y) = "(" ^ toString x ^ ", " ^ toString y ^ ")"
+  val int_pair_toString = pair_toString Int.toString
+
+  fun time_toString ({usr = usr_unions, sys = sys_unions}, {usr = usr_explains, sys = sys_explains}) =
+    String.concatWith "\t" (map Time.toString [usr_unions, sys_unions, usr_explains, sys_explains])
+
+  val _ =
+    if false 
+      then (print (String.concatWith ", " (map int_pair_toString (wide_tree 4)) ^ "\n");
+        print (String.concatWith ", " (map int_pair_toString (balanced_tree 4)) ^ "\n"))
+      else ()
+
+  val [lang, gen_tree, n_low, n_high] = CommandLine.arguments ()
+  val bench =
+    if lang = "C" then Ufe_C_Bench.bench else if lang = "SML" then Ufe_Sml_Bench.bench else raise Fail "unknown language" 
+  val gen_tree = if gen_tree = "wide" then wide_tree else if gen_tree = "balanced" then balanced_tree else raise Fail "unkown tree generator"
+  val n_low = Option.valOf (Int.fromString n_low)
+  val n_high = Option.valOf (Int.fromString n_high)
+
+  fun go n =
+    if n > n_high then print "\n" 
+    else
+      let
+        val (time_unions, time_explains) =
+          bench gen_tree (gen_explains 1000) n
+        fun time_toString time = LargeReal.toString (Time.toReal time)
+        val _ = print ((if n > n_low then " & " else "") ^ time_toString time_unions ^ "/"  ^ time_toString time_explains)
+      in 
+        go (n + 1)
+      end
+in
+  go n_low
+end
