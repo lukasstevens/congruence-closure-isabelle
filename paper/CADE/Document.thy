@@ -12,6 +12,7 @@ text_raw \<open>
 \newlength{\funheadersep}
 \setlength{\funheadersep}{2pt}
 \setenumerate[0]{label=(\arabic*)}
+\newcommand{\Cpp}[0]{C\texttt{++}}
 \<close>
 
 (*<*)
@@ -66,30 +67,33 @@ The formalisation provides a stepping stone towards the verification of proof-pr
 \keywords{Equivalence closure \and Interactive theorem proving \and Satisfiability modulo theories \and Proof-producing decision procedure}
 \end{abstract}
 \<close>
-(*<*)
+
 text \<open>
-\todo[inline]{Move question marks to ROOT}
-\todo[inline]{Rename au\_ds to au and uf\_ds to uf?}
-\todo[inline]{Use cref when sensible (e.g.\ when referring to current section)}
-\todo[inline]{Think about @{const defeq} vs @{const Pure.eq}}
+%\todo[inline]{Move question marks to ROOT}
+%\todo[inline]{Rename au\_ds to au and uf\_ds to uf?}
+%\todo[inline]{Use cref when sensible (e.g.\ when referring to current section)}
+%\todo[inline]{Think about @{const defeq} vs @{const Pure.eq}}
 \todo[inline]{Normalise bibliography}
+\todo[inline]{Indentation of defining equations}
+\todo[inline]{Corresponding author}
 \<close>
-(*>*)
+
 section \<open>Introduction\<close>
 
 text \<open>
 The \acrfull{uf} data structure maintains the equivalence closure of a relation,
 which is given as a sequence of pairs or, in terms of the \acrshort{uf} data structure, \opunion{} operations.
-It is fundamental to efficiently implement well-known graph algorithms such as @{cite \<open>mst using citeauthor\<close>}'s~@{cite \<open>mst\<close>} minimum spanning tree algorithm. 
-There it tracks which vertices belong to the same connected component and are, in that sense, equivalent.
+It is fundamental to efficiently implement well-known graph algorithms such as @{cite \<open>mst using citeauthor\<close>}'s~@{cite \<open>mst\<close>} minimum spanning-tree algorithm. 
+There, it tracks which vertices belong to the same connected component and are, in that sense, equivalent.
 Beyond graph algorithms, its applicability extends to the domain of theorem proving as it routinely forms the basis of congruence closure algorithms, which are widely used by \acrfull{smt} solvers.
 To increase their trustworthiness, current \acrshort{smt} solvers such as
-CVC5~@{cite \<open>cvc5\<close>}, E~@{cite \<open>eprover\<close>}, Vampire~@{cite \<open>vampire\<close>}, VeriT~@{cite \<open>verit\<close>}, and Z3~@{cite \<open>z3_proofs\<close>}
+cvc5~@{cite \<open>cvc5\<close>}, E~@{cite \<open>eprover\<close>}, Vampire~@{cite \<open>vampire\<close>}, veriT~@{cite \<open>verit\<close>}, and Z3~@{cite \<open>z3_proofs\<close>}
 can output detailed proofs when they determine an input formula to be unsatisfiable.
 To produce these proofs, it is crucial to have congruence closure algorithms that efficiently explain why they consider two terms to be equal.
 The first such algorithm was presented by @{cite \<open>congcl_proofs using citeauthor\<close>}~@{cite \<open>congcl_proofs and congcl_fast_extensions\<close>}, 
 who extended the \acrshort{uf} data structure with an \opexplain{} operation to obtain a \acrfull{ufe} data structure as part of their work.
 Verifying this data structure is the focus of our paper.
+\todo[inline]{Motivation: why verify proof-producing algorithm? Maybe also extend abstract.}
 \<close>
 
 subsection \<open>Contributions\<close>
@@ -160,7 +164,7 @@ Relations are denoted with the type synonym @{typ \<open>'a rel\<close>}, which 
 For a relation @{term \<open>r :: 'a rel\<close>}, @{term \<open>Field r\<close>} are those elements that occur as a component of a pair @{term \<open>p \<in> (r :: 'a rel)\<close>}.
 Furthermore, we use @{term \<open>r\<inverse>\<close>} to denote the inverse and @{term \<open>r\<^sup>*\<close>} to denote the reflexive transitive closure of @{term \<open>r :: 'a rel\<close>}.
 
-We remark that @{term [mode=iff] \<open>(\<longleftrightarrow>)\<close>} is equivalent to @{term HOL.eq} on the type @{typ bool} of Booleans
+We remark that @{term [mode=iff] \<open>(\<longleftrightarrow>)\<close>} is equivalent\todo{Really necessary?} to @{term HOL.eq} on the type @{typ bool} of Booleans
 and @{const Pure.eq} is definitional equality of the meta-logic of Isabelle/HOL, which is called Isabelle/Pure.
 
 Throughout our formalisation we employ \<^emph>\<open>locales\<close>~@{cite \<open>locales\<close>},
@@ -268,7 +272,7 @@ Therefore, we introduce the following definitions that characterise valid union(
 section \<open>Simple Certifying Union-Find Algorithm\label{sec:ufe_simple}\<close>
 text \<open>
 Building on the \acrshort{uf} \acrshort{adt}, we now develop a simple \opexplain{} operation that,
-for a given list of equations @{term_type \<open>us\<close>}, takes two elements @{term \<open>x\<close>} and @{term \<open>y\<close>}
+for a given list of equations @{term_type \<open>us :: ('a \<times> 'a) list\<close>}, takes two elements @{term \<open>x\<close>} and @{term \<open>y\<close>}
 and produces a certificate that @{term \<open>x = y\<close>} modulo @{term \<open>us\<close>}.
 The certificate is given in terms of a data type @{type \<open>eq_prf\<close>}
 with its corresponding system @{const proves_eq} of inference rules as seen in \cref{fig:eq_prf}.
@@ -515,8 +519,8 @@ because it aligns more naturally with the notion of a directed rooted tree.
 Additionally, this choice ensures compatibility with the @{locale directed_forest} locale,
 which we implemented on top of the graph library.
 For brevity, we omit the details here and direct the reader to the formalisation,
-but suffice it to say that typical properties of forests
-, e.g.\ the absence of cycles,
+but suffice it to say that typical properties of forests,
+e.g.\ the absence of cycles,
 are proved in this locale.
 To collect facts that are specific to \acrshort{uf} forests,
 we define a locale @{locale ufa_forest} fixing a \acrshort{uf} data structure @{term uf}.
@@ -725,7 +729,7 @@ text \<open>
 As mentioned in \cref{sec:uf_hol}, our formalisation of the \acrshort{uf} data structure extends a formalisation by @{cite \<open>uf_isabelle using citeauthor\<close>}~@{cite \<open>uf_isabelle and uf_isabelle_afp\<close>}.
 The latter formalisation already introduces the union-by-size heuristic,
 but it does so during the refinement to Imperative HOL.
-To improve the modularity of the formalisation and to be able to exploit Isabelle's lifting and transfer infrastructure~@{cite \<open>lifting_transfer\<close>},
+To improve the modularity\todo{Weaken this claim, why not autoref + sepref} of the formalisation and to be able to exploit Isabelle's lifting and transfer infrastructure~@{cite \<open>lifting_transfer\<close>},
 we raise the union-by-size heuristic to the purely functional level of HOL.
 In addition, we introduce a new optimisation where we represent the \acrshort{uf} data structure as a single list of integers,
 eliminating the additional data structure recording the size information.
@@ -787,7 +791,7 @@ For the associated unions, we use an array of options to represent the partial f
 This works as the domain is actually fixed,
 i.e.\ the domain of the partial function is exactly the elements of the \acrshort{uf} data structure,
 which, in our case, are the natural numbers up to some fixed @{term \<open>n\<close>}.
-Lastly, we represent the list of unions as a dynamic array using the type @{type \<open>dyn_array\<close>}.
+Lastly, we represent the list of unions as a dynamic array using the type @{type \<open>unit\<close>}\todo{Correct type}.
 The type wraps an array together with a natural number indicating how many cells of the array,
 counting from the first position,
 are occupied.
@@ -795,7 +799,7 @@ We can then grow the array dynamically by pushing elements to the end,
 doubling its size each time it becomes fully occupied.
 Hence, we achieve amortised constant running time for adding new unions and constant time random access,
 which are the operations required by the \opexplain{} operation. 
-There is a formalisation of dynamic arrays~@{cite \<open>imperative_hol_auto2\<close>} available in the \acrshort{afp}~@{cite \<open>imperative_hol_auto2_afp\<close>}; 
+There is a formalisation of dynamic arrays~@{cite \<open>imperative_hol_auto2\<close>} available in the \acrshort{afp}~@{cite \<open>imperative_hol_auto2_afp\<close>}\todo{IICF}; 
 however, it uses its own definition of heap assertions, so we ported it to the separation logic framework.
 We assemble these components into a record type @{typ ufe_imp}.
 Finally, we extend @{typ ufe_imp} with a \acrshort{uf} data structure with path compression,
@@ -817,11 +821,120 @@ so, we only show the final correctness theorem for @{const \<open>explain_partia
 an imperative version of @{const \<open>explain'\<close>} that ensures soundness
 following the approach of @{const \<open>explain_partial\<close>} in \cref{sec:ufe_simple}.
 \begin{theorem}
-We prove the following Hoare triple, which entails total correctness in the Separation Logic Framework~@{cite \<open>uf_isabelle_afp\<close>}:
+We prove the following Hoare triple, which entails total correctness in the Separation Logic Framework~@{cite \<open>uf_isabelle_afp\<close>}:\todo{Explain more notation, state in terms of @{const proves_eq}?}
 @{thm explain_partial_imp_rule}
 \end{theorem}
 \<close>
 
+section \<open>Benchmarking the Exported Code\<close>
+(*<*)
+definition wide :: "nat \<Rightarrow> (nat \<times> nat) list" where
+  "wide n \<equiv> [(x, x + 1). x \<leftarrow> [0..<2^n - 1]]"
+
+fun balanced :: "nat \<Rightarrow> (nat \<times> nat) list" where
+  "balanced 0 = []"
+| "balanced (Suc n) =
+    [(2 * x, 2 * x + 1). x \<leftarrow> [0..<2^n]] @
+    [(2 * x, 2 * y). (x, y) \<leftarrow> balanced n]"
+
+(*>*)
+
+text \<open>
+\begin{itemize}
+  \item Two test cases
+  \item Compare SML (MLton) against a hand-written C++ (g++) implementation
+  \item Benchmarking on x86 because there is no native target for MacOS ARM
+  \item Processor?
+  \item Cite Peter that BigInts can incur overhead of factor ~10
+  \item For the balanced case we already have more than 10GiB of memory consumption for @{term \<open>(2::nat)^26\<close>} elements
+  \item mlton: 20210117, g++: (GCC) 13.3.0
+\end{itemize}
+
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.25\textwidth}
+\centering
+\begin{tikzpicture}[every node/.append style={draw, ellipse, minimum width=2em}, >=stealth, edge from parent/.append style={draw, <-}]
+  \node {$0$}
+    child {node (1) {$1$}}
+    child {node[draw=none] {$\ldots$}}
+    child {node {$2^n - 1$}};
+\end{tikzpicture}
+\subcaption{TODO}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.6\textwidth}
+\centering
+\begin{tikzpicture}[
+  every node/.append style={draw, circle},
+  sibling distance=0.9cm, level distance = 0.9cm,
+  >=stealth, edge from parent/.append style={draw, <-}]
+  \node (2) {$0$}
+    child {node (21) {$1$}}
+    child {node {$2$}
+      child {node {$3$}}
+      child[missing] {}
+    }
+    child {node {$4$}
+      child {node {$5$}}
+      child {node {$6$}
+        child {node {$7$}}
+        child[missing] {}
+      }
+    };
+  \node[left=2cm of 2] (1) {$0$}
+    child {node (11) {$1$}}
+    child {node {$2$}
+      child {node {$3$}}
+      child[missing] {}
+    };
+  \node[left=1cm of 1] (0) {$0$}
+    child {node (01) {$1$}}
+    child[missing] {};
+\end{tikzpicture}
+\subcaption{TODO}
+\end{subfigure}
+\caption{TODO}
+\end{figure}
+
+\begin{table}
+\centering
+\begin{subtable}{\textwidth}
+\centering
+\begin{tabular}{l@ {\hskip 6pt} l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l}
+\toprule
+& \multicolumn{5}{c}{$\log_2(\#\text{elements})$} \\
+\cmidrule{2-6}
+Implementation & 18 & 19 & 20 & 21 & 22\\
+\midrule
+SML & 0.03/19.6 & 0.04/37.0 & 0.14/73.9 & 0.20/143 & 0.45/288 \\
+SML (*) & 0.01/8.73 & 0.02/16.5 & 0.03/32.3 & 0.20/67.6 & 0.14/130 \\
+\Cpp{} & 0.00/5.66 & 0.01/10.7 & 0.02/21.5 & 0.03/43.3 & 0.08/98.3 \\
+\Cpp{} (*) & 0.00/1.68 & 0.01/3.38 & 0.02/7.05 & 0.03/14.6 & 0.07/32.7 \\
+\bottomrule
+\end{tabular}
+\subcaption{TODO: Wide}
+\end{subtable}
+
+\begin{subtable}{\textwidth}
+\centering
+\begin{tabular}{l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l}
+\toprule
+& \multicolumn{5}{c}{$\log_2(\#\text{elements})$} \\
+\cmidrule{2-6}
+Implementation & 22 & 23 & 24 & 25 & 26\\
+\midrule
+SML & 0.59/0.02 & 0.76/0.02 & 1.52/0.02 & 3.69/0.44 & 14.6/0.81 \\
+SML (*) & 0.17/0.01 & 0.34/0.01 & 0.69/0.01 & 1.33/0.01 & 2.69/0.01 \\
+\Cpp{} & 0.09/0.00 & 0.17/0.01 & 0.36/0.01 & 0.73/0.01 & 1.49/0.01 \\
+\Cpp{} (*) & 0.09/0.00 & 0.17/0.00 & 0.36/0.00 & 0.74/0.01 & 1.49/0.01 \\
+\bottomrule
+\end{tabular}
+\subcaption{TODO: Balanced}
+\end{subtable}
+\caption{TODO}
+\end{table}
+\<close>
 section \<open>Conclusion and Future Work\<close>
 text \<open>
 We developed a formalisation of the \acrshort{uf} data structure with an \opexplain{} operation 
