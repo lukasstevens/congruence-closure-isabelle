@@ -1,5 +1,5 @@
 theory Document
-  imports Main LaTeXsugar "Union_Find_Explain.Explain_Imp"
+  imports Main "Union_Find_Explain.Explain_Imp" LaTeXsugar 
 begin
 
 text_raw \<open>
@@ -13,6 +13,7 @@ text_raw \<open>
 \setlength{\funheadersep}{2pt}
 \setenumerate[0]{label=(\arabic*)}
 \newcommand{\Cpp}[0]{C\texttt{++}}
+\newcommand{\Gpp}[0]{g\texttt{++}}
 \<close>
 
 (*<*)
@@ -73,9 +74,6 @@ text \<open>
 %\todo[inline]{Rename au\_ds to au and uf\_ds to uf?}
 %\todo[inline]{Use cref when sensible (e.g.\ when referring to current section)}
 %\todo[inline]{Think about @{const defeq} vs @{const Pure.eq}}
-\todo[inline]{Normalise bibliography}
-\todo[inline]{Indentation of defining equations}
-\todo[inline]{Corresponding author}
 \<close>
 
 section \<open>Introduction\<close>
@@ -91,9 +89,18 @@ cvc5~@{cite \<open>cvc5\<close>}, E~@{cite \<open>eprover\<close>}, Vampire~@{ci
 can output detailed proofs when they determine an input formula to be unsatisfiable.
 To produce these proofs, it is crucial to have congruence closure algorithms that efficiently explain why they consider two terms to be equal.
 The first such algorithm was presented by @{cite \<open>congcl_proofs using citeauthor\<close>}~@{cite \<open>congcl_proofs and congcl_fast_extensions\<close>}, 
-who extended the \acrshort{uf} data structure with an \opexplain{} operation to obtain a \acrfull{ufe} data structure as part of their work.
-Verifying this data structure is the focus of our paper.
-\todo[inline]{Motivation: why verify proof-producing algorithm? Maybe also extend abstract.}
+who extended the \acrshort{uf} data structure with an \opexplain{} operation to obtain a \acrfull{ufe} data structure.
+Verifying this data structure in Isabelle/HOL is the focus of our paper.
+
+Why, then, should we verify a data structure that already produces proofs?
+Our answer is three-fold.
+\begin{enumerate*}[label=(\arabic*)]
+\item While the data structure's proofs guarantee soundness, we also prove its completeness.
+\item Executing code exported from Isabelle depends on a substantial \acrfull{tcb}, including the target language's compiler and runtime.
+\item Whereas \acrshort{smt} solvers typically operate with a large \acrshort{tcb},
+adding to the \acrshort{tcb} of interactive theorem provers is usually discouraged.
+Proof-producing algorithms --- such as those introduced in earlier work by the first author~@{cite \<open>orders\<close>} --- enable integration without increasing the \acrshort{tcb}.
+\end{enumerate*}
 \<close>
 
 subsection \<open>Contributions\<close>
@@ -101,14 +108,14 @@ text \<open>
 We present, to our knowledge, the first formalisation of the \acrshort{ufe} data structure as introduced by @{cite \<open>congcl_proofs using citeauthor\<close>}.
 In their work, they present two variants of this data structure.
 Here, we only formalise the first variant, leaving the other for future work.
-We devise a simpler, more naive\todo{More positive word?} version of the \opexplain{} operation, for which soundness and completeness is easier to prove. 
+We devise a simpler, more naive version of the \opexplain{} operation, for which soundness and completeness is easier to prove. 
 Then, we prove the original version of the \opexplain{} operation to be extensionally equal to the simple one.
 Based on an existing formalisation of the \acrshort{uf} data structure by @{cite \<open>uf_isabelle using citeauthor\<close>}~@{cite \<open>uf_isabelle\<close>},
 we develop a more abstract formalisation of the data structure, hiding implementation details. 
 Finally, we refine the \acrshort{ufe} data structure to Imperative HOL~@{cite \<open>imperative_hol\<close>} using @{cite \<open>uf_isabelle using citeauthor\<close>}'s~@{cite \<open>uf_isabelle\<close>} separation logic framework,
 enabling generation of efficient imperative code.
 
-The formalisation is available online.\footnote{\<^url>\<open>TODO\<close>}
+The formalisation is available online.\footnote{\<^url>\<open>https://doi.org/10.5281/zenodo.15557955\<close>}
 Since everything is verified, we omit proofs and focus on outlining the structure of the formalisation.
 \<close>
 
@@ -131,8 +138,9 @@ It does, however, form the basis of proof-producing congruence closure algorithm
 There, they remain an active area of research;
 for example, when we are interested in efficiently finding small proofs~@{cite \<open>congcl_small_proofs\<close>}.
 
-In the context of interactive theorem proving, there is a formalisation of the \acrshort{uf} data structure in Coq~@{cite \<open>uf_coq\<close>}.
-Its amortised complexity is analysed by @{cite \<open>uf_coq_time using citeauthor\<close>}~@{cite \<open>uf_coq_time\<close>} in a separation logic with time credits.
+The literature of verified algorithms and data structure is vast so we refer to a survey~@{cite \<open>algorithms_survey\<close>} for an overview.
+Focusing on the \acrshort{uf} data structure, there is a formalisation in Coq~@{cite \<open>uf_coq\<close>}, where
+the amortised complexity is analysed by @{cite \<open>uf_coq_time using citeauthor\<close>}~@{cite \<open>uf_coq_time\<close>} in a separation logic with time credits.
 Similarly, in Isabelle, there is a formalisation of the data structure~@{cite \<open>uf_isabelle\<close>}
 that was later extended with a complexity analysis by @{cite \<open>uf_isabelle_time using citeauthor\<close>}~@{cite \<open>uf_isabelle_time\<close>}.
 More recently, there is formalisation by @{cite \<open>uf_isabelle_algebraic using citeauthor\<close>}~@{cite \<open>uf_isabelle_algebraic\<close>} taking a relation-algebraic view.
@@ -163,9 +171,6 @@ i.e.\ we have that @{lemma \<open>Some x \<le> Some y \<longleftrightarrow> x \<
 Relations are denoted with the type synonym @{typ \<open>'a rel\<close>}, which expands to @{typ \<open>('a \<times> 'a) set\<close>}.
 For a relation @{term \<open>r :: 'a rel\<close>}, @{term \<open>Field r\<close>} are those elements that occur as a component of a pair @{term \<open>p \<in> (r :: 'a rel)\<close>}.
 Furthermore, we use @{term \<open>r\<inverse>\<close>} to denote the inverse and @{term \<open>r\<^sup>*\<close>} to denote the reflexive transitive closure of @{term \<open>r :: 'a rel\<close>}.
-
-We remark that @{term [mode=iff] \<open>(\<longleftrightarrow>)\<close>} is equivalent\todo{Really necessary?} to @{term HOL.eq} on the type @{typ bool} of Booleans
-and @{const Pure.eq} is definitional equality of the meta-logic of Isabelle/HOL, which is called Isabelle/Pure.
 
 Throughout our formalisation we employ \<^emph>\<open>locales\<close>~@{cite \<open>locales\<close>},
 which are named contexts of types, constants and assumptions about them.
@@ -280,14 +285,16 @@ As expected, we have inference rules that utilise the reflexivity, symmetry, and
 To improve readability, we use the infix operator $\bigtriangledown$ to denote the proof term for transitivity.
 \begin{figure}[b]
   \begin{gather*}
-    @{thm [mode=Rule] Equality_Proof.assm[of _ us]} \qquad
+    \inferrule{@{thm (prem 1) Equality_Proof.assm[of _ us]} \\
+       @{thm (prem 2) Equality_Proof.assm[of _ us]}}{@{thm (concl) Equality_Proof.assm[of _ us]}} \qquad
     @{thm [mode=Axiom] Equality_Proof.refl[of us]} \\
     @{thm [mode=Rule] Equality_Proof.sym[of us]} \qquad
-    @{thm [mode=Rule] Equality_Proof.trans[of us p\<^sub>1 _ _ p\<^sub>2]}
+    \inferrule{@{thm (prem 1) Equality_Proof.trans[of us p\<^sub>1 _ _ p\<^sub>2]} \\
+       @{thm (prem 2) Equality_Proof.trans[of us p\<^sub>1 _ _ p\<^sub>2]}}{@{thm (concl) Equality_Proof.trans[of us p\<^sub>1 _ _ p\<^sub>2]}}
   \end{gather*}
   \caption{%
-    The system of inference rules @{const proves_eq} on the data type @{type eq_prf} of certificates.\label{fig:eq_prf}
-    Here, we write @{term \<open>us \<turnstile>\<^sub>= p : (x, y)\<close>} to say that @{term p} proves @{term \<open>x = y\<close>} assuming the equalities @{term us}.
+    The system of inference rules @{const proves_eq} on the data type @{type eq_prf} of proofs.\label{fig:eq_prf}
+    We write @{term \<open>us \<turnstile>\<^sub>= p : (x, y)\<close>} to say that @{term p} proves @{term \<open>x = y\<close>} assuming the equalities @{term us}.
   }
 \end{figure}
 
@@ -453,7 +460,7 @@ This is an improvement over the naive algorithm where we iterate over all (up to
     \node[draw, circle, preaction={fill, white}, style=bside] (lca) {\acrshort{lca}};
     \begin{pgfonlayer}{background}
       \begin{scope}[shape=isosceles triangle, shape border rotate=90, minimum height=1.3cm, minimum width=1.85cm]
-        \node[draw, anchor=north, below left=2cm and 3cm of lca.south west, aside] (l) {};
+        \node[draw, anchor=north, below left=1.35cm and 3cm of lca.south west, aside] (l) {};
         \path (l.north) -- node[pos=0.54, draw, anchor=north, bside] (m) {} (lca.west);
         \node[draw, anchor=north, yshift=0.25cm, bside] (r) at (lca.south) {};
       \end{scope}
@@ -488,7 +495,7 @@ subsection \<open>Implementation\<close>
 
 text \<open>
 To obtain an efficient \opexplain{} operation,
-we leverage the underlying structure of the \acrshort{uf} data structure,
+we leverage the structure of the \acrshort{uf} data structure,
 which is a forest of rooted trees.
 We make this structure accessible by defining a function @{const_typ ufa_parent_of} via lifting,
 where @{term \<open>ufa_parent_of uf x\<close>} returns the parent of @{term x}.
@@ -511,7 +518,7 @@ for its vertices and edges,
 where edges are pairs of vertices.
 The forest induced by a \acrshort{uf} data structure is then defined as follows.
 \begin{flushleft}
-@{thm ufa_forest_of_def}\\[0.75em]
+@{def_no_typ ufa_forest_of}\\[0.75em]
 @{abbrev \<open>ufe_forest_of ufe\<close>}
 \end{flushleft}
 Note that we choose (somewhat arbitrarily) to direct the edges away from the root
@@ -554,6 +561,21 @@ instead, we only state its characteristic properties:
 \<close>
 
 subsubsection \<open>Determining the \acrshort{lca} in a \acrshort{ufe} forest\<close>
+(*<*)
+lemma lca_ufa_lca: 
+  \<open>{x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow> ufa_rep_of uf x = ufa_rep_of uf y
+  \<Longrightarrow> pre_digraph.lca (ufa_forest_of uf) (ufa_lca uf x y) x y\<close>
+  by (use ufa_forest.lca_ufa_lca in \<open>unfold verts_ufa_forest_of, simp\<close>)
+
+lemma ufa_lca_ufa_union:
+\<open>eff_union uf a b \<Longrightarrow> {x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow>
+  ufa_rep_of (ufa_union uf a b) x = ufa_rep_of (ufa_union uf a b) y \<Longrightarrow>
+(ufa_lca (ufa_union uf a b) x y =
+  (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y
+  else ufa_rep_of uf b))
+\<close> by (use ufa_lca_ufa_union in simp_all)
+(*>*)
+
 text \<open>
 The first auxiliary functions lists the elements on the path from the representative to some element.
 Similarly to @{const \<open>ufa_rep_of\<close>}, this function is only well-defined for elements @{term \<open>x \<in> Field (ufa_\<alpha> uf)\<close>} of a given \acrshort{uf} data structure @{term uf}.
@@ -571,9 +593,7 @@ provided that the arguments share the same representative
 and thus are in the same tree of the forest.
 For brevity, we omit the definition of @{const [names_short] \<open>pre_digraph.lca\<close>} here and refer to the formalisation instead.
 \begin{lemma}\label{thm:lca_ufa_lca}
-@{lemma [names_short, mode=IfThen] \<open>{x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow> ufa_rep_of uf x = ufa_rep_of uf y
-  \<Longrightarrow> pre_digraph.lca (ufa_forest_of uf) (ufa_lca uf x y) x y\<close>
-  by (use ufa_forest.lca_ufa_lca in \<open>unfold verts_ufa_forest_of, simp\<close>)}
+If @{thm (prem 1) lca_ufa_lca} and @{thm (prem 2) lca_ufa_lca}, then @{thm (concl) lca_ufa_lca}.
 \end{lemma}
 We later prove key properties of \opexplain{} using the induction principle from \cref{thm:ufe_induct},
 making it essential to understand how the auxiliary functions behave under effective unions.
@@ -584,14 +604,8 @@ connecting the trees that @{term \<open>x\<close>} and @{term \<open>y\<close>} 
 Due to the orientation of this new edge,
 we know that the \acrshort{lca} of @{term \<open>x\<close>} and @{term \<open>y\<close>} must be the representative of @{term \<open>b\<close>} after performing the union.
 \begin{lemma}\label{thm:ufa_lca_ufa_union}
-@{lemma [mode=IfThenNoBox] \<open>
-eff_union uf a b \<Longrightarrow>
-{x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow>
-ufa_rep_of (ufa_union uf a b) x = ufa_rep_of (ufa_union uf a b) y \<Longrightarrow>
-(ufa_lca (ufa_union uf a b) x y =
-  (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y
-  else ufa_rep_of uf b))
-\<close> by (use ufa_lca_ufa_union in simp_all)}
+Assume @{thm (prem 1) ufa_lca_ufa_union} and @{thm (prem 2) ufa_lca_ufa_union}.
+If @{thm (prem 3) ufa_lca_ufa_union} then @{thm (concl) ufa_lca_ufa_union}.
 \end{lemma}
 \<close>
 
@@ -668,7 +682,6 @@ Verifying the functional correctness of @{const \<open>explain'\<close>} require
 proving termination as well as soundness and completeness.
 We prove termination directly, while we obtain soundness and completeness
 by showing extensional equality of @{const \<open>explain'\<close>} and @{const \<open>explain\<close>}.
-The detailed proofs are provided in \cref{sec:explain'_correct_proofs}.
 As @{const \<open>explain'\<close>}, like @{const \<open>explain\<close>}, does not validate its input,
 we assume for the remainder of this \lcnamecref{sec:explain'_correct} that
 \begin{enumerate*}
@@ -729,10 +742,10 @@ text \<open>
 As mentioned in \cref{sec:uf_hol}, our formalisation of the \acrshort{uf} data structure extends a formalisation by @{cite \<open>uf_isabelle using citeauthor\<close>}~@{cite \<open>uf_isabelle and uf_isabelle_afp\<close>}.
 The latter formalisation already introduces the union-by-size heuristic,
 but it does so during the refinement to Imperative HOL.
-To improve the modularity\todo{Weaken this claim, why not autoref + sepref} of the formalisation and to be able to exploit Isabelle's lifting and transfer infrastructure~@{cite \<open>lifting_transfer\<close>},
-we raise the union-by-size heuristic to the purely functional level of HOL.
-In addition, we introduce a new optimisation where we represent the \acrshort{uf} data structure as a single list of integers,
-eliminating the additional data structure recording the size information.
+We raise the union-by-size heuristic to the purely functional level of HOL,
+which lets us exploit Isabelle's lifting and transfer infrastructure~@{cite \<open>lifting_transfer\<close>}.
+In addition, we introduce another optimisation: we represent the \acrshort{uf} data structure as a single list of integers,
+eliminating the data structure recording the size information.
 
 As a prerequisite for the union-by-size heuristic,
 we define a function that determines the equivalence class of an element @{term \<open>x\<close>} in the data structure @{term \<open>uf\<close>}.
@@ -769,7 +782,7 @@ subsection \<open>From Functional to Imperative Specification\label{sec:imperati
 text \<open>
 To obtain an imperative specification,
 we formulate a refined version of the \opexplain{} operation in the heap monad provided by the Imperative HOL~@{cite \<open>imperative_hol\<close>} framework.
-This framework comes with an extension to Isabelle's code generator allowing us to generate imperative code in several target languages including Standard ML. 
+This framework comes with an extension to Isabelle's code generator allowing us to generate imperative code in several target languages including \acrlong{sml}. 
 Since Imperative HOL only comes with limited capabilities to analyse programs in its heap monad, 
 we bring in @{cite \<open>uf_isabelle using citeauthor\<close>}'s~@{cite \<open>uf_isabelle\<close>} separation logic framework for Imperative HOL.
 The framework lets us reason about the state of the heap using heap assertions,
@@ -780,7 +793,7 @@ so we ensure with heap assertions that the content of the arrays represents our 
 With the automation provided by @{cite \<open>uf_isabelle using citeauthor\<close>}'s framework,
 it is straightforward to implement the operations and prove their correctness.
 The process is similar to the refinement of the \acrshort{uf} data structure~@{cite \<open>uf_isabelle\<close>}.
-Thus, we forgo a discussion of how individual functions are refined and only provide an example in \cref{sec:refinement_ex}.
+Thus, we forgo a discussion of how individual functions are refined and refer to the formalisation instead.
 
 The only remaining noteworthy detail is the representation of the \acrshort{ufe} data structure in Imperative HOL.
 Our implementation consists of a \acrshort{uf} data structure,
@@ -791,7 +804,7 @@ For the associated unions, we use an array of options to represent the partial f
 This works as the domain is actually fixed,
 i.e.\ the domain of the partial function is exactly the elements of the \acrshort{uf} data structure,
 which, in our case, are the natural numbers up to some fixed @{term \<open>n\<close>}.
-Lastly, we represent the list of unions as a dynamic array using the type @{type \<open>unit\<close>}\todo{Correct type}.
+Lastly, we represent the list of unions as a dynamic array using the type @{type \<open>array_list\<close>}.
 The type wraps an array together with a natural number indicating how many cells of the array,
 counting from the first position,
 are occupied.
@@ -799,8 +812,6 @@ We can then grow the array dynamically by pushing elements to the end,
 doubling its size each time it becomes fully occupied.
 Hence, we achieve amortised constant running time for adding new unions and constant time random access,
 which are the operations required by the \opexplain{} operation. 
-There is a formalisation of dynamic arrays~@{cite \<open>imperative_hol_auto2\<close>} available in the \acrshort{afp}~@{cite \<open>imperative_hol_auto2_afp\<close>}\todo{IICF}; 
-however, it uses its own definition of heap assertions, so we ported it to the separation logic framework.
 We assemble these components into a record type @{typ ufe_imp}.
 Finally, we extend @{typ ufe_imp} with a \acrshort{uf} data structure with path compression,
 thus obtaining the record type @{typ ufe_c_imp}.
@@ -821,7 +832,7 @@ so, we only show the final correctness theorem for @{const \<open>explain_partia
 an imperative version of @{const \<open>explain'\<close>} that ensures soundness
 following the approach of @{const \<open>explain_partial\<close>} in \cref{sec:ufe_simple}.
 \begin{theorem}
-We prove the following Hoare triple, which entails total correctness in the Separation Logic Framework~@{cite \<open>uf_isabelle_afp\<close>}:\todo{Explain more notation, state in terms of @{const proves_eq}?}
+We prove the following Hoare triple, which entails total correctness in the Separation Logic Framework~@{cite \<open>uf_isabelle_afp\<close>}:
 @{thm explain_partial_imp_rule}
 \end{theorem}
 \<close>
@@ -840,34 +851,50 @@ fun balanced :: "nat \<Rightarrow> (nat \<times> nat) list" where
 (*>*)
 
 text \<open>
-\begin{itemize}
-  \item Two test cases
-  \item Compare SML (MLton) against a hand-written C++ (g++) implementation
-  \item Benchmarking on x86 because there is no native target for MacOS ARM
-  \item Processor?
-  \item Cite Peter that BigInts can incur overhead of factor ~10
-  \item For the balanced case we already have more than 10GiB of memory consumption for @{term \<open>(2::nat)^26\<close>} elements
-  \item mlton: 20210117, g++: (GCC) 13.3.0
-\end{itemize}
+In the previous section, we obtained an executable imperative specification of the \acrshort{ufe} data structure,
+from which we can export code to functional target languages while
+utilising their respective support for imperative programming like destructive array updates in \acrfull{sml}.
+This raises the question whether exporting imperative code to a functional language is a good fit, performance wise. 
+In addition, \acrshort{smt} solvers are usually implemented in imperative language such as \Cpp{}.
+Therefore, we compare the exported \acrshort{sml} code against
+a hand-written \Cpp{} implementation of the executable specification.
+
+We analyse the performance on two test cases:
+\begin{enumerate*}
+  \item in the former case, the the number of proof steps for an \opexplain{} operation is linear in the number of elements but the
+    depth of the \acrshort{uf} forest is constant,
+  \item while in the latter, the depth of the \acrshort{uf} forest as well as the number of proof steps
+    is logarithmic in the number of elements.
+\end{enumerate*}
+For both cases, we choose a natural number $n$, initialise the \acrshort{ufe} data structure with
+$2^n$ elements, perform \opunion{} operations that results in the desired \acrshort{uf} forest,
+and finally perform a number (i.e.\ 1000 and 100000, respectively) of \opexplain{} operations with the arguments drawn from
+the uniform distribution over $0,\ldots,2^n - 1$.
+We identify the test cases by functions @{const wide} and @{const balanced},
+which both have type @{typeof wide}.
+\cref{fig:test_cases} illustrates the resulting \acrshort{uf} forests or, more specifically, trees.
 
 \begin{figure}
 \centering
-\begin{subfigure}[b]{0.25\textwidth}
+\begin{subfigure}[b]{0.39\textwidth}
 \centering
-\begin{tikzpicture}[every node/.append style={draw, ellipse, minimum width=2em}, >=stealth, edge from parent/.append style={draw, <-}]
+\begin{tikzpicture}[
+  every node/.append style={draw, ellipse, minimum width=2em},
+  sibling distance=1.2cm,
+  >=stealth, edge from parent/.append style={draw, <-}]
   \node {$0$}
     child {node (1) {$1$}}
     child {node[draw=none] {$\ldots$}}
     child {node {$2^n - 1$}};
 \end{tikzpicture}
-\subcaption{TODO}
+\subcaption{\acrshort{uf} tree for @{term \<open>wide n\<close>}.}
 \end{subfigure}
 \hfill
-\begin{subfigure}[b]{0.6\textwidth}
+\begin{subfigure}[b]{0.58\textwidth}
 \centering
 \begin{tikzpicture}[
   every node/.append style={draw, circle},
-  sibling distance=0.9cm, level distance = 0.9cm,
+  sibling distance=0.9cm, level distance = 0.725cm,
   >=stealth, edge from parent/.append style={draw, <-}]
   \node (2) {$0$}
     child {node (21) {$1$}}
@@ -892,49 +919,69 @@ text \<open>
     child {node (01) {$1$}}
     child[missing] {};
 \end{tikzpicture}
-\subcaption{TODO}
+\subcaption{\acrshort{uf} trees for @{term \<open>balanced n\<close>} where @{prop \<open>n \<in> {1::nat,2,3}\<close>}.}
 \end{subfigure}
-\caption{TODO}
+\caption{The \acrshort{uf} trees resulting from performing the \opunion{} operations with the arguments given by @{const wide} and @{const balanced}.\label{fig:test_cases}}
 \end{figure}
 
-\begin{table}
+To perform our measurements, we compiled the exported Standard ML code with MLton\footnote{\<^url>\<open>http://mlton.org\<close>} version \texttt{20210117},
+and the \Cpp{} code with \Gpp{}\footnote{\<^url>\<open>https://gcc.gnu.org\<close>} version \texttt{13.3.0}.
+The results are shown in \cref{tab:benchmark}.
+The code export of Isabelle uses arbitrary sized integers to ensure soundness with respect to the executable specification
+while the \Cpp{} uses machine integers,
+so we also include a version of the exported code, annotated by (Int), that uses machine integers.
+
+The observed running time overhead of using arbitrary sized integers is roughly a factor of 2--2.5,
+which matches that observed by @{cite \<open>refine_monadic using citeauthor\<close>}~@{cite \<open>refine_monadic\<close>}.
+The difference between \acrshort{sml} with machine integers and \Cpp{} is
+roughly a factor of 2 for the \opunion{} operations and
+a factor of 1.5 for the \opexplain{} operations throughout both test cases.
+The second test case exhibits some outliers:
+notably, between $n = 23$ to $n = 24$ for \acrshort{sml} and
+between $n = 24$ and $n = 25$ for \acrshort{sml} (Int).
+This variance is due to garbage collection becoming a significant factor at large heap sizes,
+e.g. for $n = 25$ the heap grows to above 5 gigabytes.
+\begin{table}[t]
 \centering
 \begin{subtable}{\textwidth}
 \centering
 \begin{tabular}{l@ {\hskip 6pt} l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l}
 \toprule
-& \multicolumn{5}{c}{$\log_2(\#\text{elements})$} \\
-\cmidrule{2-6}
-Implementation & 18 & 19 & 20 & 21 & 22\\
+Impl. & 18 & 19 & 20 & 21 & 22\\
 \midrule
-SML & 0.03/19.6 & 0.04/37.0 & 0.14/73.9 & 0.20/143 & 0.45/288 \\
-SML (*) & 0.01/8.73 & 0.02/16.5 & 0.03/32.3 & 0.20/67.6 & 0.14/130 \\
-\Cpp{} & 0.00/5.66 & 0.01/10.7 & 0.02/21.5 & 0.03/43.3 & 0.08/98.3 \\
-\Cpp{} (*) & 0.00/1.68 & 0.01/3.38 & 0.02/7.05 & 0.03/14.6 & 0.07/32.7 \\
+SML & 0.025/18.428 & 0.075/36.129 & 0.072/70.696 & 0.157/140.209 & 0.393/280.684 \\
+SML (Int) & 0.011/8.341 & 0.011/16.249 & 0.024/29.695 & 0.051/62.442 & 0.092/131.532 \\
+\Cpp{} & 0.004/3.672 & 0.007/7.354 & 0.015/15.113 & 0.031/31.120 & 0.062/71.066 \\
 \bottomrule
 \end{tabular}
-\subcaption{TODO: Wide}
+\subcaption{Running times for @{term \<open>wide n\<close>}.}
 \end{subtable}
 
 \begin{subtable}{\textwidth}
 \centering
 \begin{tabular}{l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l@ {\hskip 6pt}l}
 \toprule
-& \multicolumn{5}{c}{$\log_2(\#\text{elements})$} \\
-\cmidrule{2-6}
-Implementation & 22 & 23 & 24 & 25 & 26\\
+Impl. & 22 & 23 & 24 & 25 & 26\\
 \midrule
-SML & 0.59/0.02 & 0.76/0.02 & 1.52/0.02 & 3.69/0.44 & 14.6/0.81 \\
-SML (*) & 0.17/0.01 & 0.34/0.01 & 0.69/0.01 & 1.33/0.01 & 2.69/0.01 \\
-\Cpp{} & 0.09/0.00 & 0.17/0.01 & 0.36/0.01 & 0.73/0.01 & 1.49/0.01 \\
-\Cpp{} (*) & 0.09/0.00 & 0.17/0.00 & 0.36/0.00 & 0.74/0.01 & 1.49/0.01 \\
+SML & 0.722/1.879 & 0.899/2.583 & 1.552/2.082 & 4.770/2.396 & 14.610/3.014 \\
+SML (Int) & 0.174/0.750 & 0.227/0.781 & 0.695/0.900 & 2.474/0.920 & 2.785/1.027 \\
+\Cpp{} & 0.087/0.369 & 0.199/0.460 & 0.350/0.550 & 0.752/0.620 & 1.451/0.728 \\
 \bottomrule
 \end{tabular}
-\subcaption{TODO: Balanced}
+\subcaption{Running times for @{term \<open>balanced n\<close>}.}
 \end{subtable}
-\caption{TODO}
+\caption{
+  Wall-clock running times in seconds as measured on an Intel Core i7 4790k.
+  For each $n$, we recorded the running time for performing the \opunion{} operations and the \opexplain{} operations (separated by a slash). \label{tab:benchmark}}
 \end{table}
+
+Overall, we found that employing a functional language results in a modest performance overhead when working with machine integers.
+We note that to soundly export such code,
+it would be necessary to change the element type of the \acrshort{ufe} data structure from natural numbers to fixed-width words.
+This is plausible future work, as the number of elements is fixed for any instance of the data structure,
+and the necessary operations on the elements are comparisons and --- operations that fixed-width words also support.
 \<close>
+
 section \<open>Conclusion and Future Work\<close>
 text \<open>
 We developed a formalisation of the \acrshort{uf} data structure with an \opexplain{} operation 
@@ -945,206 +992,12 @@ Finally, we refined the functional representation of the data structure to an im
 
 In future work, we plan to verify the other variant of the \acrshort{ufe} data structure as presented by @{cite \<open>congcl_proofs using citeauthor\<close>}.
 This variant also forms the basis of their congruence closure algorithm, which is the logical next step.
-Ultimately, we want to work towards a verified, proof-producing version of the Nelson-Oppen algorithm~@{cite \<open>nelson_oppen\<close>} for the combination of theories.\todo{Combine with order theory}
+Ultimately, we want to work towards a verified, proof-producing version of the Nelson-Oppen algorithm~@{cite \<open>nelson_oppen\<close>} for the combination of theories.
 \<close>
 
 text \<open>
 \bibliographystyle{splncs04nat}
 \bibliography{root}
 \<close>
-
-text_raw \<open>\clearpage\appendix\<close>
-
-text \<open>\printnoidxglossary[sort=def,type=\acronymtype]\<close>
-
-section \<open>Proving the Correctness of the Efficient Explain Operation\label{sec:explain'_correct_proofs}\<close>
-(*<*)
-context
-  fixes x y :: nat and ufe :: ufe
-  assumes in_Field_ufe_\<alpha>[simp]: "x \<in> Field (ufe_\<alpha> ufe)" "y \<in> Field (ufe_\<alpha> ufe)"
-  assumes ufe_rep_of_eq: "ufe_rep_of ufe x = ufe_rep_of ufe y"
-begin
-
-abbreviation "P p1 p2 \<equiv> TransP (TransP p1 (AssmP (length (unions ufe)))) p2"
-(*>*)
-
-text \<open>
-We recall the definition of @{const explain'}.
-\begin{flushleft}
-@{fun_input (concl) explain' [explain'.psimps]}
-\end{flushleft}
-Furthermore, we introduce two abbreviations to streamline the proofs below.
-\begin{flushleft}
-@{abbrev \<open>(x \<upharpoonleft> y)\<^bsub>ufe\<^esub>\<close>}\\[0.3em]
-@{abbrev \<open>(x \<restriction> y)\<^bsub>ufe\<^esub>\<close>}
-\end{flushleft}
-As stated in \cref{sec:explain'_correct}, we work under the assumption that
-\begin{itemize}
-  \item @{lemma \<open>{x, y} \<subseteq> Field (ufe_\<alpha> ufe)\<close> by simp}, and
-  \item @{thm ufe_rep_of_eq}.
-\end{itemize}
-
-\begin{proof}[\Cref{thm:explain'_dom_ufe_union}]
-We assume that @{thm (prem 1) explain'_dom_ufe_union[OF _ in_Field_ufe_\<alpha> ufe_rep_of_eq]}
-as well as @{thm (prem 2) explain'_dom_ufe_union[OF _ in_Field_ufe_\<alpha> ufe_rep_of_eq]} and show
-@{thm (concl) explain'_dom_ufe_union[OF _ in_Field_ufe_\<alpha> ufe_rep_of_eq]}.
-The first assumption gives us the termination of @{const explain'} for the given arguments,
-@{term ufe}, @{term x}, and @{term y}.
-Thus, we can use the partial computation induction rule of @{const explain'},
-which leaves us with three cases:
-one where @{term \<open>x = y\<close>} and two more depending on whether
-@{term \<open>(x \<upharpoonleft> y)\<^bsub>ufe\<^esub> \<ge> (x \<restriction> y)\<^bsub>ufe\<^esub>\<close>}
-(cf.\ the above definition of @{const explain'}).
-
-The first case is trivial because the function terminates immediately.
-
-Of the remaining, cases we only consider the case where
-@{term \<open>(x \<upharpoonleft> y)\<^bsub>ufe\<^esub> \<ge> (x \<restriction> y)\<^bsub>ufe\<^esub>\<close>}
-as the other case is symmetric.
-Additionally, we obtain @{term ax} and @{term bx} with
-@{prop \<open>unions ufe ! the ((x \<upharpoonleft> y)\<^bsub>ufe\<^esub>) = (ax, bx)\<close>}
-and assume that the recursive calls for the arguments @{term ax} and @{term bx} terminate.
-In formulae, we have
-\begin{flushleft}
-@{prop \<open>explain'_dom (ufe_union ufe a b) (x, ax)\<close>} $\land$\\
-@{prop \<open>explain'_dom (ufe_union ufe a b) (bx, y)\<close>}.
-\end{flushleft}
-To prove our goal @{prop \<open>explain'_dom (ufe_union ufe a b) (x, y)\<close>}, it suffices to show that
-@{term \<open>(ax, bx)\<close>} is still the most recent union between @{term x} and @{term y}, i.e.\ it holds that
-\begin{flushleft}
-@{prop \<open>unions (ufe_union ufe a b) ! the ((x \<upharpoonleft> y)\<^bsub>ufe_union ufe a b\<^esub>) = (ax, bx)\<close>}.
-\end{flushleft}
-But we know that @{const ufe_lca} and @{const find_newest_on_path} are invariant under union
-(cf.\ \cref{thm:ufa_lca_ufa_union,thm:find_newest_on_path_ufe_union_if_reachable}),
-which gives us @{prop \<open>(x \<upharpoonleft> y)\<^bsub>ufe_union ufe a b\<^esub> = (x \<upharpoonleft> y)\<^bsub>ufe\<^esub>\<close>},
-thus finishing the proof.
-\end{proof}
-
-\begin{proof}[\Cref{thm:explain'_dom}]
-We prove the termination of @{const explain'}, i.e.\ @{prop \<open>explain'_dom ufe (x, y)\<close>},
-by induction (c.f.\ \cref{thm:ufe_induct}) on @{term ufe} for arbitrary @{term x} and @{term y}.
-
-If @{term \<open>unions ufe = []\<close>}, it must hold that @{prop \<open>x = y\<close>}
-due to our assumption @{thm ufe_rep_of_eq}.
-Thus, the function terminates immediately and we have @{prop \<open>explain'_dom ufe (x, y)\<close>}.
-
-In the inductive case, we assume that the most recent union @{term \<open>(a, b)\<close>} is effective,
-meaning we have @{prop \<open>eff_union (uf_ds ufe) a b\<close>}.
-Moreover, we obtain
-\begin{flushleft}
-@{prop \<open>ufe_rep_of (ufe_union ufe a b) x = ufe_rep_of (ufe_union ufe a b) y\<close>}
-\end{flushleft}
-as a premise to the induction and need to show that @{prop \<open>explain'_dom (ufe_union ufe a b) (x, y)\<close>}.
-Accordingly, as the induction hypothesis we get @{prop \<open>explain'_dom ufe_ds (u, v)\<close>} for arbitrary
-@{term u} and @{term v} with @{prop \<open>ufe_rep_of ufe u = ufe_rep_of ufe v\<close>}.
-
-Now, if @{term x} and @{term y} already have the same representative in @{term ufe},
-we can finish the proof by appealing to \cref{thm:explain'_dom_ufe_union} that we just proved.
-
-Otherwise, we have that the representatives of @{term x} and @{term y} only become equal as a result of the union @{term \<open>(a, b)\<close>},
-meaning that @{term \<open>(a, b)\<close>} is the most recent union on either of the two paths from the \acrshort{lca} to @{term x} and @{term y}, respectively.
-Let us assume w.l.o.g.\ ---the other case is symmetric--- that @{term \<open>(a, b)\<close>} is on the path from the \acrshort{lca} to @{term x}.
-Then, to prove our goal @{prop \<open>explain'_dom (ufe_union ufe a b) (x, y)\<close>}, it suffices to show that
-\begin{flushleft}
-@{prop \<open>explain'_dom (ufe_union ufe a b) (x, a)\<close>} $\land$ @{prop \<open>explain'_dom (ufe_union ufe a b) (b, y)\<close>}.
-\end{flushleft}
-But this is exactly \cref{thm:explain'_dom_ufe_union} applied to the induction hypotheses.
-\end{proof}
-
-\begin{proof}[\Cref{thm:explain'_ufe_union}]
-The proof is a straightforward partial computation induction on @{const explain'} using
-\cref{thm:ufa_lca_ufa_union,thm:find_newest_on_path_ufe_union_if_reachable}.
-\end{proof}
-
-\begin{proof}[\Cref{thm:explain_eq_explain'}]
-We prove the goal by induction (c.f.\ \cref{thm:ufe_induct}) on @{term ufe} for arbitrary @{term x} and @{term y}.
-
-In case we have @{prop \<open>unions ufe = []\<close>}, we know that @{prop \<open>x = y\<close>} and therefore
-both @{term \<open>explain ufe x y\<close>} and @{term \<open>explain' ufe x y\<close>} return @{term \<open>ReflP x\<close>}.
-
-Otherwise, we need to prove that the functions are equal on @{term \<open>ufe_union ufe a b\<close>} for arguments @{term x} and @{term y}, for which we assume 
-@{prop \<open>ufe_rep_of (ufe_union ufe a b) x = ufe_rep_of (ufe_union ufe a b) y\<close>}.
-
-When the representatives of @{term x} and @{term y} are already equal in @{term ufe}, we have
-\begin{flushleft}
-@{term \<open>explain (ufe_union ufe a b) x y\<close>}
-$=$ @{term \<open>explain ufe x y\<close>} \\
-$=$ @{term \<open>explain' ufe x y\<close>} \hfill (Induction hypothesis)\\
-$=$ @{term \<open>explain' (ufe_union ufe a b) x y\<close>}. \hfill (\cref{thm:explain'_ufe_union})
-\end{flushleft}
-
-On the other hand, if the representatives of @{term x} and @{term y} only become equal as a result of the union @{term \<open>(a, b)\<close>},
-we are left with two cases depending on which side of the union @{term x} and @{term y} are.
-We only consider the case where the representatives @{term x} and @{term a} as well as @{term y} and @{term b}
-are equal in @{term ufe}, respectively.
-The other case is symmetric.
-Additionally, we define a short-hand notation for the proof term that gets constructed in this case, i.e.\ we let
-\begin{flushleft}
-@{abbrev [names_short] \<open>P p1 p2\<close>}.
-\end{flushleft}
-Then, we justify the goal with the chain of equations below:
-\begin{flushleft}
-@{term \<open>explain (ufe_union ufe a b) x y\<close>} \\
-$=$ @{term [names_short] \<open>P (explain ufe x a) (explain ufe b y)\<close>} \\
-$=$ @{term [names_short] \<open>P (explain' ufe x a) (explain' ufe b y)\<close>} \hfill (Induction hypothesis) \\
-$=$ @{term [names_short] \<open>P (explain' (ufe_union ufe a b) x a)\<close>} \\
-\hspace{2.13em}@{term [names_short] \<open>parens (explain' (ufe_union ufe a b) b y)\<close>} \hfill (\cref{thm:explain'_ufe_union}) \\
-$=$ @{term [names_short] \<open>explain' (ufe_union ufe_ds a b) x y\<close>}.
-\end{flushleft}
-\end{proof}
-\<close>
-
-(*<*) end (*>*)
-
-section \<open>Refining to Imperative HOL by Example\label{sec:refinement_ex}\<close>
-(*<*)
-context
-  fixes ufsi_imp :: ufsi_imp and ufsi_list :: "int list" and ufsi :: ufsi
-  fixes x :: nat
-begin
-(*>*)
-
-text \<open>
-To exemplify the refinement process to Imperative HOL,
-we consider the type @{typ ufsi}, introduced in \cref{sec:imperative_hol},
-that implements the \acrshort{uf} data structure as a list of integers.
-We represent this datatype as an @{typ \<open>int array\<close>} in Imperative HOL
-where @{typ \<open>int array\<close>} is just an address that points to a list of integers which are stored contiguously on the heap.
-Using the type @{typ assn} that encodes assertions in the separation logic of the Separation Logic Framework,
-we define the following assertion to relate instances of @{typ ufsi} with their array representations:
-\begin{flushleft}
-@{def is_ufsi}
-\end{flushleft}
-Intuitively, the assertion states that @{term ufsi_imp} points to a memory address,
-where the elements of the list @{term ufsi_list} are stored contiguously.
-Furthermore, it asserts that abstracting @{term ufsi_list} yields @{term_type \<open>ufsi\<close>}.
-We gloss over the specifics of heap assertions here
-and refer to the paper~@{cite \<open>uf_isabelle\<close>} introducing them for the technical details. 
-
-As an example of a function refinement,
-consider the constant @{const ufsi_parent_of},
-which looks up the parent of the argument @{term x} in a \acrshort{uf} data structure given as the first argument.
-In Imperative HOL, we look up the value of the array @{term ufsi_imp} at position @{term x}.
-If the value is less than zero, then we are at the representative so we return @{term x} itself.
-Otherwise, the value represents the parent of the element, which we return accordingly.
-\begin{flushleft}
-@{def [mode=do_notation] ufsi_imp_parent_of}
-\end{flushleft}
-
-To establish a refinement relation between those constants, we prove the lemma below,
-where, as usual for separation logic, we use a Hoare triple to state which pre- and postconditions hold when executing @{term ufsi_parent_of}.
-In particular, we assume that the argument @{term x} is an element of the \acrshort{uf} data structures.
-Then, we show a Hoare triple
-\begin{itemize}
-  \item demanding as the pre-condition that the argument @{term ufsi_imp} represents a proper \acrshort{uf} data structure and 
-  \item establishing as the post-condition that @{term ufsi_imp} is unchanged
-    and the result of executing @{term ufsi_imp_parent_of} in the context of a given heap is correct with respect to @{term ufsi_parent_of}. 
-\end{itemize}
-\begin{lemma}
-@{thm [mode=IfThen] ufsi_parent_of_rule[where i=x]}
-\end{lemma}
-\<close>
-
-(*<*) end (*>*)
 
 end

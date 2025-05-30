@@ -264,7 +264,15 @@ fun pretty_const_typ ctxt (c, maybe_typ) : Pretty.T =
   end
 
 fun pretty_eqs_style (f:Proof.context -> string -> term list) ctxt (style, (name, maybe_thms)) : Pretty.T =
-  let val eq = Document_Output.pretty_term ctxt o style
+  let
+    fun pretty_eq t1 t2 =
+      Pretty.block [
+        Document_Output.pretty_term ctxt t1,
+        Pretty.str " =", Pretty.brk_indent 1 1,
+        Document_Output.pretty_term ctxt t2]
+    fun eq \<^Const>\<open>Pure.eq _ for t1 t2\<close> = pretty_eq t1 t2
+      | eq \<^Const>\<open>Trueprop for \<^Const>\<open>HOL.eq _ for t1 t2\<close>\<close> = pretty_eq t1 t2
+    val eq = eq o style
   in
     (case maybe_thms of
       SOME thms => map eq thms |> Pretty.chunks
@@ -277,16 +285,18 @@ fun pretty_eqs_style (f:Proof.context -> string -> term list) ctxt (style, (name
 fun separate_texts (sep: Latex.text) (texts: Latex.text list) : Latex.text =
   separate sep texts |> List.concat
 
-fun pretty_funs_style_generic f ctxt (style, names) : Latex.text =
+fun gen_pretty_funs_style_generic print_header f ctxt (style, names) : Latex.text =
   names
   |> map (fn ((name, typ), eqs) =>
     let
       val thy_output = Document_Output.pretty ctxt
       val equations = pretty_eqs_style f ctxt (style, (name, eqs)) |> thy_output
       val header = pretty_const_typ ctxt (name, typ) |> thy_output
-    in separate_texts (Latex.string "\\\\[\\funheadersep]" ) [header, equations] end)
+    in if print_header then separate_texts (Latex.string "\\\\[\\funheadersep]" ) [header, equations] else equations end)
   |> separate_texts (Latex.string "\\\\\\\\")
   |> XML.enclose "{\\parindent0pt" "}"
+
+val pretty_funs_style_generic = gen_pretty_funs_style_generic true
 \<close>
 
 setup \<open>
@@ -302,6 +312,10 @@ in
     (Term_Style.parse -- Parse.and_list1' parse)
       (Config.put Document_Antiquotation.thy_output_break true
       #> pretty_funs_style_generic (eqns "_def"))
+  #> Document_Output.antiquotation_raw \<^binding>\<open>def_no_typ\<close>
+    (Term_Style.parse -- Parse.and_list1' parse)
+      (Config.put Document_Antiquotation.thy_output_break true
+      #> gen_pretty_funs_style_generic false (eqns "_def"))
   #> Document_Output.antiquotation_raw \<^binding>\<open>fun\<close>
     (Term_Style.parse -- Parse.and_list1' parse)
       (Config.put Document_Antiquotation.thy_output_break true

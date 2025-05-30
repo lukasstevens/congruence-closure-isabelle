@@ -8,6 +8,7 @@ The formalisation is structured as follows:
     Then, we formalise the more complex recursive implementation from the original paper and show that it is extensionally equal to the simple version.
     Finally, we refine the explain operation to Imperative HOL in order to be able to export efficient imperative code.
 - `paper/CADE`. This directory contains the Isabelle theories that produce the paper.
+- `performance`. This directory contains the files for generating the results of the benchmarking section. Execute `performance/bench.bash` to get the results.
 
 ## Prerequisites
 The formalisations uses Isabelle2025, which can be obtained from the [Isabelle website](https://isabelle.in.tum.de/).
