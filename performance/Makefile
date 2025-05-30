@@ -4,16 +4,12 @@ debug ?= false
 ml_profile ?= false
 cpp_fast ?= false
 
-cpp_cc = g++ $(opt_flags)
-ml_cc = mlton -cc-opt "$(opt_flags)" -default-ann 'allowFFI true' -target-link-opt $(ostype) 
-
-
 ifeq ($(ostype),Darwin)
-	mlton_target += -target c 
+	mlton_codegen = -codegen c 
 	dll_flags = -dynamiclib -flat_namespace
 endif
 ifeq ($(ostype),Linux)
-	mlton_target += -target native 
+	mlton_codegen = -codegen native 
 	dll_flags = -fPIC -shared
 endif
 
@@ -29,6 +25,8 @@ ifeq ($(cpp_fast),true)
 	cpp_cc += -DCPP_FAST
 endif
 
+cpp_cc = g++ $(opt_flags)
+ml_cc = mlton -cc-opt "$(opt_flags)" $(mlton_codegen) -default-ann 'allowFFI true' -target-link-opt $(ostype) 
 
 cpp_test.out: cpp/UFE.cpp cpp/test/Test.cpp
 	$(cpp_cc) cpp/test/Test.cpp -o $@
@@ -48,4 +46,4 @@ sml/time_int: sml/time_int.mlb sml/*.sml UFE.so
 
 .PHONY: clean
 clean:
-	rm -f UFE.so sml/sources
+	rm -f UFE.so sml/time sml/time_int

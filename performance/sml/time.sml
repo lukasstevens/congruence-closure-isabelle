@@ -99,9 +99,6 @@ let
   fun pair_toString toString (x, y) = "(" ^ toString x ^ ", " ^ toString y ^ ")"
   val int_pair_toString = pair_toString Int.toString
 
-  fun time_toString ({usr = usr_unions, sys = sys_unions}, {usr = usr_explains, sys = sys_explains}) =
-    String.concatWith "\t" (map Time.toString [usr_unions, sys_unions, usr_explains, sys_explains])
-
   val _ =
     if false 
       then (print (String.concatWith ", " (map int_pair_toString (wide_tree 4)) ^ "\n");
@@ -111,7 +108,10 @@ let
   val [lang, gen_tree, n_low, n_high] = CommandLine.arguments ()
   val bench =
     if lang = "C" then Ufe_C_Bench.bench else if lang = "SML" then Ufe_Sml_Bench.bench else raise Fail "unknown language" 
-  val gen_tree = if gen_tree = "wide" then wide_tree else if gen_tree = "balanced" then balanced_tree else raise Fail "unkown tree generator"
+  val (gen_tree, gen_explains) = if gen_tree = "wide" then (wide_tree,
+  gen_explains 1000) else if gen_tree = "balanced" then (balanced_tree,
+  gen_explains 100000) else raise Fail "unkown tree generator"
+
   val n_low = Option.valOf (Int.fromString n_low)
   val n_high = Option.valOf (Int.fromString n_high)
 
@@ -119,9 +119,8 @@ let
     if n > n_high then print "\n" 
     else
       let
-        val (time_unions, time_explains) =
-          bench gen_tree (gen_explains 1000) n
-        fun time_toString time = LargeReal.toString (Time.toReal time)
+        val (time_unions, time_explains) = bench gen_tree gen_explains n
+        fun time_toString time = Time.fmt 3 time
         val _ = print ((if n > n_low then " & " else "") ^ time_toString time_unions ^ "/"  ^ time_toString time_explains)
       in 
         go (n + 1)
