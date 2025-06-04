@@ -932,7 +932,7 @@ while the \Cpp{} uses machine integers,
 so we also include a version of the exported code, annotated by (Int), that uses machine integers.
 
 The observed running time overhead of using arbitrary sized integers is roughly a factor of 2--2.5,
-which matches that observed by @{cite \<open>refine_monadic using citeauthor\<close>}~@{cite \<open>refine_monadic\<close>}.
+matching that observed by @{cite \<open>refine_monadic using citeauthor\<close>}~@{cite \<open>refine_monadic\<close>}.
 The difference between \acrshort{sml} with machine integers and \Cpp{} is
 roughly a factor of 2 for the \opunion{} operations and
 a factor of 1.5 for the \opexplain{} operations throughout both test cases.
@@ -979,7 +979,7 @@ Overall, we found that employing a functional language results in a modest perfo
 We note that to soundly export such code,
 it would be necessary to change the element type of the \acrshort{ufe} data structure from natural numbers to fixed-width words.
 This is plausible future work, as the number of elements is fixed for any instance of the data structure,
-and the necessary operations on the elements are comparisons and --- operations that fixed-width words also support.
+and the only necessary operations on the elements are comparisons and indexing into arrays --- operations that fixed-width words also support.
 \<close>
 
 section \<open>Conclusion and Future Work\<close>
@@ -993,6 +993,15 @@ Finally, we refined the functional representation of the data structure to an im
 In future work, we plan to verify the other variant of the \acrshort{ufe} data structure as presented by @{cite \<open>congcl_proofs using citeauthor\<close>}.
 This variant also forms the basis of their congruence closure algorithm, which is the logical next step.
 Ultimately, we want to work towards a verified, proof-producing version of the Nelson-Oppen algorithm~@{cite \<open>nelson_oppen\<close>} for the combination of theories.
+
+\subsubsection*{Acknowledgements}
+We thank Tobias Nipkow for reviewing a draft version of this paper and the anonymous referees for their thoughtful feedback.
+
+{\fontsize{9}{15}\selectfont
+\subsubsection*{\fontsize{9}{15}\selectfont Disclosure of Interests}
+The authors have no competing interests to declare that are relevant to the content of this article.
+}
+
 \<close>
 
 text \<open>
