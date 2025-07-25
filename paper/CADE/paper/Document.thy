@@ -53,6 +53,9 @@ abbreviation find_newest_on_path_ufe_lca_right ("'(_ \<restriction> _')\<^bsub>_
 
 notation (latex output) Relation.Image (infixr "(``\<^latex>\<open>\\:\<close>)" 90)
 
+translations
+  "CONST Id" <= "CONST nat_rel"
+
 (*>*)
 
 text \<open>\maketitle\<close>
@@ -138,7 +141,7 @@ It does, however, form the basis of proof-producing congruence closure algorithm
 There, they remain an active area of research;
 for example, when we are interested in efficiently finding small proofs~@{cite \<open>congcl_small_proofs\<close>}.
 
-The literature of verified algorithms and data structure is vast so we refer to a survey~@{cite \<open>algorithms_survey\<close>} for an overview.
+The literature of verified algorithms and data structures is vast so we refer to a survey~@{cite \<open>algorithms_survey\<close>} for an overview.
 Focusing on the \acrshort{uf} data structure, there is a formalisation in Coq~@{cite \<open>uf_coq\<close>}, where
 the amortised complexity is analysed by @{cite \<open>uf_coq_time using citeauthor\<close>}~@{cite \<open>uf_coq_time\<close>} in a separation logic with time credits.
 Similarly, in Isabelle, there is a formalisation of the data structure~@{cite \<open>uf_isabelle\<close>}
@@ -561,20 +564,19 @@ instead, we only state its characteristic properties:
 \<close>
 
 subsubsection \<open>Determining the \acrshort{lca} in a \acrshort{ufe} forest\<close>
-(*<*)
-lemma lca_ufa_lca: 
+
+lemma %invisible lca_ufa_lca: 
   \<open>{x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow> ufa_rep_of uf x = ufa_rep_of uf y
   \<Longrightarrow> pre_digraph.lca (ufa_forest_of uf) (ufa_lca uf x y) x y\<close>
   by (use ufa_forest.lca_ufa_lca in \<open>unfold verts_ufa_forest_of, simp\<close>)
 
-lemma ufa_lca_ufa_union:
+lemma %invisible ufa_lca_ufa_union:
 \<open>eff_union uf a b \<Longrightarrow> {x, y} \<subseteq> Field (ufa_\<alpha> uf) \<Longrightarrow>
   ufa_rep_of (ufa_union uf a b) x = ufa_rep_of (ufa_union uf a b) y \<Longrightarrow>
 (ufa_lca (ufa_union uf a b) x y =
   (if ufa_rep_of uf x = ufa_rep_of uf y then ufa_lca uf x y
   else ufa_rep_of uf b))
 \<close> by (use ufa_lca_ufa_union in simp_all)
-(*>*)
 
 text \<open>
 The first auxiliary functions lists the elements on the path from the representative to some element.
@@ -593,7 +595,7 @@ provided that the arguments share the same representative
 and thus are in the same tree of the forest.
 For brevity, we omit the definition of @{const [names_short] \<open>pre_digraph.lca\<close>} here and refer to the formalisation instead.
 \begin{lemma}\label{thm:lca_ufa_lca}
-If @{thm (prem 1) lca_ufa_lca} and @{thm (prem 2) lca_ufa_lca}, then @{thm (concl) lca_ufa_lca}.
+If @{thm (prem 1) lca_ufa_lca} and @{thm (prem 2) lca_ufa_lca}, then @{thm [names_short] (concl) lca_ufa_lca}.
 \end{lemma}
 We later prove key properties of \opexplain{} using the induction principle from \cref{thm:ufe_induct},
 making it essential to understand how the auxiliary functions behave under effective unions.

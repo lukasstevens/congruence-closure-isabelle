@@ -1,0 +1,113 @@
+% TODO: remove pedantic step
+% TODO: time travel joke? Use clock already?
+\newcommand<>\gray[1]{%
+  \textcolor#2{TUMLightGray}{#1}%
+}
+\begin{frame}{The simple algorithm: example}
+\textbf{Input:}
+\foreach \al/\g [count=\i] in {{18-19,34-35}/{36-},{16-17,28-33}/{18-20,34-},{14-15,25-27}/{16-20,28-},{12-13,23-24}/{14-20,25-},{10-11,21-22}/{12-20,23-},{1-9}/{10-}} {
+  \action<uncover@1-|alert@\al|gray@\g>{$\underbrace{\eqN{\i}}_\i$}
+}
+\vfill
+\begin{columns}
+\begin{column}{0.3\textwidth}
+\begin{forest}
+  for tree={
+    math content,
+    draw,
+    circle,
+    l=1.6cm,
+    s=1.4cm,
+    edge={<-}
+  }
+  [\varN{2}
+    [\varN{1}, edge={alert on={19-20,35}, gray on={36-}}, edge label={node[pos=0.6, above left] {$1$}}
+      [\varN{7}, edge={alert on={11,22}, gray on={12-20,23-}}, edge label={node[midway, left] {$5$}}]]
+    [\varN{6}, edge={alert on={13,24}, gray on={14-20,25-}}, edge label={node[pos=0.6, right] {$4$}}]
+    [\varN{5}, edge={alert on={3-9}, gray on={10-}}, edge label={node[pos=0.6, above right] {$6$}}
+      [\varN{4}, edge={alert on={15,26-27}, gray on={16-20,28-}}, edge label={node[midway, right] {$3$}}
+        [\varN{3}, edge={alert on={17,29-33}, gray on={18-20,34-}}, edge label={node[midway, right] {$2$}}]]]
+  ]
+\end{forest}
+\end{column}
+\hfill
+\begin{column}{0.65\textwidth}
+  \begin{forest}
+    for tree={
+      math content,
+      grow'=north,
+      edge path={},
+      inner sep=0pt,
+      s=0.2cm,
+      s sep=0.6cm,
+      l=0.5cm,
+      l sep=0.3cm
+    }
+    [{\varN{1} \thickapprox \varN{5}}, visalert on={2}, name=15
+    [{\varN{1} \thickapprox \varN{2}}, visalert on={6}, name=12] 
+      [{\varN{2} \thickapprox \varN{3}}, visalert on={5}, name=23
+        [{\varN{3} \thickapprox \varN{2}}, visalert on={4}, name=32]
+      ]
+      [{\varN{3} \thickapprox \varN{5}}, visalert on={7}, name=35
+        [{\varN{3} \thickapprox \varN{4}}, visalert on={28}, name=34]
+        [{\varN{4} \thickapprox \varN{5}}, visalert on={27}, name=45]
+        [{\varN{5} \thickapprox \varN{5}}, visalert on={29}, name=55]
+      ]
+    ]
+    \path let \p1 = (12.south west), \p2 = (15.north) in coordinate (l1l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (35.south east), \p2 = (15.north) in coordinate (l1r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south west), \p2 = (23.north) in coordinate (l2l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south east), \p2 = (23.north) in coordinate (l2r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (34.south west), \p2 = (35.north) in coordinate (l3l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (55.south east), \p2 = (35.north) in coordinate (l3r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south), \p2 = (12.north west) in coordinate (l4l) at (\x2, {(\y1+\y2)/2});
+    \path let \p1 = (32.south), \p2 = (12.north east) in coordinate (l4r) at (\x2, {(\y1+\y2)/2});
+    \begin{scope}[thick]
+      \draw[visible on=<3->, alert on={3-8}] (l1l) -- (l1r);
+      \draw[visible on=<5->] (l2l) -- (l2r);
+      \draw[visible on=<21->, alert on={21-29}] (l3l) -- (l3r);
+      \draw[visible on=<9->, alert on={9-20}] (l4l) -- coordinate (l4m) (l4r);
+      \draw[visible on=<30->, alert on={30-31}] ([yshift=0.1cm]34.north west) -- ([yshift=0.1cm]34.north east);
+      \draw[visible on=<32->, alert on={32-35}] ([yshift=0.1cm]55.north west) -- ([yshift=0.1cm]55.north east);
+    \end{scope}
+  \end{forest}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{The simple algorithm: recap}
+\begin{columns}
+  \begin{column}{0.3\textwidth}
+    \begin{tikzpicture}[scale=1.5, >=Stealth]
+
+  % Clock circle
+  \draw[thick] (0,0) circle (1cm);
+
+  % Hour markers
+  \foreach \angle in {0,30,...,330} {
+    \draw[thick] ({cos(\angle)}, {sin(\angle)}) -- ({0.9*cos(\angle)}, {0.9*sin(\angle)});
+  }
+
+  % Clock hands (e.g., 10:10)
+  \draw[very thick] (0,0) -- ({0.7*cos(60)}, {0.7*sin(60)}); % Minute hand
+  \draw[very thick] (0,0) -- ({0.45*cos(120)}, {0.45*sin(120)}); % Hour hand
+
+  % Counter-clockwise arrows around the clock
+  \foreach \angle in {60} {
+    \draw[->, thick, TUMAccentOrange, decorate, decoration={snake, amplitude=0.5mm, segment length=2mm, post length=7pt}]
+      ({1.2*cos(\angle)}, {1.2*sin(\angle)}) 
+      arc[start angle=\angle, end angle=\angle+60, radius=1.2cm];
+  }
+
+\end{tikzpicture}
+  \end{column}
+  \hfill
+  \begin{column}{0.6\textwidth}
+    \begin{itemize}[<+(1)->]
+      \item Recursion on input list 
+      \item Independent of tree structure
+    \end{itemize}
+  \end{column}
+\end{columns}
+\end{frame}
+

@@ -1,0 +1,5 @@
+$pdf_mode = 1;
+$pdf_previewer = 'start evince';
+$pdflatex = 'lualatex -synctex=1 -interaction=nonstopmode';
+$out_dir = 'build/';
+$aux_dir = 'build/';

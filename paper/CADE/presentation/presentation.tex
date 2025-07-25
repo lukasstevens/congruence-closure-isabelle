@@ -1,0 +1,540 @@
+\documentclass[12pt, british,aspectratio=169]{beamer}
+\usetheme[progressbar=foot]{metropolis}
+\makeatletter
+\setlength{\metropolis@progressonsectionpage@linewidth}{2.5pt}
+\setlength{\metropolis@progressinheadfoot@linewidth}{2pt}
+\makeatother
+
+\usepackage{mathtools}
+\usepackage{unicode-math}
+\setmainfont{Fira Sans}
+\setmathfont{STIX Two Math}
+
+\usepackage[british]{babel}
+\usepackage{csquotes}
+\usepackage{appendixnumberbeamer}
+\usepackage{booktabs}
+\usepackage{bussproofs}
+\usepackage{mathpartir}
+\usepackage{forloop}
+\usepackage{multirow}
+\usepackage{graphicx}
+
+%\usepackage[backend=bibtex, giveninits=true]{biblatex}
+%\defbibenvironment{bibliography}
+%  {\scriptsize\begin{itemize}}
+%  {\end{itemize}}
+%  {\item}%
+%\addbibresource{../document/root.bib}
+
+\usepackage{xpatch}
+\makeatletter
+\newcommand{\my@beamer@setsep}{%
+\ifnum\@itemdepth=1\relax
+     \setlength\itemsep{\my@beamer@itemsepi}% separation for first level
+   \else
+     \ifnum\@itemdepth=2\relax
+       \setlength\itemsep{\my@beamer@itemsepii}% separation for second level
+     \else
+       \ifnum\@itemdepth=3\relax
+         \setlength\itemsep{\my@beamer@itemsepiii}% separation for third level
+   \fi\fi\fi}
+\newlength{\my@beamer@itemsepi}\setlength{\my@beamer@itemsepi}{3ex}
+\newlength{\my@beamer@itemsepii}\setlength{\my@beamer@itemsepii}{1.5ex}
+\newlength{\my@beamer@itemsepiii}\setlength{\my@beamer@itemsepiii}{1.5ex}
+\newcommand\setlistsep[3]{%
+    \setlength{\my@beamer@itemsepi}{#1}%
+    \setlength{\my@beamer@itemsepii}{#2}%
+    \setlength{\my@beamer@itemsepiii}{#3}%
+}
+\xpatchcmd{\itemize}
+  {\def\makelabel}
+  {\my@beamer@setsep\def\makelabel}
+ {}
+ {}
+
+\xpatchcmd{\beamer@enum@}
+  {\def\makelabel}
+  {\my@beamer@setsep\def\makelabel}
+ {}
+ {}
+\makeatother
+
+
+% Define TUM corporate design colors
+% Taken from http://portal.mytum.de/corporatedesign/index_print/vorlagen/index_farben
+\definecolor{TUMBlue}{HTML}{0065BD}
+\definecolor{TUMSecondaryBlue}{HTML}{005293}
+\definecolor{TUMSecondaryBlue2}{HTML}{003359}
+\definecolor{TUMBlack}{HTML}{000000}
+\definecolor{TUMWhite}{HTML}{FFFFFF}
+\definecolor{TUMDarkGray}{HTML}{333333}
+\definecolor{TUMGray}{HTML}{808080}
+\definecolor{TUMLightGray}{HTML}{CCCCC6}
+\definecolor{TUMAccentGray}{HTML}{DAD7CB}
+\definecolor{TUMAccentOrange}{HTML}{E37222}
+\definecolor{TUMAccentGreen}{HTML}{A2AD00}
+\definecolor{TUMAccentLightBlue}{HTML}{98C6EA}
+\definecolor{TUMAccentBlue}{HTML}{64A0C8}
+
+\setbeamercolor{alerted text}{fg=TUMAccentOrange}
+\setbeamercolor{title separator}{fg=TUMBlue}
+\setbeamercolor{progress bar}{fg=TUMSecondaryBlue}
+\setbeamercolor{frametitle}{bg=TUMBlue}
+
+\usepackage{pgfplots,pgfplotstable}
+\usepackage{tikz}
+\usetikzlibrary{%
+    shapes, shapes.symbols, shapes.geometric, arrows, arrows.meta, positioning,
+    calc, shadows.blur, automata,
+    decorations.pathreplacing, matrix,
+    decorations.text, fit,
+    patterns, patterns.meta,
+    overlay-beamer-styles
+}
+\tikzset{
+  >=stealth',
+}
+\tikzstyle{visalert on}=[visible on=<#1->, alt=<#1>{TUMAccentOrange}{}]
+\tikzstyle{alert on}=[alt=<{#1}>{TUMAccentOrange}{}]
+\tikzstyle{gray on}=[alt=<{#1}>{TUMLightGray}{}]
+\usepackage{calc}
+\usepackage{forest}
+
+
+\usepackage[en-GB]{datetime2}
+
+\usepackage{pgfpages}
+\setbeameroption{%
+  %show notes on second screen=right
+}
+
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+\usepackage[most]{tcolorbox} % Load tcolorbox with most features
+\tcbset{
+  rounded corners,
+  colframe=TUMBlue,  % Border color
+  boxrule=1pt,             % Thickness of the border
+  arc=4mm,                 % Radius of the rounded corners
+  center title,
+}
+
+% Defs
+\directlua{
+  vars = { "a", "b", "c", "d", "e", "f", "g" }
+  eqs = { {1, 2}, {3, 4}, {4, 5}, {6, 2}, {7, 1}, {3, 2} }
+}
+\newcommand{\varN}[1]{\mathsf{\directlua{tex.sprint(vars[#1])}}}
+\newcommand{\eqN}[1]{\directlua{%
+    local eq = eqs[#1]
+    tex.sprint("\\mathsf{" .. vars[eq[1]] .. "} \\thickapprox \\mathsf{" .. vars[eq[2]] .. "}")
+}}
+
+\newcommand{\explain}{\mathbfsf{explain}}
+\newcommand{\explaine}{\mathbfsf{explain^\prime}}
+\newcommand{\explaindom}{\mathbfsf{explain\_dom}}
+\newcommand{\explainedom}{\mathbfsf{explain^\prime\_dom}}
+\newcommand{\equivcl}{\mathbfsf{equivcl}}
+\newcommand{\ufeunion}[1]{\mathbf{\cup}_{#1}}
+\newcommand{\unions}{\mathbfsf{unions}}
+\newcommand{\ufds}{\mathbfsf{union\_find}}
+\newcommand{\auds}{\mathbfsf{assoc\_union}}
+
+\title{Simplified and Verified: A Second Look at a Proof-Producing Union-Find Algorithm}
+\subtitle{CADE 30}
+\date{\DTMdisplaydate{2025}{7}{29}\\}
+\author{\underline{Lukas Stevens}\inst{1} \and Rebecca Ghidini\inst{2,3}}
+\institute{%
+  \inst{1}Chair of LoVe, Technical University of Munich \\
+  \inst{2}ENS, Département d’informatique, CNRS, PSL University \\
+  \inst{3}Inria
+}
+
+%\makeatletter 
+%\def\beamer@framenotesbegin{% at beginning of slide
+%     \usebeamercolor[fg]{normal text}
+%      \gdef\beamer@noteitems{}% 
+%      \gdef\beamer@notes{}% 
+%}
+%\makeatother
+
+\begin{document}
+
+\maketitle
+ 
+\section{Introduction}
+% 
+% \begin{frame}{Motivation}
+%   \begin{columns}
+%     \begin{column}{0.35\textwidth}
+%       \begin{forest}
+%         for tree={
+%           math content,
+%           grow'=north
+%         }
+%         [{a = b}, name=ab, visalert on={2}
+%           [{a = d}, visalert on={4}, edge={visalert on={6}}
+%             [{f(d) = a}, visible on=<1->, edge={visalert on={4}}]
+%             [{f(d) = d}, visalert on={3}, edge={visalert on={4}}
+%               [{f(b) = d}, visible on=<1->, edge={visalert on={3}}]
+%               [{b = d}, name=bd, visible on=<1->, edge={visalert on={3}}]
+%             ]
+%           ]
+%           [{}, no edge]
+%         ]
+%         \draw[visalert on={6}] (bd) to[out=-65, in=35] (ab);
+%       \end{forest}
+%     \end{column}
+%     \hfill
+%     \begin{column}{0.6\textwidth}
+%       \begin{itemize}[<+(7)->]
+%         \item Congruence closure ubiquitious in SMT
+%         \item Equivalence closure is a special case 
+%       \end{itemize}
+%     \end{column}
+%   \end{columns}
+% \end{frame}
+% 
+% \begin{frame}{Goal}
+%   \begin{columns}
+%     \begin{column}{0.6\textwidth}
+%   Verify a proof-producing union-find algorithm!\\[2em]
+%   \visible<2->{But \textbf{why}?}
+%     \end{column}
+%     \hfill
+%     \begin{column}{0.35\textwidth}
+%       \includegraphics[width=\textwidth]{isabelle_ultras.png}
+%     \end{column}
+%   \end{columns}
+% \end{frame}
+% 
+% \begin{frame}{Original paper}
+%   \includegraphics[width=\textwidth]{original_paper.png}
+% \end{frame}
+% 
+% \section{The algorithm(s)}
+% 
+% \begin{frame}{The union-find data structure}
+% \textbf{Input:}
+% \foreach \j [count=\i] in {2,...,7} {
+%   \action<uncover@\j-|alert@\j>{$\eqN{\i}$}
+% }
+% \vspace{1em}
+% \vfill
+% \begin{columns}
+% \begin{column}{0.2\textwidth}
+% \begin{forest}
+%   for tree={
+%     math content,
+%     draw,
+%     circle,
+%     minimum height=1.7em,
+%     l=1.6cm,
+%     s=1.4cm,
+%     edge={<-}
+%   }
+%   [\varN{2}
+%     [\varN{1}, edge={visalert on={2}}
+%       [\varN{7}, edge={visalert on={6}}]]
+%     [\varN{6}, edge={visalert on={5}}]
+%     [\varN{5}, edge={visalert on={7}}
+%       [\varN{4}, edge={visalert on={4}}
+%         [\varN{3}, edge={visalert on={3}}]]]
+%   ]
+% \end{forest}
+% \end{column}
+% \hfill
+% \begin{column}{0.6\textwidth}
+%   \begin{itemize}[<+(7)->]
+%     \item Forest of rooted trees
+%     \item Tree $\hat{=}$ equivalence class
+%     \item Root $\hat{=}$ representative
+%   \end{itemize}
+% \end{column}
+% \end{columns}
+% \end{frame}
+% 
+% 
+% 
+% \newcommand{\infline}[2]{([xshift=-0.2em,yshift=-0.25em]#1) -- ([xshift=0.2em,yshift=-0.25em]#2)}
+% \begin{frame}{Proof format}
+%   \begin{center}
+%     \begin{tcolorbox}[width=0.75\textwidth, halign=center]
+%     $\Gamma \vdash p : x \approx y$\pause{} $\quad\longleftarrow\:$ $p$ proves $x \approx y$ assuming $\Gamma$
+%     \end{tcolorbox}
+%     \vspace{1.5em}
+%     \vfill
+%     \begin{tikzpicture}[node distance=0cm, every node/.style={inner sep=0pt}]
+%       \begin{scope}[visible on=<+(1)->]
+%       \node (AssmC) {$\Gamma \vdash \mathsf{AssmP}~i : x \thickapprox y$};
+%       \node[above=0.7em of AssmC.north, anchor=south] (AssmA) {$i < |\Gamma| \qquad \Gamma~!~i = x \thickapprox y$};
+%       \draw[thick] \infline{AssmA.south west}{AssmA.south east};
+%       \end{scope}
+% 
+%       \begin{scope}[visible on=<+(1)->]
+%       \node[right=6cm of AssmC.south, anchor=south] (ReflC) {$\Gamma \vdash \mathsf{ReflP}~x : x \thickapprox x$};
+%       \end{scope}
+% 
+%       \begin{scope}[visible on=<+(1)->]
+%       \node[below left=2.5cm and 0cm of AssmC.south, anchor=south] (SymC) {$\Gamma \vdash \mathsf{SymP}~p : x \thickapprox y$};
+%       \node[above=0.7em of SymC.north, anchor=south] (SymA) {$\Gamma \vdash p : y \thickapprox x$};
+%       \path (SymC.west) |- coordinate (SymAL) (SymA.south west);
+%       \path (SymC.east) |- coordinate (SymAR) (SymA.south east);
+%       \draw[thick] \infline{SymAL}{SymAR};
+%       \end{scope}
+% 
+%       \begin{scope}[visible on=<+(1)->]
+%       \node[right=6cm of SymC.south, anchor=south] (TransC) {$\Gamma \vdash \mathsf{TransP}~p_1~p_2 : x \thickapprox z$};
+%       \node[above=0.7em of TransC.north, anchor=south] (TransA) {$\Gamma \vdash p_1 : x \thickapprox y \qquad \Gamma \vdash p_2 : y \thickapprox z$};
+%       \draw[thick] \infline{TransA.south west}{TransA.south east};
+%       \end{scope}
+%     \end{tikzpicture}
+%   \end{center}
+% \end{frame}
+% 
+% \begin{frame}{Soundness and Completeness of $\vdash$}
+%   \textbf{Soundness + Completeness:}
+%   \[(x, y) \in \equivcl~\Gamma \:\longleftrightarrow\: \exists p.\ \Gamma \vdash p : x \thickapprox y\]
+% \end{frame}
+% 
+% \begin{frame}[standout]
+%   \begin{center}
+%   \LARGE How to combine union-find and proofs?
+%   \end{center}
+% \end{frame}
+
+\begin{frame}{Associated unions}
+\textbf{Input:}
+\foreach \j [count=\i] in {2,...,7} {
+  \action<uncover@\j-|alert@\j>{$\underbrace{\eqN{\i}}_\i$}
+}
+\vfill
+\begin{columns}
+\begin{column}{0.2\textwidth}
+\begin{forest}
+  for tree={
+    math content,
+    draw,
+    circle,
+    minimum height=1.7em,
+    l=1.6cm,
+    s=1.4cm,
+    edge={<-}
+  }
+  [\varN{2}
+    [\varN{1}, edge={visalert on={2}}, edge label={node[pos=0.6, above left] {$1$}}
+      [\varN{7}, edge={visalert on={6}}, edge label={node[midway, left] {$5$}}]]
+    [\varN{6}, edge={visalert on={5}}, edge label={node[pos=0.6, right] {$4$}}]
+    [\varN{5}, edge={visalert on={7}}, edge label={node[pos=0.6, above right] {$6$}}
+      [\varN{4}, edge={visalert on={4}}, edge label={node[midway, right] {$3$}}
+        [\varN{3}, edge={visalert on={3}}, edge label={node[midway, right] {$2$}}]]]
+  ]
+\end{forest}
+\end{column}
+\begin{column}{0.8\textwidth}
+\end{column}
+\end{columns}
+\end{frame}
+
+\input{efficient.tex}
+
+%\input{simple.tex}
+
+%\section{Correctness of the algorithm(s)}
+%
+%% TODO: Dr. Who?
+%\begin{frame}{Who is who of the algorithms}
+%  \begin{itemize}[<+(1)->]
+%    \item $\explain$: the simple one
+%    \item $\explaine$: the efficient one
+%    \item $\explaindom$ and $\explainedom$: characterise termination
+%  \end{itemize}
+%\end{frame}
+%
+%\begin{frame}{Operations on union-find-explain}
+%\textbf{Input:}
+%\foreach \al [count=\i] in {{2,3},{2,3},{2,3},{2,3},{2,3},{2,3,6}} {
+%  \action<alert@\al>{$\underbrace{\eqN{\i}}_\i$}
+%}
+%\vspace{1em}
+%\vfill
+%\begin{columns}
+%\begin{column}{0.2\textwidth}
+%\begin{forest}
+%  for tree={
+%    math content,
+%    draw,
+%    circle,
+%    {alert on={{2,4}}},
+%    l=1.6cm,
+%    s=1.4cm,
+%    edge={<-, alert on={{2,4}}},
+%  }
+%  [\varN{2}
+%    [\varN{1}, edge label={node[text=black, alert on={{2,5}}, pos=0.6, above left] {$1$}}
+%      [\varN{7}, edge label={node[text=black, alert on={{2,5}}, midway, left] {$5$}}]]
+%    [\varN{6}, edge label={node[text=black, alert on={{2,5}}, pos=0.6, right] {$4$}}]
+%    [\varN{5}, edge={alert on={{2,6}}}, edge label={node[text=black, alert on={{2,5,6}}, pos=0.6, above right] {$6$}}
+%      [\varN{4}, edge label={node[text=black, alert on={{2,5}}, midway, right] {$3$}}
+%        [\varN{3}, edge label={node[text=black, alert on={{2,5}}, midway, right] {$2$}}]]]
+%  ]
+%\end{forest}
+%\end{column}
+%\hfill
+%\begin{column}{0.65\textwidth}
+%  \visible<2->{Let \alert<2>{$ufe$} be the whole data structure}\\[0.7em]
+%  \begin{itemize}[<+(2)-|alert@+(2)>]
+%    \setlength{\itemsep}{1em}
+%    \item $\unions~ufe$
+%    \item $\ufds~ufe$
+%    \item $\auds~ufe~x$
+%    \item $\ufeunion{ufe}~x~y$
+%  \end{itemize}
+%\end{column}
+%\end{columns}
+%\end{frame}
+%
+%\begin{frame}{Correctness of $\explain$}
+%  \begin{itemize}[<+(1)->]
+%    \item \textbf{Soundness:} $\vdash$ is sound
+%    \item \textbf{Completeness:} 
+%      $(x, y) \in \equivcl~(\unions~ufe) \longrightarrow \unions~ufe \vdash \explain~ufe~x~y : x \thickapprox y$
+%    \item \textbf{Termination:} $\explaindom~ufe~(x, y)$ 
+%  \end{itemize}
+%\end{frame}
+%
+%\begin{frame}{Correctness of $\explaine$}
+%  \begin{itemize}
+%    \item<1-> \textbf{Termination:} $\explainedom~ufe~(x, y)$
+%      \begin{itemize}
+%        \item<3-> $\explainedom~ufe~(x, y) \longrightarrow \explainedom~(\ufeunion{ufe}~a~b)~(x, y)$
+%      \end{itemize}
+%    \item<2-> \textbf{Soundness + Completeness:} $\explaine~ufe~x~y = \explain~ufe~x~y$
+%      \begin{itemize}
+%        \item<4-> Invariance of helpers under $\ufeunion{ufe}$
+%        \item<5-> $\explaine~(\ufeunion{ufe}~a~b)~x~y = \explaine~ufe~x~y$
+%      \end{itemize}
+%  \end{itemize}
+%\end{frame}
+%
+%\section{Refinement to efficient code}
+%
+%% TODO: more explanation what we are doing here. Why can't we execute the code as is? What is refinement?
+%\begin{frame}{The refinement process}
+%  \begin{enumerate}[<+(1)->]
+%    \item Functional refinements
+%    \item Refinement to Imperative HOL (using Lammich's Separation Logic Framework)
+%    \item Export imperative code to e.g.\ Standard ML
+%  \end{enumerate}
+%\end{frame}
+%
+%% TODO: why a list of natural numbers?
+%\begin{frame}{The data structure, abstractly}
+%  \begin{tikzpicture}[every node/.style={inner sep=2pt}]
+%    \node (unions) {$\unions~ufe$};
+%    \node[base right=0.4cm of unions, anchor=base west] (unionsty) {$(\mathbb{N} \times \mathbb{N})~\mathsf{list}$};
+%    \path (unions.east) -- node[midway] {$:$} (unionsty.west);
+%
+%    \node[below=4em of unions.west, anchor=west] (ufds) {$\ufds~ufe$};
+%    \node[base right=0.4cm of ufds, anchor=base west] (ufdsty) {$\mathbb{N}~\mathsf{list}$};
+%    \path (ufds.east) -- node[midway] {$:$} (ufdsty.west);
+%
+%    \node[below=4em of ufds.west, anchor=west] (auds) {$\auds~ufe$};
+%    \node[base right=0.4cm of auds, anchor=base west] (audsty) {$\mathbb{N} \rightarrow \mathbb{N}~\mathsf{option}$};
+%    \path (auds.east) -- node[midway] {$:$} (audsty.west);
+%  \end{tikzpicture}
+%  \vfill
+%\end{frame}
+%
+%% TODO: ajdust arrows?
+%% TODO: note capacity, note dynamic growth
+%\begin{frame}{Refining $\unions$}
+%  \begin{tikzpicture}[every node/.style={inner sep=2pt}]
+%    \node (unions) {$\unions~ufe$};
+%    \node[base right=0.4cm of unions, anchor=base west] (unionsty) {$(\mathbb{N} \times \mathbb{N})~\mathsf{list}$};
+%    \path (unions.east) -- node[midway] {$:$} (unionsty.west);
+%
+%    \begin{scope}[visible on=<2->]
+%    \node[below=1cm of unionsty.west, anchor=west] (unionsty1) {$(\mathbb{N} \times \mathbb{N})~\mathsf{array\_list}$};
+%    \draw[->] ([xshift=0.7cm]unionsty.south west) -- ([xshift=0.7cm]unionsty1.north west);
+%    \end{scope}
+%
+%    \begin{scope}[visible on=<3->]
+%    \node[base right=0.7cm of unionsty1, anchor=base west] (unionsty2) {$(\mathbb{N} \times \mathbb{N})~\mathsf{array} \times \mathbb{N}$};
+%    \path (unionsty1) -- node {$=$} (unionsty2);
+%    \end{scope}
+%  \end{tikzpicture}
+%  \vfill
+%\end{frame}
+%
+%% TODO: note rank, path compression
+%\begin{frame}{Refining $\ufds$}
+%  \begin{tikzpicture}[every node/.style={inner sep=2pt}]
+%    \node[below=4em of unions.west, anchor=west] (ufds) {$\ufds~ufe$};
+%    \node[base right=0.4cm of ufds, anchor=base west] (ufdsty) {$\mathbb{N}~\mathsf{list}$};
+%    \path (ufds.east) -- node[midway] {$:$} (ufdsty.west);
+%
+%    \begin{scope}[visible on=<2->]
+%    \node[below=1cm of ufdsty.west, anchor=west] (ufdsty1) {$\mathbb{N}~\mathsf{list} \times (\mathbb{N} \rightarrow \mathbb{N})$};
+%    \draw[->] ([xshift=0.6cm]ufdsty.south west) -- ([xshift=0.6cm]ufdsty1.north west);
+%    \end{scope}
+%
+%    \begin{scope}[visible on=<3->]
+%    \node[below=1cm of ufdsty1.west, anchor=west] (ufdsty2) {$\mathbb{Z}~\mathsf{list}$};
+%    \draw[->] ([xshift=0.6cm]ufdsty1.south west) -- ([xshift=0.6cm]ufdsty2.north west);
+%    \end{scope}
+%
+%    \begin{scope}[visible on=<4->]
+%    \node[below=1cm of ufdsty2.west, anchor=west] (ufdsty3) {$\mathbb{Z}~\mathsf{array}$};
+%    \draw[->] ([xshift=0.6cm]ufdsty2.south west) -- ([xshift=0.6cm]ufdsty3.north west);
+%    \end{scope}
+%
+%    \begin{scope}[visible on=<5->]
+%    \node[base right=0.5cm of ufdsty3, anchor=base west] (ufdsty4) {$\mathbb{Z}~\mathsf{array}$};
+%    \draw[->] (ufdsty2.east) -| (ufdsty4);
+%    \end{scope}
+%  \end{tikzpicture}
+%  \vfill
+%\end{frame}
+%
+%\begin{frame}{Refining $\auds$}
+%  \begin{tikzpicture}[every node/.style={inner sep=2pt}]
+%    \node[below=4em of ufds.west, anchor=west] (auds) {$\auds~ufe$};
+%    \node[base right=0.4cm of auds, anchor=base west] (audsty) {$\mathbb{N} \rightarrow \mathbb{N}~\mathsf{option}$};
+%    \path (auds.east) -- node[midway] {$:$} (audsty.west);
+%
+%    \begin{scope}[visible on=<2->]
+%    \node[below=1cm of audsty.west, anchor=west] (audsty1) {$(\mathbb{N}~\mathsf{option})~\mathsf{array}$};
+%    \draw[->] ([xshift=0.7cm]audsty.south west) -- ([xshift=0.7cm]audsty1.north west);
+%    \end{scope}
+%  \end{tikzpicture}
+%  \vfill
+%\end{frame}
+%
+%\section{Conclusion}
+%
+%%\begin{frame}{Benchmarks}
+%%  Show benchmarks, explain outliers
+%%\end{frame}
+%
+%% TODO: Note benchmarks
+%
+%\begin{frame}{Future work}
+%  \begin{itemize}[<+(1)->]
+%    \item Second variant of $\mathbfsf{union}$/$\explain$
+%    \item Congruence closure
+%    \item Nelson-Oppen theory combination
+%  \end{itemize}
+%\end{frame}
+%
+%\begin{frame}[standout]
+%  \LARGE Thank you for listening!
+%  \pause\vfill
+%  Questions?
+%\end{frame}
+
+\end{document}
+

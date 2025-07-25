@@ -7,7 +7,7 @@ session Union_Find_Explain_Paper = Union_Find_Explain +
   theories
     Document
   document_files
-    "root.bib"
     "root.tex"
+    "root.bib"
     "splncs04nat.bst"
     "llncs.cls"

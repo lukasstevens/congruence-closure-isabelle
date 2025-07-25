@@ -1,0 +1,154 @@
+% TODO: add paths to x and y?
+% TODO: add animations?
+% TODO: why most recent?
+% TODO: highlight that this is the original algorithm, time travel one our algorithm
+\begin{frame}{The efficient algorithm: idea}
+
+  \begin{center}
+  {%
+  \Large How to explain that $x \thickapprox y$?
+  }
+  \vfill
+  \begin{tikzpicture}[
+    >=latex, node distance=0.5cm,
+    aside/.append style={pattern=north east lines, pattern color=gray!55},
+    bside/.append style={pattern={Dots[radius=0.65pt]}, pattern color=gray!55}
+    ]
+    \node[draw, circle, preaction={fill, white}, style=bside] (lca) {LCA};
+    \begin{pgfonlayer}{background}
+      \begin{scope}[shape=isosceles triangle, shape border rotate=90, minimum height=1.3cm, minimum width=2.2cm]
+        \node[draw, anchor=north, below left=1.8cm and 3.5cm of lca.south west, aside] (l) {};
+        \path (l.north) -- node[pos=0.54, draw, anchor=north, bside] (m) {} (lca.west);
+        \node[draw, anchor=north, yshift=0.25cm, bside] (r) at (lca.south) {};
+      \end{scope}
+    \end{pgfonlayer}
+
+    \node[draw, circle, above right=0.18cm and 0.05cm of l.south west] (x) {$x$};
+    \node[draw, circle, left=0.1cm of l.east] (a) {$a$};
+    \node[draw, circle, above left=of r.south east] (y) {$y$};
+    \node[draw, circle, above right=of m.south west] (b) {$b$};
+    
+    \draw[->] (l.north) -- node[above, sloped] {$a \thickapprox b$} (m.north);
+    \draw[->, dashed] (m.north) -- (lca.west);
+    \draw[solid] (lca.north) -- ++(0,0.1);
+    \draw[dashed] (lca.north) ++(0,0.1) -- ++(0,0.4);
+  \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+% TODO: remove pedantic step 
+% TODO: clarify transitivity
+% TODO: clarify stripped down proofs
+% TODO: Indicate where we are in the proof
+% TODO: Highlight on which sides of the subgraphs the elements are (symmetry rule)
+\begin{frame}{The efficient algorithm: example}
+\textbf{Input:}
+\foreach \al [count=\i] in {9,15,11,0,0,4} {
+  \action<uncover@1-|alert@\al>{$\underbrace{\eqN{\i}}_\i$}
+}
+\vfill
+\begin{columns}
+\begin{column}{0.3\textwidth}
+\begin{forest}
+  for tree={
+    math content,
+    draw,
+    circle,
+    l=1.6cm,
+    s=1.4cm,
+    edge={<-}
+  }
+  [\varN{2}
+    [\varN{1}, edge={alert on={3-9}}, edge label={node[pos=0.6, above left] {$1$}}
+      [\varN{7}, edge={}, edge label={node[midway, left] {$5$}}]]
+    [\varN{6}, edge={}, edge label={node[pos=0.6, right] {$4$}}]
+    [\varN{5}, edge={alert on={3-7}}, edge label={node[pos=0.6, above right] {$6$}}
+      [\varN{4}, edge={alert on={10-13}}, edge label={node[midway, right] {$3$}}
+        [\varN{3}, edge={alert on={10-15}}, edge label={node[midway, right] {$2$}}]]]
+  ]
+\end{forest}
+\end{column}
+\hfill
+\begin{column}{0.65\textwidth}
+  \begin{forest}
+    for tree={
+      math content,
+      grow'=north,
+      edge path={},
+      inner sep=0pt,
+      s=0.2cm,
+      s sep=0.6cm,
+      l=0.5cm,
+      l sep=0.3cm
+    }
+    [{\varN{1} \thickapprox \varN{5}}, visalert on={2}, name=15
+    [{\varN{1} \thickapprox \varN{2}}, visalert on={6}, name=12] 
+    [{\varN{2} \thickapprox \varN{3}}, visalert on={5}, name=23
+    [{\varN{3} \thickapprox \varN{2}}, visalert on={4}, name=32]
+      ]
+      [{\varN{3} \thickapprox \varN{5}}, visalert on={7}, name=35
+      [{\varN{3} \thickapprox \varN{4}}, visalert on={12}, name=34]
+        [{\varN{4} \thickapprox \varN{5}}, visalert on={11}, name=45]
+        [{\varN{5} \thickapprox \varN{5}}, visalert on={13}, name=55]
+      ]
+    ]
+    \path let \p1 = (12.south west), \p2 = (15.north) in coordinate (l1l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (35.south east), \p2 = (15.north) in coordinate (l1r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south west), \p2 = (23.north) in coordinate (l2l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south east), \p2 = (23.north) in coordinate (l2r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (34.south west), \p2 = (35.north) in coordinate (l3l) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (55.south east), \p2 = (35.north) in coordinate (l3r) at (\x1, {(\y1+\y2)/2});
+    \path let \p1 = (32.south), \p2 = (12.north west) in coordinate (l4l) at (\x2, {(\y1+\y2)/2});
+    \path let \p1 = (32.south), \p2 = (12.north east) in coordinate (l4r) at (\x2, {(\y1+\y2)/2});
+    \begin{scope}[thick]
+      \draw[visible on=<3->, alert on={3-7}] (l1l) -- (l1r);
+      \draw[visible on=<5->, alert on={5}] (l2l) -- (l2r);
+      \draw[visible on=<10->, alert on={10-13}] (l3l) -- (l3r);
+      \draw[visible on=<8->, alert on={8-9}] (l4l) -- coordinate (l4m) (l4r);
+      \draw[visible on=<14->, alert on={14-15}] ([yshift=0.1cm]34.north west) -- ([yshift=0.1cm]34.north east);
+      \draw[visible on=<17-18>, alert on={17}] ([yshift=0.1cm]55.north west) -- ([yshift=0.1cm]55.north east);
+    \end{scope}
+  \end{forest}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{The efficient algorithm: recap}
+\begin{columns}
+  \begin{column}{0.3\textwidth}
+    \scalebox{0.8}{%
+  \begin{tikzpicture}[
+    >=latex, node distance=0.5cm,
+    aside/.append style={pattern=north east lines, pattern color=gray!55},
+    bside/.append style={pattern={Dots[radius=0.65pt]}, pattern color=gray!55}
+    ]
+    \node[draw, circle, preaction={fill, white}, style=bside] (lca) {LCA};
+    \begin{pgfonlayer}{background}
+      \begin{scope}[shape=isosceles triangle, shape border rotate=90, minimum height=1.3cm, minimum width=2.2cm]
+        \node[draw, anchor=north, below left=1.8cm and 3.5cm of lca.south west, aside] (l) {};
+        \path (l.north) -- node[pos=0.54, draw, anchor=north, bside] (m) {} (lca.west);
+        \node[draw, anchor=north, yshift=0.25cm, bside] (r) at (lca.south) {};
+      \end{scope}
+    \end{pgfonlayer}
+
+    \node[draw, circle, above right=0.18cm and 0.05cm of l.south west] (x) {$x$};
+    \node[draw, circle, left=0.1cm of l.east] (a) {$a$};
+    \node[draw, circle, above left=of r.south east] (y) {$y$};
+    \node[draw, circle, above right=of m.south west] (b) {$b$};
+    
+    \draw[->] (l.north) -- node[above, sloped] {$a \thickapprox b$} (m.north);
+    \draw[->, dashed] (m.north) -- (lca.west);
+    \draw[solid] (lca.north) -- ++(0,0.1);
+    \draw[dashed] (lca.north) ++(0,0.1) -- ++(0,0.4);
+  \end{tikzpicture}
+    }
+  \end{column}
+  \hfill
+  \begin{column}{0.65\textwidth}
+    \begin{itemize}[<+(1)->]
+      \item Exploits tree structure 
+      \item Complex recursion 
+    \end{itemize}
+  \end{column}
+\end{columns}
+\end{frame}
